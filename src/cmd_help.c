@@ -11,15 +11,23 @@
  * See also: cmd_version()
  */
 #include "flappy.h"
+#include <stdio.h>
 
-int cmd_help(void) {
+int cmd_help(int argc, char **argv) {
+    (void)argc; (void)argv;
     printf(
         "Flappy - Package manager for FlucidOS\n\n"
         "Usage:\n"
-        "  flappy <command> [options]\n\n"
+        "  flappy <command> [args]\n\n"
         "Commands:\n"
-        "  help        Show this help message\n"
-        "  version     Show Flappy version\n"
+        "  help\n"
+        "  version\n"
+        "  list\n"
+        "  info <pkg>\n"
+        "  files <pkg>\n"
+        "  owns <path>\n"
     );
     return 0;
 }
+
+

@@ -33,9 +33,17 @@ PKG_LIBS   := $(shell $(PKGCONF) --libs $(REQUIRED_LIBS))
 SRCS := \
 	$(SRC_DIR)/main.c \
 	$(SRC_DIR)/cli.c \
-	$(SRC_DIR)/version.c \
 	$(SRC_DIR)/log.c \
-	$(SRC_DIR)/help.c
+	$(SRC_DIR)/db_guard.c \
+	$(SRC_DIR)/db_schema.c \
+	$(SRC_DIR)/db_runtime.c \
+	$(SRC_DIR)/cmd_help.c \
+	$(SRC_DIR)/cmd_version.c \
+	$(SRC_DIR)/cmd_list.c \
+	$(SRC_DIR)/cmd_info.c \
+	$(SRC_DIR)/cmd_files.c \
+	$(SRC_DIR)/cmd_owns.c
+
 
 
 # Object files derived from source files
@@ -71,10 +79,15 @@ $(DEV_BIN): $(OBJS)
 install: all
 	@if [ "$$(id -u)" -ne 0 ]; then \
 		echo "Error: installation requires root privileges"; exit 1; fi
-	install -m 0755 $(PROD_BIN) $(BINDIR)/$(PROD_BIN)
-	touch $(LOGFILE)
-	chmod 0600 $(LOGFILE)
-	chown root:root $(LOGFILE)
+	@echo "Installing $(PROD_BIN) to $(BINDIR)"
+	@install -m 0755 $(PROD_BIN) $(BINDIR)/$(PROD_BIN)
+	@echo "Creating log file $(LOGFILE)"
+	@touch $(LOGFILE)
+	@chmod 0600 $(LOGFILE)
+	@chown root:root $(LOGFILE)
+	@echo "Initializing database..."
+	@$(BINDIR)/$(PROD_BIN) --init-db
+
 
 # Clean target: remove generated artifacts and binaries
 clean:
