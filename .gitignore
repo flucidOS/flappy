@@ -1,0 +1,13 @@
+# Build artifacts
+*.o
+flappy
+flappy-dev
+
+# Editor junk
+*.swp
+*.swo
+*~
+
+# OS junk
+.DS_Store
+.vscode/
