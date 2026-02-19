@@ -42,9 +42,9 @@ SRCS := \
 	$(SRC_DIR)/cmd_list.c \
 	$(SRC_DIR)/cmd_info.c \
 	$(SRC_DIR)/cmd_files.c \
-	$(SRC_DIR)/cmd_owns.c
-
-
+	$(SRC_DIR)/cmd_owns.c \
+	$(SRC_DIR)/pkg_reader.c \
+	$(SRC_DIR)/pkg_parser.c 
 
 # Object files derived from source files
 OBJS := $(SRCS:.c=.o)
