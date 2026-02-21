@@ -22,6 +22,7 @@ static const struct command commands[] = {
     { "info",    1, cmd_info    },
     { "files",   1, cmd_files   },
     { "owns",    1, cmd_owns    },
+    { "inspect", 1, cmd_inspect },
 };
 
 /* =====================

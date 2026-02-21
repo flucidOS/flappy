@@ -32,6 +32,7 @@ int cmd_list(int argc, char **argv);
 int cmd_info(int argc, char **argv);
 int cmd_files(int argc, char **argv);
 int cmd_owns(int argc, char **argv);
+int cmd_inspect(int argc, char **argv);
 
 /* =====================
  * Database

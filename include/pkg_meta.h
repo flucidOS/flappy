@@ -72,5 +72,6 @@ void pkg_meta_free(struct flappy_pkg *pkg);
 
 /* Parser entry */
 struct flappy_pkg *pkg_parse(char *buffer, size_t size);
+struct flappy_pkg *pkg_read_from_file(const char *path);
 
 #endif
