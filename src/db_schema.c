@@ -11,26 +11,37 @@
 
 /* SQL schema definition for database initialization */
 static const char *SCHEMA_SQL =
+"PRAGMA foreign_keys = ON;"
 "BEGIN;"
+
 "CREATE TABLE IF NOT EXISTS meta ("
 "  schema_version INTEGER NOT NULL"
 ");"
+
 "DELETE FROM meta;"
-"INSERT INTO meta(schema_version) VALUES (1);"
+"INSERT INTO meta(schema_version) VALUES (2);"
+
 "CREATE TABLE IF NOT EXISTS packages ("
 "  id INTEGER PRIMARY KEY,"
 "  name TEXT UNIQUE NOT NULL,"
 "  version TEXT NOT NULL,"
-"  explicit INTEGER NOT NULL"
+"  explicit INTEGER NOT NULL CHECK (explicit IN (0,1))"
 ");"
+
 "CREATE TABLE IF NOT EXISTS files ("
 "  path TEXT PRIMARY KEY,"
-"  package_id INTEGER NOT NULL"
+"  package_id INTEGER NOT NULL,"
+"  FOREIGN KEY(package_id) REFERENCES packages(id) ON DELETE CASCADE"
 ");"
+
 "CREATE TABLE IF NOT EXISTS dependencies ("
 "  package_id INTEGER NOT NULL,"
-"  depends_on INTEGER NOT NULL"
+"  depends_on INTEGER NOT NULL,"
+"  PRIMARY KEY(package_id, depends_on),"
+"  FOREIGN KEY(package_id) REFERENCES packages(id) ON DELETE CASCADE,"
+"  FOREIGN KEY(depends_on) REFERENCES packages(id) ON DELETE CASCADE"
 ");"
+
 "COMMIT;";
 
 /* Create directory with 0755 permissions or exit if creation fails */
