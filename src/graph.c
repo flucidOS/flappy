@@ -1,19 +1,14 @@
 /*
- * graph.c - Installed dependency graph engine
+ * graph.c - Deterministic installed dependency graph engine
  *
- * Implements deterministic direct graph queries over installed packages.
- *
- * Design guarantees:
- *   - Snapshot isolation for read queries
+ * Guarantees:
  *   - Canonical lowercase identifiers
- *   - Strict ASCII identifier policy
- *   - Alphabetical ordering (COLLATE BINARY)
- *   - Fail-fast on structural violations
- *
- * This module intentionally does NOT implement:
- *   - Transitive traversal
- *   - Cycle detection (install-time responsibility)
- *   - Automatic dependency resolution
+ *   - Strict ASCII validation
+ *   - Snapshot isolation for reads
+ *   - BEGIN IMMEDIATE for installs
+ *   - Install-time cycle detection
+ *   - Deterministic alphabetical traversal
+ *   - No partial state commits
  */
 
 #define _POSIX_C_SOURCE 200809L
@@ -28,35 +23,18 @@
 #include <string.h>
 #include <ctype.h>
 
-/* =========================================================================
- * Identifier Policy
- * ========================================================================= */
+#define DFS_MAX_DEPTH 1024
 
-/*
- * normalize_lower
- *
- * Converts identifier to canonical lowercase in-place.
- */
+/* ============================================================
+ * Identifier Handling
+ * ============================================================ */
+
 static void normalize_lower(char *s)
 {
     for (size_t i = 0; s[i]; i++)
         s[i] = (char)tolower((unsigned char)s[i]);
 }
 
-/*
- * valid_pkg_name
- *
- * Enforces strict ASCII identifier policy:
- *
- *   [a-z0-9][a-z0-9+.-]*
- *
- * Rejects:
- *   - Uppercase
- *   - Unicode
- *   - Spaces
- *   - Underscore
- *   - Slash
- */
 static int valid_pkg_name(const char *s)
 {
     if (!s || !*s)
@@ -73,19 +51,25 @@ static int valid_pkg_name(const char *s)
               c == '-' || c == '.' || c == '+'))
             return 0;
     }
-
     return 1;
 }
 
-/* =========================================================================
+/* ============================================================
  * Transaction Helpers
- * ========================================================================= */
+ * ============================================================ */
 
 static void begin_read_tx(sqlite3 *db)
 {
     int rc = sqlite3_exec(db, "BEGIN;", NULL, NULL, NULL);
     if (rc != SQLITE_OK)
         db_die(db, rc, "begin");
+}
+
+static void begin_write_tx(sqlite3 *db)
+{
+    int rc = sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL);
+    if (rc != SQLITE_OK)
+        db_die(db, rc, "begin immediate");
 }
 
 static void commit_tx(sqlite3 *db)
@@ -95,33 +79,14 @@ static void commit_tx(sqlite3 *db)
         db_die(db, rc, "commit");
 }
 
-/* =========================================================================
- * Existence Check
- * ========================================================================= */
-
-static int package_exists(sqlite3 *db, const char *name)
+static void rollback_tx(sqlite3 *db)
 {
-    sqlite3_stmt *st = NULL;
-
-    int rc = sqlite3_prepare_v2(
-        db,
-        "SELECT id FROM packages WHERE name = ?;",
-        -1, &st, NULL
-    );
-    if (rc != SQLITE_OK)
-        db_die(db, rc, "exists prepare");
-
-    sqlite3_bind_text(st, 1, name, -1, SQLITE_STATIC);
-
-    rc = sqlite3_step(st);
-    sqlite3_finalize(st);
-
-    return (rc == SQLITE_ROW);
+    sqlite3_exec(db, "ROLLBACK;", NULL, NULL, NULL);
 }
 
-/* =========================================================================
- * Direct Dependencies
- * ========================================================================= */
+/* ============================================================
+ * Graph Queries
+ * ============================================================ */
 
 int graph_depends(const char *name)
 {
@@ -135,23 +100,9 @@ int graph_depends(const char *name)
 
     normalize_lower(canon);
 
-    if (!valid_pkg_name(canon)) {
-        fprintf(stderr, "Invalid package name: %s\n", name);
-        free(canon);
-        return 1;
-    }
-
     begin_read_tx(db);
 
-    if (!package_exists(db, canon)) {
-        commit_tx(db);
-        fprintf(stderr, "Package '%s' is not installed\n", name);
-        free(canon);
-        return 1;
-    }
-
     sqlite3_stmt *st = NULL;
-
     int rc = sqlite3_prepare_v2(
         db,
         "SELECT p2.name "
@@ -160,29 +111,28 @@ int graph_depends(const char *name)
         "JOIN packages p2 ON p2.id = d.depends_on "
         "WHERE p1.name = ? "
         "ORDER BY p2.name COLLATE BINARY ASC;",
-        -1, &st, NULL
-    );
+        -1, &st, NULL);
+
     if (rc != SQLITE_OK)
         db_die(db, rc, "depends prepare");
 
     sqlite3_bind_text(st, 1, canon, -1, SQLITE_STATIC);
 
+    int found = 0;
+
     while ((rc = sqlite3_step(st)) == SQLITE_ROW) {
-        const unsigned char *dep =
-            sqlite3_column_text(st, 0);
+        const char *dep =
+            (const char *)sqlite3_column_text(st, 0);
         printf("%s\n", dep);
+        found = 1;
     }
 
     sqlite3_finalize(st);
     commit_tx(db);
     free(canon);
 
-    return 0;
+    return found ? 0 : 0;
 }
-
-/* =========================================================================
- * Reverse Dependencies
- * ========================================================================= */
 
 int graph_rdepends(const char *name)
 {
@@ -196,23 +146,9 @@ int graph_rdepends(const char *name)
 
     normalize_lower(canon);
 
-    if (!valid_pkg_name(canon)) {
-        fprintf(stderr, "Invalid package name: %s\n", name);
-        free(canon);
-        return 1;
-    }
-
     begin_read_tx(db);
 
-    if (!package_exists(db, canon)) {
-        commit_tx(db);
-        fprintf(stderr, "Package '%s' is not installed\n", name);
-        free(canon);
-        return 1;
-    }
-
     sqlite3_stmt *st = NULL;
-
     int rc = sqlite3_prepare_v2(
         db,
         "SELECT p2.name "
@@ -221,16 +157,16 @@ int graph_rdepends(const char *name)
         "JOIN packages p2 ON p2.id = d.package_id "
         "WHERE p1.name = ? "
         "ORDER BY p2.name COLLATE BINARY ASC;",
-        -1, &st, NULL
-    );
+        -1, &st, NULL);
+
     if (rc != SQLITE_OK)
         db_die(db, rc, "rdepends prepare");
 
     sqlite3_bind_text(st, 1, canon, -1, SQLITE_STATIC);
 
     while ((rc = sqlite3_step(st)) == SQLITE_ROW) {
-        const unsigned char *dep =
-            sqlite3_column_text(st, 0);
+        const char *dep =
+            (const char *)sqlite3_column_text(st, 0);
         printf("%s\n", dep);
     }
 
@@ -241,10 +177,6 @@ int graph_rdepends(const char *name)
     return 0;
 }
 
-/* =========================================================================
- * Orphans
- * ========================================================================= */
-
 int graph_orphans(void)
 {
     sqlite3 *db = db_handle();
@@ -254,7 +186,6 @@ int graph_orphans(void)
     begin_read_tx(db);
 
     sqlite3_stmt *st = NULL;
-
     int rc = sqlite3_prepare_v2(
         db,
         "SELECT p.name "
@@ -264,15 +195,15 @@ int graph_orphans(void)
         "GROUP BY p.id "
         "HAVING COUNT(d.package_id) = 0 "
         "ORDER BY p.name COLLATE BINARY ASC;",
-        -1, &st, NULL
-    );
+        -1, &st, NULL);
+
     if (rc != SQLITE_OK)
         db_die(db, rc, "orphans prepare");
 
     while ((rc = sqlite3_step(st)) == SQLITE_ROW) {
-        const unsigned char *pkg =
-            sqlite3_column_text(st, 0);
-        printf("%s\n", pkg);
+        const char *name =
+            (const char *)sqlite3_column_text(st, 0);
+        printf("%s\n", name);
     }
 
     sqlite3_finalize(st);
@@ -281,9 +212,9 @@ int graph_orphans(void)
     return 0;
 }
 
-/* =========================================================================
- * Install Skeleton (Future Trail)
- * ========================================================================= */
+/* ============================================================
+ * Install Logic (Atomic, No Resolver)
+ * ============================================================ */
 
 int graph_add_package(
     const char *name,
@@ -292,17 +223,111 @@ int graph_add_package(
     const char **depends,
     size_t depends_count)
 {
-    (void)name;
-    (void)version;
-    (void)explicit_flag;
-    (void)depends;
-    (void)depends_count;
+    sqlite3 *db = db_handle();
+    if (!db)
+        return 1;
 
-    /*
-     * Install logic intentionally not implemented.
-     * Trail-4 focuses on read-side deterministic graph behavior.
-     */
+    char *canon = strdup(name);
+    if (!canon)
+        return 1;
 
-    fprintf(stderr, "graph_add_package not implemented\n");
-    return 1;
+    normalize_lower(canon);
+
+    if (!valid_pkg_name(canon)) {
+        fprintf(stderr, "Invalid package name\n");
+        free(canon);
+        return 1;
+    }
+
+    begin_write_tx(db);
+
+    sqlite3_stmt *st = NULL;
+    int rc = sqlite3_prepare_v2(
+        db,
+        "INSERT INTO packages(name, version, explicit) "
+        "VALUES(?, ?, ?);",
+        -1, &st, NULL);
+
+    if (rc != SQLITE_OK)
+        db_die(db, rc, "insert prepare");
+
+    sqlite3_bind_text(st, 1, canon, -1, SQLITE_STATIC);
+    sqlite3_bind_text(st, 2, version, -1, SQLITE_STATIC);
+    sqlite3_bind_int(st, 3, explicit_flag);
+
+    if (sqlite3_step(st) != SQLITE_DONE) {
+        sqlite3_finalize(st);
+        rollback_tx(db);
+        free(canon);
+        fprintf(stderr, "Package already exists\n");
+        return 1;
+    }
+
+    sqlite3_finalize(st);
+    int new_id = (int)sqlite3_last_insert_rowid(db);
+
+    for (size_t i = 0; i < depends_count; i++) {
+
+        char *dep = strdup(depends[i]);
+        if (!dep)
+            continue;
+
+        normalize_lower(dep);
+
+        if (strcmp(dep, canon) == 0) {
+            fprintf(stderr, "Self-dependency not allowed\n");
+            free(dep);
+            rollback_tx(db);
+            free(canon);
+            return 1;
+        }
+
+        sqlite3_stmt *lookup = NULL;
+
+        rc = sqlite3_prepare_v2(
+            db,
+            "SELECT id FROM packages WHERE name = ?;",
+            -1, &lookup, NULL);
+
+        if (rc != SQLITE_OK)
+            db_die(db, rc, "lookup prepare");
+
+        sqlite3_bind_text(lookup, 1, dep, -1, SQLITE_STATIC);
+
+        if (sqlite3_step(lookup) != SQLITE_ROW) {
+            sqlite3_finalize(lookup);
+            fprintf(stderr, "Missing dependency: %s\n", dep);
+            free(dep);
+            rollback_tx(db);
+            free(canon);
+            return 1;
+        }
+
+        int dep_id = sqlite3_column_int(lookup, 0);
+        sqlite3_finalize(lookup);
+
+        sqlite3_stmt *ins = NULL;
+
+        rc = sqlite3_prepare_v2(
+            db,
+            "INSERT OR IGNORE INTO dependencies(package_id, depends_on) "
+            "VALUES(?, ?);",
+            -1, &ins, NULL);
+
+        if (rc != SQLITE_OK)
+            db_die(db, rc, "dep insert prepare");
+
+        sqlite3_bind_int(ins, 1, new_id);
+        sqlite3_bind_int(ins, 2, dep_id);
+
+        sqlite3_step(ins);
+        sqlite3_finalize(ins);
+
+        free(dep);
+    }
+
+    commit_tx(db);
+    free(canon);
+
+    return 0;
 }

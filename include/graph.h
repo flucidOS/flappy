@@ -2,26 +2,23 @@
 #define GRAPH_H
 
 /*
- * graph.h - Installed dependency graph interface
+ * graph.h - Installed dependency graph engine
  *
- * This layer implements deterministic graph semantics over the
- * installed package database.
+ * This module provides deterministic operations over the
+ * installed package dependency graph.
  *
- * Responsibilities:
- *   - Direct dependency queries
- *   - Reverse dependency queries
- *   - Orphan computation
- *   - Strict identifier validation and normalization
+ * Architectural guarantees:
  *
- * This layer does NOT:
- *   - Perform installation logic (handled elsewhere)
- *   - Resolve transitive dependencies
- *   - Auto-install missing packages
+ *   - Canonical lowercase identifiers
+ *   - Strict ASCII identifier validation
+ *   - Snapshot isolation for read queries
+ *   - BEGIN IMMEDIATE for install operations
+ *   - Deterministic traversal order (BINARY)
+ *   - Install-time cycle detection
+ *   - No partial graph states ever committed
  *
- * All graph operations assume:
- *   - Canonical lowercase package identifiers
- *   - Strict ASCII identifier policy: [a-z0-9+.-]
- *   - Snapshot transaction consistency
+ * The graph identity model is integer-based (package_id).
+ * Labels (names) are presentation metadata only.
  */
 
 #include <stddef.h>
@@ -29,19 +26,18 @@
 /*
  * graph_add_package
  *
- * Inserts a package node and its direct dependency edges.
- * Edges reference package identity via integer primary keys.
+ * Install a new package node and its direct dependencies.
  *
- * Parameters:
- *   name          - canonical package name (lowercase enforced)
- *   version       - package version string
- *   explicit_flag - 1 if explicitly installed, 0 if dependency
- *   depends       - array of dependency names (canonicalized)
- *   depends_count - number of dependency entries
+ * Behavior:
+ *   - Fails if package already exists
+ *   - Fails if any dependency is missing
+ *   - Fails on self-dependency
+ *   - Fails if resulting graph would contain a cycle
+ *   - Entire operation is atomic
  *
  * Returns:
  *   0 on success
- *   1 on validation or structural failure
+ *   non-zero on failure
  */
 int graph_add_package(
     const char *name,
@@ -54,48 +50,25 @@ int graph_add_package(
 /*
  * graph_depends
  *
- * Prints direct dependencies of a package.
+ * Print direct dependencies of an installed package.
  *
- * Behavior:
- *   - Fails if package does not exist
- *   - Prints nothing if no direct dependencies
- *   - Output sorted alphabetically (BINARY collation)
- *
- * Returns:
- *   0 on success
- *   1 if package does not exist
+ * Deterministic alphabetical output.
  */
 int graph_depends(const char *name);
 
 /*
  * graph_rdepends
  *
- * Prints direct reverse dependencies of a package.
- *
- * Behavior:
- *   - Fails if package does not exist
- *   - Prints nothing if no reverse dependencies
- *   - Output sorted alphabetically (BINARY collation)
- *
- * Returns:
- *   0 on success
- *   1 if package does not exist
+ * Print direct reverse dependencies of an installed package.
  */
 int graph_rdepends(const char *name);
 
 /*
  * graph_orphans
  *
- * Prints packages that:
- *   - Are not explicit (explicit = 0)
+ * Print packages that:
+ *   - Are not explicit
  *   - Have no reverse dependencies
- *
- * Behavior:
- *   - Empty result is valid (exit 0)
- *   - Output sorted alphabetically (BINARY collation)
- *
- * Returns:
- *   0 on success
  */
 int graph_orphans(void);
 
