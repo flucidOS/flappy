@@ -69,6 +69,8 @@ void db_open_or_die(void) {
         sqlite3_close(G_DB);
         exit(1);
     }
+
+    sqlite3_exec(G_DB, "PRAGMA foreign_keys = ON;", NULL, NULL, NULL);
 }
 
 void db_close(void) {

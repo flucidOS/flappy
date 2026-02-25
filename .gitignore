@@ -11,3 +11,6 @@ flappy-dev
 # OS junk
 .DS_Store
 .vscode/
+
+# test files
+tests/

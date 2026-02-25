@@ -15,14 +15,18 @@ struct command {
     int (*handler)(int argc, char **argv);
 };
 
+
 static const struct command commands[] = {
-    { "help",    0, cmd_help    },
-    { "version", 0, cmd_version },
-    { "list",    0, cmd_list    },
-    { "info",    1, cmd_info    },
-    { "files",   1, cmd_files   },
-    { "owns",    1, cmd_owns    },
-    { "inspect", 1, cmd_inspect },
+    { "help",     0, cmd_help     },
+    { "version",  0, cmd_version  },
+    { "list",     0, cmd_list     },
+    { "info",     1, cmd_info     },
+    { "files",    1, cmd_files    },
+    { "owns",     1, cmd_owns     },
+    { "inspect",  1, cmd_inspect  },
+    { "depends",  1, cmd_depends  },
+    { "rdepends", 1, cmd_rdepends },
+    { "orphans",  0, cmd_orphans  },
 };
 
 /* =====================
