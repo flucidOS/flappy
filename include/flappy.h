@@ -1,5 +1,6 @@
 #ifndef FLAPPY_H
 #define FLAPPY_H
+#define FLAPPY_DEFAULT_REPO_URL "https://example.com/flappy"
 
 #include <stdio.h>
 #include <stdarg.h>

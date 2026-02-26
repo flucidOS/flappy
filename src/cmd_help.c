@@ -13,20 +13,44 @@
 #include "flappy.h"
 #include <stdio.h>
 
-int cmd_help(int argc, char **argv) {
-    (void)argc; (void)argv;
+/*
+ * cmd_help - Display help information for Flappy
+ *
+ * Lists all available commands across:
+ *   - Core commands
+ *   - Trail-4 graph commands
+ *   - Trail-5 repository commands
+ */
+
+int cmd_help(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+
     printf(
         "Flappy - Package manager for FlucidOS\n\n"
         "Usage:\n"
         "  flappy <command> [args]\n\n"
-        "Commands:\n"
-        "  help\n"
-        "  version\n"
-        "  list\n"
-        "  info <pkg>\n"
-        "  files <pkg>\n"
-        "  owns <path>\n"
+
+        "Core Commands:\n"
+        "  help                  Show this help message\n"
+        "  version               Show version information\n"
+        "  --init-db             Initialize installed database\n\n"
+
+        "  list                  List installed packages\n"
+        "  info <pkg>            Show package info\n"
+        "  files <pkg>           List package files\n"
+        "  owns <path>           Show which package owns a file\n"
+        "  inspect <pkg>         Inspect package metadata\n"
+        "  depends <pkg>         Show direct dependencies\n"
+        "  rdepends <pkg>        Show reverse dependencies\n"
+        "  orphans               List unused dependency packages\n\n"
+        
+        "  update                Update repository metadata (root required)\n"
+        "  search [term]         Search repository packages\n"
+        "  upgrade               Show available upgrades (dry-run)\n\n"
     );
+
     return 0;
 }
 
