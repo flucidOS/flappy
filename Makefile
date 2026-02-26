@@ -22,10 +22,10 @@ LOGFILE := /var/log/flappy.log
 
 # Compiler flags: C11 standard, all warnings enabled, treat warnings as errors
 CFLAGS  := -std=c11 -Wall -Wextra -Werror -I$(INC_DIR)
-LDFLAGS :=
+LDFLAGS := -lssl -lcrypto
 
 # External dependencies required by the project
-REQUIRED_LIBS := libbsd sqlite3 libarchive libcurl
+REQUIRED_LIBS := libbsd sqlite3 libarchive libcurl  
 PKG_CFLAGS := $(shell $(PKGCONF) --cflags $(REQUIRED_LIBS))
 PKG_LIBS   := $(shell $(PKGCONF) --libs $(REQUIRED_LIBS))
 
@@ -49,7 +49,11 @@ SRCS := \
 	$(SRC_DIR)/cmd_depends.c \
 	$(SRC_DIR)/cmd_rdepends.c \
 	$(SRC_DIR)/cmd_orphans.c \
-	$(SRC_DIR)/graph.c
+	$(SRC_DIR)/graph.c \
+	$(SRC_DIR)/version.c \
+	$(SRC_DIR)/repo_update.c \
+	$(SRC_DIR)/repo_search.c \
+	$(SRC_DIR)/repo_upgrade.c	
 
 # Object files derived from source files
 OBJS := $(SRCS:.c=.o)
