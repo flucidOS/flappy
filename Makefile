@@ -53,7 +53,8 @@ SRCS := \
 	$(SRC_DIR)/version.c \
 	$(SRC_DIR)/repo_update.c \
 	$(SRC_DIR)/repo_search.c \
-	$(SRC_DIR)/repo_upgrade.c	
+	$(SRC_DIR)/repo_upgrade.c \
+	$(SRC_DIR)/install_guard.c
 
 # Object files derived from source files
 OBJS := $(SRCS:.c=.o)
