@@ -62,4 +62,6 @@ int repo_search(const char *term);
  */
 int repo_upgrade(void);
 
+int repo_install(const char *repo);
+
 #endif /* REPO_H */
