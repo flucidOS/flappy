@@ -54,8 +54,14 @@ SRCS := \
 	$(SRC_DIR)/repo_update.c \
 	$(SRC_DIR)/repo_search.c \
 	$(SRC_DIR)/repo_upgrade.c \
-	$(SRC_DIR)/install_guard.c	
-
+	$(SRC_DIR)/install_guard.c \
+	$(SRC_DIR)/install.c \
+	$(SRC_DIR)/cmd_install.c \
+	$(SRC_DIR)/install_download.c \
+	$(SRC_DIR)/install_lookup.c \
+	$(SRC_DIR)/install_verify.c \
+	$(SRC_DIR)/install_extract.c \
+	$(SRC_DIR)/install_commit.c \
 # Object files derived from source files
 OBJS := $(SRCS:.c=.o)
 
