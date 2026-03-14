@@ -20,7 +20,7 @@ static int validate_line_lengths(const char *buf);
  * pkg_read_from_file
  *
  * Strict archive structure enforcement:
- *  - Exactly one .PKGINFO at archive root
+ *  - Exactly one .PKGINFO at archive root (stored as .PKGINFO or ./.PKGINFO)
  *  - Must be regular file
  *  - No nested/shadow .PKGINFO
  *  - No absolute paths
@@ -76,8 +76,8 @@ struct flappy_pkg *pkg_read_from_file(const char *path)
             return NULL;
         }
 
-        /* Strict metadata enforcement */
-        if (strcmp(name, ".PKGINFO") == 0) {
+        /* Match .PKGINFO whether stored as ".PKGINFO" or "./.PKGINFO" */
+        if (strcmp(name, ".PKGINFO") == 0 || strcmp(name, "./.PKGINFO") == 0) {
 
             if (archive_entry_filetype(entry) != AE_IFREG) {
                 log_error(".PKGINFO is not a regular file");
@@ -137,7 +137,8 @@ struct flappy_pkg *pkg_read_from_file(const char *path)
 
             buffer[total] = '\0';
         }
-        else if (strstr(name, ".PKGINFO") != NULL) {
+        else if (strstr(name, ".PKGINFO") != NULL &&
+                 strcmp(name, "./.PKGINFO") != 0) {
             /* Any shadow or nested PKGINFO is illegal */
             log_error("Invalid .PKGINFO location: %s", name);
             archive_read_free(a);

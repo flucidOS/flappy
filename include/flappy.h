@@ -1,6 +1,6 @@
 #ifndef FLAPPY_H
 #define FLAPPY_H
-#define FLAPPY_DEFAULT_REPO_URL "https://example.com/flappy"
+#define FLAPPY_DEFAULT_REPO_URL "https://flucidos.github.io/flappy-repo"
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -41,24 +41,21 @@ int cmd_orphans(int argc, char **argv);
 /* =====================
  * Database
  * ===================== */
-#define FLAPPY_DB_DIR "/var/lib/flappy"
+#define FLAPPY_DB_DIR  "/var/lib/flappy"
 #define FLAPPY_DB_PATH "/var/lib/flappy/flappy.db"
 #define FLAPPY_SCHEMA_VERSION 2
 
-/* DB access*/
+/* DB access */
 sqlite3 *db_handle(void);
 
 /* DB bootstrap (install-time) */
 int db_bootstrap_install(void);
 
-/* DB runtime (Trail 2.2 will fill these) */
+/* DB runtime */
 void db_open_or_die(void);
 void db_close(void);
 
-
 #endif /* FLAPPY_H */
-
-
 
 /*
  * DB lifecycle invariant:
