@@ -62,6 +62,7 @@ SRCS := \
 	$(SRC_DIR)/install_verify.c \
 	$(SRC_DIR)/install_extract.c \
 	$(SRC_DIR)/install_commit.c \
+	$(SRC_DIR)/install_conflict.c 
 # Object files derived from source files
 OBJS := $(SRCS:.c=.o)
 
@@ -77,7 +78,7 @@ check-deps:
 
 # Production binary target: link object files to create executable
 $(PROD_BIN): $(OBJS)
-	$(CC) $(CFLAGS) $(PKG_CFLAGS) $^ -o $@ $(PKG_LIBS)
+	$(CC) $(CFLAGS) $(PKG_CFLAGS) $^ -o $@ $(PKG_LIBS) $(LDFLAGS)
 
 # Development target: build with debug symbols enabled
 dev: CFLAGS += -DFLAPPY_DEV
@@ -85,7 +86,7 @@ dev: check-deps $(DEV_BIN)
 
 # Development binary target: link object files with debug flags
 $(DEV_BIN): $(OBJS)
-	$(CC) $(CFLAGS) $(PKG_CFLAGS) $^ -o $@ $(PKG_LIBS)
+	$(CC) $(CFLAGS) $(PKG_CFLAGS) $^ -o $@ $(PKG_LIBS) $(LDFLAGS)
 
 # Compilation rule: convert C source files to object files
 %.o: %.c
