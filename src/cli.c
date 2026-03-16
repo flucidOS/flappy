@@ -41,20 +41,23 @@ struct command {
 };
 
 static const struct command commands[] = {
-    { "help",     0, cmd_help     },
-    { "version",  0, cmd_version  },
-    { "list",     0, cmd_list     },
-    { "info",     1, cmd_info     },
-    { "files",    1, cmd_files    },
-    { "owns",     1, cmd_owns     },
-    { "inspect",  1, cmd_inspect  },
-    { "depends",  1, cmd_depends  },
-    { "rdepends", 1, cmd_rdepends },
-    { "orphans",  0, cmd_orphans  },
-    { "update",   0, cmd_update   },
-    { "search",   0, cmd_search   },
-    { "upgrade",  0, cmd_upgrade  },
-    { "install",  1, cmd_install  }
+    { "help",       0, cmd_help       },
+    { "version",    0, cmd_version    },
+    { "list",       0, cmd_list       },
+    { "info",       1, cmd_info       },
+    { "files",      1, cmd_files      },
+    { "owns",       1, cmd_owns       },
+    { "inspect",    1, cmd_inspect    },
+    { "depends",    1, cmd_depends    },
+    { "rdepends",   1, cmd_rdepends   },
+    { "orphans",    0, cmd_orphans    },
+    { "update",     0, cmd_update     },
+    { "search",     0, cmd_search     },
+    { "upgrade",    0, cmd_upgrade    },
+    { "install",    1, cmd_install    },
+    { "remove",     1, cmd_remove     },
+    { "purge",      1, cmd_purge      },
+    { "autoremove", 0, cmd_autoremove },
 };
 
 static int handle_command(const char *cmd, int argc, char **argv)
