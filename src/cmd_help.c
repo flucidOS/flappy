@@ -1,26 +1,9 @@
-/**
- * cmd_help - Display help information for the Flappy package manager
- *
- * This function outputs a comprehensive help message to stdout, including
- * usage instructions and available commands for the Flappy package manager.
- * It provides users with quick reference information about the tool's basic
- * functionality and command-line interface.
- *
- * Return: Always returns 0 to indicate successful execution.
- *
- * See also: cmd_version()
+/*
+ * cmd_help.c - Display help for Flappy
  */
+
 #include "flappy.h"
 #include <stdio.h>
-
-/*
- * cmd_help - Display help information for Flappy
- *
- * Lists all available commands across:
- *   - Core commands
- *   - Trail-4 graph commands
- *   - Trail-5 repository commands
- */
 
 int cmd_help(int argc, char **argv)
 {
@@ -37,6 +20,7 @@ int cmd_help(int argc, char **argv)
         "  version               Show version information\n"
         "  --init-db             Initialize installed database\n\n"
 
+        "Query Commands:\n"
         "  list                  List installed packages\n"
         "  info <pkg>            Show package info\n"
         "  files <pkg>           List package files\n"
@@ -45,13 +29,21 @@ int cmd_help(int argc, char **argv)
         "  depends <pkg>         Show direct dependencies\n"
         "  rdepends <pkg>        Show reverse dependencies\n"
         "  orphans               List unused dependency packages\n\n"
-        
+
+        "Repository Commands:\n"
         "  update                Update repository metadata (root required)\n"
         "  search [term]         Search repository packages\n"
         "  upgrade               Show available upgrades (dry-run)\n\n"
+
+        "Install Commands:\n"
+        "  install <pkg>         Install a package\n\n"
+
+        "Removal Commands:\n"
+        "  remove <pkg>          Remove package, keep config files\n"
+        "  purge <pkg>           Remove package and config files\n"
+        "  purge --force <pkg>   Force removal even if dependents exist\n"
+        "  autoremove            Remove orphaned dependency packages\n\n"
     );
 
     return 0;
 }
-
-

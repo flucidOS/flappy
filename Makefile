@@ -62,7 +62,11 @@ SRCS := \
 	$(SRC_DIR)/install_verify.c \
 	$(SRC_DIR)/install_extract.c \
 	$(SRC_DIR)/install_commit.c \
-	$(SRC_DIR)/install_conflict.c 
+	$(SRC_DIR)/install_conflict.c \
+	$(SRC_DIR)/remove.c \
+	$(SRC_DIR)/cmd_remove.c \
+	$(SRC_DIR)/cmd_purge.c \
+	$(SRC_DIR)/cmd_autoremove.c	
 # Object files derived from source files
 OBJS := $(SRCS:.c=.o)
 
