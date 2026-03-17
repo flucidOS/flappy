@@ -1,5 +1,9 @@
 /*
  * cli.c - Command line dispatcher for Flappy
+ *
+ * getopt_long only processes global flags (--help, --version, --init-db).
+ * Everything after the command name is passed raw to the handler.
+ * POSIXLY_CORRECT behaviour: stop at first non-option argument.
  */
 
 #include "flappy.h"
@@ -58,6 +62,8 @@ static const struct command commands[] = {
     { "remove",     1, cmd_remove     },
     { "purge",      1, cmd_purge      },
     { "autoremove", 0, cmd_autoremove },
+    { "verify",     0, cmd_verify     },
+    { "clean",      0, cmd_clean      },
 };
 
 static int handle_command(const char *cmd, int argc, char **argv)
@@ -79,6 +85,12 @@ static int handle_command(const char *cmd, int argc, char **argv)
 
 int cli_dispatch(int argc, char **argv)
 {
+    /*
+     * Only process global long options that appear BEFORE the command.
+     * Use "+" prefix on optstring to stop at first non-option argument —
+     * this prevents getopt from consuming --all, --force etc. that
+     * belong to subcommands.
+     */
     static struct option long_opts[] = {
         { "help",    no_argument, 0, 'h'  },
         { "version", no_argument, 0, 'v'  },
@@ -87,7 +99,7 @@ int cli_dispatch(int argc, char **argv)
     };
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "", long_opts, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "+", long_opts, NULL)) != -1) {
         switch (opt) {
         case 'h':   return cmd_help(0, NULL);
         case 'v':   return cmd_version(0, NULL);
