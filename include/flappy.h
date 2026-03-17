@@ -40,6 +40,8 @@ int cmd_orphans(int argc, char **argv);
 int cmd_remove(int argc, char **argv);
 int cmd_purge(int argc, char **argv);
 int cmd_autoremove(int argc, char **argv);
+int cmd_verify(int argc, char **argv);
+int cmd_clean(int argc, char **argv);
 
 /* =====================
  * Database

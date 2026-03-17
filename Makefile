@@ -66,7 +66,12 @@ SRCS := \
 	$(SRC_DIR)/remove.c \
 	$(SRC_DIR)/cmd_remove.c \
 	$(SRC_DIR)/cmd_purge.c \
-	$(SRC_DIR)/cmd_autoremove.c	
+	$(SRC_DIR)/cmd_autoremove.c	\
+	$(SRC_DIR)/verify.c \
+    $(SRC_DIR)/clean.c \
+	$(SRC_DIR)/cmd_verify.c \
+	$(SRC_DIR)/cmd_clean.c
+	 
 # Object files derived from source files
 OBJS := $(SRCS:.c=.o)
 

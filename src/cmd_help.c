@@ -43,6 +43,11 @@ int cmd_help(int argc, char **argv)
         "  purge <pkg>           Remove package and config files\n"
         "  purge --force <pkg>   Force removal even if dependents exist\n"
         "  autoremove            Remove orphaned dependency packages\n\n"
+
+        "Maintenance Commands:\n"
+        "  verify                Check installed files against filesystem\n"
+        "  clean                 Remove staging directory\n"
+        "  clean --all           Remove staging and package cache\n\n"
     );
 
     return 0;
