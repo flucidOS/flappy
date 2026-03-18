@@ -1,0 +1,113 @@
+.TH FLAPPY-INSTALL 1 "2026" "flappy 0.1.0" "FlucidOS Package Manager"
+.SH NAME
+flappy\-install \- install a package from the repository
+.SH SYNOPSIS
+.B flappy install
+.I package
+.SH DESCRIPTION
+.B flappy install
+downloads, verifies, and installs a binary package from the
+configured repository.
+.PP
+The install pipeline executes the following steps in order:
+.PP
+.RS 4
+.IP 1. 3
+.B Root check.
+The invoking process must have effective UID 0.
+.IP 2. 3
+.B Repository lookup.
+The package name is looked up in
+.I /var/lib/flappy/repo.db
+to retrieve the archive filename and expected SHA256 checksum.
+.IP 3. 3
+.B Download.
+The archive is downloaded to
+.IR /var/cache/flappy/packages/ .
+If the archive is already present in the cache, the download
+is skipped.
+.IP 4. 3
+.B Integrity verification.
+The SHA256 checksum of the downloaded archive is computed and
+compared against the value from
+.IR repo.db .
+If they do not match, the installation is aborted and the
+cached file is left for inspection.
+.IP 5. 3
+.B Conflict detection.
+The package archive's
+.I .FILES
+manifest is read and each path is checked against the
+installed database. If any path is already owned by a
+different package, installation is aborted before any
+files are written.
+.IP 6. 3
+.B Extraction.
+The archive is extracted to a staging directory at
+.IR /var/cache/flappy/staging/<archive>.stage/ .
+Metadata files
+.RI ( .PKGINFO ,
+.IR .FILES )
+are not extracted to the staging directory.
+Each path is validated before extraction: absolute paths,
+path traversal, and writes outside allowed roots are rejected.
+.IP 7. 3
+.B Atomic commit.
+The package record and file list are inserted into the
+installed database within a
+.B BEGIN IMMEDIATE
+transaction. Files are then copied from staging to the
+real filesystem. If any copy fails, the database transaction
+is rolled back and all written files are removed.
+.RE
+.PP
+The staging directory is removed after a successful commit.
+.SH EXIT STATUS
+.TP
+.B 0
+Package installed successfully.
+.TP
+.B 1
+Installation failed. Possible reasons:
+not root; package not found in repository; download failed;
+checksum mismatch; file conflict; extraction error;
+package already installed; database commit failed.
+A specific reason is always printed to stderr.
+.TP
+.B 2
+No package name provided.
+.SH ATOMICITY
+A failed install always leaves the system unchanged.
+This invariant holds at every step. The package is never
+partially installed.
+.SH EXAMPLES
+Install a package:
+.PP
+.RS 4
+.B sudo flappy install hello
+.RE
+.PP
+Install after clearing the cache to force a fresh download:
+.PP
+.RS 4
+.B sudo flappy clean \-\-all
+.br
+.B sudo flappy install hello
+.RE
+.SH FILES
+.TP
+.I /var/lib/flappy/repo.db
+Repository metadata. Must exist before install.
+Run
+.B flappy update
+if missing.
+.TP
+.I /var/cache/flappy/packages/
+Downloaded package cache.
+.TP
+.I /var/cache/flappy/staging/
+Extraction staging area. Cleaned after successful install.
+.SH SEE ALSO
+.BR flappy (1),
+.BR flappy-remove (1),
+.BR flappy-verify (1)

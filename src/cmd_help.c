@@ -1,54 +1,42 @@
-/*
- * cmd_help.c - Display help for Flappy
- */
-
 #include "flappy.h"
 #include <stdio.h>
 
 int cmd_help(int argc, char **argv)
 {
-    (void)argc;
-    (void)argv;
+    (void)argc; (void)argv;
 
     printf(
         "Flappy - Package manager for FlucidOS\n\n"
         "Usage:\n"
         "  flappy <command> [args]\n\n"
-
-        "Core Commands:\n"
-        "  help                  Show this help message\n"
-        "  version               Show version information\n"
-        "  --init-db             Initialize installed database\n\n"
-
-        "Query Commands:\n"
-        "  list                  List installed packages\n"
-        "  info <pkg>            Show package info\n"
-        "  files <pkg>           List package files\n"
-        "  owns <path>           Show which package owns a file\n"
-        "  inspect <pkg>         Inspect package metadata\n"
-        "  depends <pkg>         Show direct dependencies\n"
-        "  rdepends <pkg>        Show reverse dependencies\n"
-        "  orphans               List unused dependency packages\n\n"
-
-        "Repository Commands:\n"
-        "  update                Update repository metadata (root required)\n"
-        "  search [term]         Search repository packages\n"
-        "  upgrade               Show available upgrades (dry-run)\n\n"
-
-        "Install Commands:\n"
-        "  install <pkg>         Install a package\n\n"
-
-        "Removal Commands:\n"
-        "  remove <pkg>          Remove package, keep config files\n"
-        "  purge <pkg>           Remove package and config files\n"
-        "  purge --force <pkg>   Force removal even if dependents exist\n"
-        "  autoremove            Remove orphaned dependency packages\n\n"
-
-        "Maintenance Commands:\n"
-        "  verify                Check installed files against filesystem\n"
-        "  clean                 Remove staging directory\n"
-        "  clean --all           Remove staging and package cache\n\n"
+        "Core:\n"
+        "  help\n"
+        "  version\n"
+        "  --init-db\n\n"
+        "Query:\n"
+        "  list\n"
+        "  info <pkg>\n"
+        "  files <pkg>\n"
+        "  owns <path>\n"
+        "  inspect <pkg>\n"
+        "  depends <pkg>\n"
+        "  rdepends <pkg>\n"
+        "  orphans\n\n"
+        "Repository:\n"
+        "  update\n"
+        "  search [term]\n"
+        "  upgrade\n\n"
+        "Install:\n"
+        "  install <pkg>\n\n"
+        "Removal:\n"
+        "  remove <pkg>\n"
+        "  purge <pkg>\n"
+        "  purge --force <pkg>\n"
+        "  autoremove\n\n"
+        "Maintenance:\n"
+        "  verify\n"
+        "  clean\n"
+        "  clean --all\n\n"
     );
-
     return 0;
 }

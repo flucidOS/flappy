@@ -1,5 +1,6 @@
 #include "flappy.h"
 #include "db_guard.h"
+#include "ui.h"
 
 #include <sqlite3.h>
 #include <stdio.h>
@@ -9,31 +10,25 @@
 #include <string.h>
 #include <unistd.h>
 
-/* SQL schema definition for database initialization */
 static const char *SCHEMA_SQL =
 "PRAGMA foreign_keys = ON;"
 "BEGIN;"
-
 "CREATE TABLE IF NOT EXISTS meta ("
 "  schema_version INTEGER NOT NULL"
 ");"
-
 "DELETE FROM meta;"
 "INSERT INTO meta(schema_version) VALUES (2);"
-
 "CREATE TABLE IF NOT EXISTS packages ("
 "  id INTEGER PRIMARY KEY,"
 "  name TEXT UNIQUE NOT NULL,"
 "  version TEXT NOT NULL,"
 "  explicit INTEGER NOT NULL CHECK (explicit IN (0,1))"
 ");"
-
 "CREATE TABLE IF NOT EXISTS files ("
 "  path TEXT PRIMARY KEY,"
 "  package_id INTEGER NOT NULL,"
 "  FOREIGN KEY(package_id) REFERENCES packages(id) ON DELETE CASCADE"
 ");"
-
 "CREATE TABLE IF NOT EXISTS dependencies ("
 "  package_id INTEGER NOT NULL,"
 "  depends_on INTEGER NOT NULL,"
@@ -41,10 +36,8 @@ static const char *SCHEMA_SQL =
 "  FOREIGN KEY(package_id) REFERENCES packages(id) ON DELETE CASCADE,"
 "  FOREIGN KEY(depends_on) REFERENCES packages(id) ON DELETE CASCADE"
 ");"
-
 "COMMIT;";
 
-/* Create directory with 0755 permissions or exit if creation fails */
 static void mkdir_or_die(const char *p) {
     if (mkdir(p, 0755) == -1 && errno != EEXIST) {
         log_error("mkdir failed: %s: %s", p, strerror(errno));
@@ -53,7 +46,6 @@ static void mkdir_or_die(const char *p) {
     }
 }
 
-/* Initialize the database with schema and set secure permissions */
 int db_bootstrap_install(void) {
     sqlite3 *db = NULL;
     int rc;
@@ -68,7 +60,6 @@ int db_bootstrap_install(void) {
 
     sqlite3_close(db);
 
-    /* Restrict database file to root read/write only */
     if (chown(FLAPPY_DB_PATH, 0, 0) != 0 || chmod(FLAPPY_DB_PATH, 0600) != 0) {
         log_error("permission set failed on db");
         fprintf(stderr, "Fatal: cannot secure database file\n");
@@ -76,5 +67,6 @@ int db_bootstrap_install(void) {
     }
 
     log_info("database initialized (schema v%d)", FLAPPY_SCHEMA_VERSION);
+    ui_info("database initialized");
     return 0;
 }

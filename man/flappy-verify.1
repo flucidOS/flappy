@@ -1,0 +1,98 @@
+.TH FLAPPY-VERIFY 1 "2026" "flappy 0.1.0" "FlucidOS Package Manager"
+.SH NAME
+flappy\-verify \- verify installed package integrity
+.SH SYNOPSIS
+.B flappy verify
+.br
+.B flappy clean
+.RI [ \-\-all ]
+.SH DESCRIPTION
+.SS flappy verify
+Checks that every file recorded in the installed package
+database exists on disk and is a regular file.
+.PP
+For each inconsistency found, one line is printed to stdout:
+.PP
+.RS 4
+.BI missing:\ path\  (owned\ by\  package )
+.br
+.BI invalid:\ path\  (expected\ file)
+.RE
+.PP
+If a package has no files recorded in the database, it is
+reported as:
+.PP
+.RS 4
+.BI "missing files: " package " (no files registered)"
+.RE
+.PP
+If the system is consistent, prints:
+.PP
+.RS 4
+[INFO] system is consistent
+.RE
+.PP
+.B flappy verify
+never modifies the database or the filesystem.
+It only reads and reports.
+.SS flappy clean
+Removes the contents of the staging directory
+.IR /var/cache/flappy/staging/ .
+Staging directories are normally cleaned automatically after
+a successful install. Leftover staging directories indicate
+a failed or interrupted install.
+.PP
+With
+.BR \-\-all ,
+also removes all cached package archives from
+.IR /var/cache/flappy/packages/ .
+.PP
+After running
+.BR "flappy clean \-\-all" ,
+any package whose archive was in the cache will need to be
+re-downloaded on the next install. This does not affect
+installed packages, only the download cache.
+.SH EXIT STATUS
+.TP
+.B 0
+.RI ( verify )
+System is consistent. All recorded files exist and are
+regular files.
+.TP
+.B 1
+.RI ( verify )
+One or more inconsistencies found. Details printed to stdout.
+.TP
+.B 0
+.RI ( clean )
+Cleanup succeeded.
+.TP
+.B 1
+.RI ( clean )
+One or more files could not be removed.
+.SH RECOVERY
+When
+.B flappy verify
+reports missing files for package
+.IR foo :
+.PP
+.RS 4
+.B sudo flappy remove foo
+.br
+.B sudo flappy install foo
+.RE
+.PP
+Note that
+.B flappy remove
+will succeed even if the files are missing from disk, since
+it deletes whatever is present and skips files that do not
+exist.
+.SH NOTES
+.B flappy verify
+does not check file contents or permissions. It only checks
+existence and type. It does not detect files that have been
+modified since installation.
+.SH SEE ALSO
+.BR flappy (1),
+.BR flappy-install (1),
+.BR flappy-remove (1)
