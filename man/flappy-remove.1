@@ -1,0 +1,111 @@
+.TH FLAPPY-REMOVE 1 "2026" "flappy 0.1.0" "FlucidOS Package Manager"
+.SH NAME
+flappy\-remove, flappy\-purge \- remove installed packages
+.SH SYNOPSIS
+.B flappy remove
+.I package
+.br
+.B flappy purge
+.I package
+.br
+.B flappy purge \-\-force
+.I package
+.br
+.B flappy autoremove
+.SH DESCRIPTION
+.SS flappy remove
+Removes an installed package from the system.
+Files under
+.I /etc
+are preserved. The package record and file list are removed
+from the installed database.
+.PP
+Refuses if any installed package depends on
+.IR package .
+.SS flappy purge
+Removes an installed package including all files under
+.IR /etc .
+The package record and file list are removed from the
+installed database.
+.PP
+Refuses if any installed package depends on
+.IR package .
+.SS flappy purge \-\-force
+Removes an installed package regardless of reverse
+dependencies. Dependent packages may become broken.
+.PP
+This action is always logged at ERROR level in
+.I /var/log/flappy.log
+even if the operation succeeds. The format is:
+.PP
+.RS 4
+[ERROR] forced purge of
+.I package
+which is required by
+.I dependent
+.RE
+.SS flappy autoremove
+Removes all installed packages that satisfy both of the
+following conditions:
+.PP
+.RS 4
+.IP \(bu 2
+The package was installed as a dependency (not explicitly).
+.IP \(bu 2
+No currently installed package depends on it.
+.RE
+.PP
+Uses safe removal semantics: config files under
+.I /etc
+are preserved.
+.SH EXIT STATUS
+.TP
+.B 0
+Package removed successfully, or no orphans to remove.
+.TP
+.B 1
+Package not installed; reverse dependencies exist (without
+.BR \-\-force );
+one or more files could not be deleted; database record
+removal failed.
+.TP
+.B 2
+No package name provided.
+.SH DATABASE CONSISTENCY
+When a removal fails partway through file deletion, the
+database record is preserved. This means
+.B flappy verify
+will report the remaining files as present and owned,
+which is accurate. The operator can then decide whether
+to retry removal or investigate manually.
+.PP
+Flappy never removes the database record until all file
+deletions succeed.
+.SH EXAMPLES
+Safe removal (keep config files):
+.PP
+.RS 4
+.B sudo flappy remove nginx
+.RE
+.PP
+Full removal including config files:
+.PP
+.RS 4
+.B sudo flappy purge nginx
+.RE
+.PP
+Force removal when a dependent exists:
+.PP
+.RS 4
+.B sudo flappy purge \-\-force openssl
+.RE
+.PP
+Remove unused dependencies:
+.PP
+.RS 4
+.B sudo flappy autoremove
+.RE
+.SH SEE ALSO
+.BR flappy (1),
+.BR flappy-install (1),
+.BR flappy-verify (1)

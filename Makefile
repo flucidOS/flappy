@@ -1,6 +1,4 @@
 # Flappy - A utility application
-# Copyright notice and license should be included here
-# This Makefile builds the project with support for both development and production targets
 
 # Compiler and tool configuration
 CC      := gcc
@@ -15,17 +13,18 @@ PROD_BIN:= flappy
 SRC_DIR := src
 INC_DIR := include
 
-# Installation paths
-PREFIX  := /usr
+# Installation paths (DESTDIR supported for packaging)
+PREFIX  ?= /usr
 BINDIR  := $(PREFIX)/bin
+MANDIR  := $(PREFIX)/share/man/man1
 LOGFILE := /var/log/flappy.log
 
-# Compiler flags: C11 standard, all warnings enabled, treat warnings as errors
+# Compiler flags
 CFLAGS  := -std=c11 -Wall -Wextra -Werror -I$(INC_DIR)
 LDFLAGS := -lssl -lcrypto
 
-# External dependencies required by the project
-REQUIRED_LIBS := libbsd sqlite3 libarchive libcurl  
+# External dependencies
+REQUIRED_LIBS := libbsd sqlite3 libarchive libcurl
 PKG_CFLAGS := $(shell $(PKGCONF) --cflags $(REQUIRED_LIBS))
 PKG_LIBS   := $(shell $(PKGCONF) --libs $(REQUIRED_LIBS))
 
@@ -66,58 +65,87 @@ SRCS := \
 	$(SRC_DIR)/remove.c \
 	$(SRC_DIR)/cmd_remove.c \
 	$(SRC_DIR)/cmd_purge.c \
-	$(SRC_DIR)/cmd_autoremove.c	\
+	$(SRC_DIR)/cmd_autoremove.c \
 	$(SRC_DIR)/verify.c \
-    $(SRC_DIR)/clean.c \
+	$(SRC_DIR)/clean.c \
 	$(SRC_DIR)/cmd_verify.c \
-	$(SRC_DIR)/cmd_clean.c
-	 
-# Object files derived from source files
+	$(SRC_DIR)/cmd_clean.c \
+	$(SRC_DIR)/ui.c \
+	$(SRC_DIR)/env.c
+
+# Object files
 OBJS := $(SRCS:.c=.o)
 
-# Default target: verify dependencies and build production binary
+# Default target
 all: check-deps $(PROD_BIN)
 
-# Verify that required tools and libraries are available on the system
+# Dependency check
 check-deps:
 	@command -v $(PKGCONF) >/dev/null || { echo "pkg-config missing"; exit 1; }
 	@for lib in $(REQUIRED_LIBS); do \
 		$(PKGCONF) --exists $$lib || { echo "Missing $$lib"; exit 1; }; \
 	done
 
-# Production binary target: link object files to create executable
+# Build production binary
 $(PROD_BIN): $(OBJS)
 	$(CC) $(CFLAGS) $(PKG_CFLAGS) $^ -o $@ $(PKG_LIBS) $(LDFLAGS)
 
-# Development target: build with debug symbols enabled
+# Development build
 dev: CFLAGS += -DFLAPPY_DEV
 dev: check-deps $(DEV_BIN)
 
-# Development binary target: link object files with debug flags
 $(DEV_BIN): $(OBJS)
 	$(CC) $(CFLAGS) $(PKG_CFLAGS) $^ -o $@ $(PKG_LIBS) $(LDFLAGS)
 
-# Compilation rule: convert C source files to object files
+# Compile rule
 %.o: %.c
 	$(CC) $(CFLAGS) $(PKG_CFLAGS) -c $< -o $@
 
-# Installation target: copy binary to system location (requires root)
+# Install (clean, idempotent, packaging-safe)
 install: all
 	@if [ "$$(id -u)" -ne 0 ]; then \
 		echo "Error: installation requires root privileges"; exit 1; fi
-	@echo "Installing $(PROD_BIN) to $(BINDIR)"
-	@install -m 0755 $(PROD_BIN) $(BINDIR)/$(PROD_BIN)
-	@echo "Creating log file $(LOGFILE)"
-	@touch $(LOGFILE)
-	@chmod 0600 $(LOGFILE)
-	@chown root:root $(LOGFILE)
-	@echo "Initializing database..."
-	@$(BINDIR)/$(PROD_BIN) --init-db
 
+	@echo "Installing binary..."
+	@install -d $(DESTDIR)$(BINDIR)
+	@install -m 0755 $(PROD_BIN) $(DESTDIR)$(BINDIR)/$(PROD_BIN)
 
-# Clean target: remove generated artifacts and binaries
+	@echo "Installing man pages..."
+	@install -d $(DESTDIR)$(MANDIR)
+	@install -m 0644 man/flappy.1 $(DESTDIR)$(MANDIR)/
+	@install -m 0644 man/flappy-install.1 $(DESTDIR)$(MANDIR)/
+	@install -m 0644 man/flappy-remove.1 $(DESTDIR)$(MANDIR)/
+	@install -m 0644 man/flappy-verify.1 $(DESTDIR)$(MANDIR)/
+
+	@if [ -z "$(DESTDIR)" ]; then \
+		echo "Updating man database..."; \
+		mandb; \
+	fi
+
+	@echo "Creating log file if not exists..."
+	@if [ ! -f $(LOGFILE) ]; then \
+		touch $(LOGFILE); \
+		chmod 0600 $(LOGFILE); \
+		chown root:root $(LOGFILE); \
+	fi
+
+	@echo "Install complete."
+
+# Uninstall target
+uninstall:
+	@if [ "$$(id -u)" -ne 0 ]; then \
+		echo "Error: uninstall requires root privileges"; exit 1; fi
+
+	@echo "Removing binary..."
+	@rm -f $(BINDIR)/$(PROD_BIN)
+
+	@echo "Removing man pages..."
+	@rm -f $(MANDIR)/flappy*.1
+
+	@echo "Uninstall complete."
+
+# Clean
 clean:
 	rm -f $(OBJS) $(PROD_BIN) $(DEV_BIN)
 
-# Declare phony targets that don't represent actual files
-.PHONY: all dev install clean check-deps
+.PHONY: all dev install uninstall clean check-deps

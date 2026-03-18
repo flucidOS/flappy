@@ -1,0 +1,195 @@
+.TH FLAPPY 1 "2026" "flappy 0.1.0" "FlucidOS Package Manager"
+.SH NAME
+flappy \- package manager for FlucidOS
+.SH SYNOPSIS
+.B flappy
+.I command
+.RI [ arguments ]
+.SH DESCRIPTION
+.B flappy
+is a minimal, deterministic binary package manager for FlucidOS.
+It manages package installation, removal, dependency tracking,
+repository synchronisation, and system integrity verification.
+.PP
+All system-modifying commands require root privileges.
+Query commands do not.
+.SH COMMANDS
+.SS Core
+.TP
+.B flappy help
+Display command summary.
+.TP
+.B flappy version
+Display flappy version.
+.TP
+.B flappy \-\-init\-db
+Initialise the installed package database at
+.IR /var/lib/flappy/flappy.db .
+Run once after installation.
+.SS Query
+.TP
+.BI flappy\ list
+List all installed packages, one per line in
+.I name version
+format, sorted alphabetically.
+.TP
+.BI flappy\ info\  package
+Show name, version, and install type (explicit or dependency)
+for an installed package.
+.TP
+.BI flappy\ files\  package
+List all files owned by an installed package, one per line,
+sorted alphabetically.
+.TP
+.BI flappy\ owns\  path
+Show which package owns the file at
+.IR path .
+.TP
+.BI flappy\ inspect\  file
+Read and display metadata from a package archive file
+.RI ( .pkg.tar.zst ).
+Does not require the package to be installed.
+.TP
+.BI flappy\ depends\  package
+List direct dependencies of an installed package.
+Empty output means no dependencies.
+.TP
+.BI flappy\ rdepends\  package
+List packages that directly depend on
+.IR package .
+Empty output means nothing depends on it.
+.TP
+.B flappy orphans
+List installed packages that were installed as dependencies
+and have no reverse dependencies.
+These can be safely removed with
+.BR "flappy autoremove" .
+.SS Repository
+.TP
+.BI flappy\ update\  [url]
+Download
+.I repo.db
+from the repository, verify its SHA256 checksum, validate
+its schema and package metadata, then install it atomically.
+If
+.I url
+is not provided, uses the default repository URL compiled into
+the binary.
+.TP
+.BI flappy\ search\  [term]
+Search the repository database for packages whose names begin
+with
+.IR term .
+If
+.I term
+is omitted, lists all available packages.
+.TP
+.B flappy upgrade
+Compare installed package versions against the repository.
+Prints packages that have newer versions available.
+This is a dry-run only \(em it does not install anything.
+.SS Installation
+.TP
+.BI flappy\ install\  package
+Install a package from the repository. The full pipeline:
+guard (root check) \(-> lookup (repo.db) \(-> download \(->
+SHA256 verify \(-> conflict check \(-> extract to staging \(->
+atomic DB commit + file copy.
+.PP
+.RS
+A failed install always leaves the system unchanged.
+.RE
+.SS Removal
+.TP
+.BI flappy\ remove\  package
+Remove an installed package. Files under
+.I /etc
+are preserved. Refuses if other packages depend on this one.
+.TP
+.BI flappy\ purge\  package
+Remove an installed package including all config files under
+.IR /etc .
+Refuses if other packages depend on this one.
+.TP
+.BI "flappy purge \-\-force " package
+Force removal even if other packages depend on this one.
+The dependent packages may break. This action is always logged
+at ERROR level in
+.IR /var/log/flappy.log .
+.TP
+.B flappy autoremove
+Remove all installed packages that were installed as
+dependencies and have no reverse dependencies.
+Uses safe removal semantics (preserves config files).
+.SS Maintenance
+.TP
+.B flappy verify
+Check that every file recorded in the installed database
+exists on disk and is a regular file. Exits 0 if the system
+is consistent, 1 if any inconsistency is found. Never
+modifies anything.
+.TP
+.B flappy clean
+Remove all contents of the staging directory
+.RI ( /var/cache/flappy/staging/ ).
+.TP
+.B flappy clean \-\-all
+Remove the staging directory contents and all cached package
+files in
+.IR /var/cache/flappy/packages/ .
+.SH FILES
+.TP
+.I /var/lib/flappy/flappy.db
+Installed package database (SQLite, schema version 2).
+.TP
+.I /var/lib/flappy/repo.db
+Repository metadata cache (SQLite, schema version 1).
+.TP
+.I /var/cache/flappy/packages/
+Downloaded package cache.
+.TP
+.I /var/cache/flappy/staging/
+Package extraction staging area.
+.TP
+.I /var/log/flappy.log
+Operation log. All mutations logged at INFO level.
+Forced removals logged at ERROR level.
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.TP
+.B 1
+Operation failed. A reason is always printed to stderr.
+.TP
+.B 2
+Usage error. Missing or invalid arguments.
+.TP
+.B 127
+Unknown command.
+.SH SECURITY
+Flappy verifies the integrity of the repository database and
+every downloaded package using SHA256 checksums. Package
+archives are validated for path safety before extraction:
+absolute paths, path traversal (
+.IR .. ),
+and writes to forbidden roots (
+.IR /proc ,
+.IR /dev ,
+.IR /sys ,
+.IR /home ,
+.IR /root )
+are rejected.
+.PP
+The installed database file is owned by root with mode 0600.
+The log file is owned by root with mode 0600.
+.SH BUGS
+Report bugs at https://github.com/flucidOS/flappy/issues
+.SH AUTHOR
+Siddharthan T V
+.SH SEE ALSO
+.BR flappy-install (1),
+.BR flappy-remove (1),
+.BR flappy-verify (1),
+.BR sqlite3 (1),
+.BR tar (1)
