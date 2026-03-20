@@ -19,8 +19,8 @@ struct pkg_parse_tmp {
     char *arch;
     char *desc;
 
-    char **depends;
-    size_t depends_count;
+    struct dep_entry *depends;
+    size_t            depends_count;
 
     char **conflicts;
     size_t conflicts_count;
@@ -29,7 +29,7 @@ struct pkg_parse_tmp {
     size_t provides_count;
 
     size_t size;
-    int size_set;
+    int    size_set;
 };
 
 /* =========================
@@ -38,14 +38,9 @@ struct pkg_parse_tmp {
 
 static char *trim(char *s) {
     while (isspace((unsigned char)*s)) s++;
-
-    if (*s == 0)
-        return s;
-
+    if (*s == 0) return s;
     char *end = s + strlen(s) - 1;
-    while (end > s && isspace((unsigned char)*end))
-        end--;
-
+    while (end > s && isspace((unsigned char)*end)) end--;
     end[1] = '\0';
     return s;
 }
@@ -56,8 +51,10 @@ static void tmp_free(struct pkg_parse_tmp *t) {
     free(t->arch);
     free(t->desc);
 
-    for (size_t i = 0; i < t->depends_count; i++)
-        free(t->depends[i]);
+    for (size_t i = 0; i < t->depends_count; i++) {
+        free(t->depends[i].name);
+        free(t->depends[i].version);
+    }
     free(t->depends);
 
     for (size_t i = 0; i < t->conflicts_count; i++)
@@ -69,22 +66,101 @@ static void tmp_free(struct pkg_parse_tmp *t) {
     free(t->provides);
 }
 
-/* Append helper for list fields */
 static void append_string(char ***arr, size_t *count, const char *value) {
     char **tmp = realloc(*arr, (*count + 1) * sizeof(char *));
-    if (!tmp) {
-        fprintf(stderr, "Out of memory\n");
-        exit(1);
-    }
-
+    if (!tmp) { fprintf(stderr, "Out of memory\n"); exit(1); }
     *arr = tmp;
     (*arr)[*count] = strdup(value);
-    if (!(*arr)[*count]) {
-        fprintf(stderr, "Out of memory\n");
-        exit(1);
+    if (!(*arr)[*count]) { fprintf(stderr, "Out of memory\n"); exit(1); }
+    (*count)++;
+}
+
+/* =========================
+   Dependency constraint parser
+   ========================= */
+
+static dep_op_t parse_op(const char *s, size_t *op_len)
+{
+    if (strncmp(s, ">=", 2) == 0) { *op_len = 2; return DEP_OP_GE; }
+    if (strncmp(s, "<=", 2) == 0) { *op_len = 2; return DEP_OP_LE; }
+    if (strncmp(s, ">",  1) == 0) { *op_len = 1; return DEP_OP_GT; }
+    if (strncmp(s, "<",  1) == 0) { *op_len = 1; return DEP_OP_LT; }
+    if (strncmp(s, "=",  1) == 0) { *op_len = 1; return DEP_OP_EQ; }
+    *op_len = 0;
+    return DEP_OP_NONE;
+}
+
+/*
+ * append_dep
+ *
+ * Parses a depend value string into a dep_entry and appends it.
+ *
+ * Formats:
+ *   "libssl"          -> { name="libssl", op=NONE, version=NULL }
+ *   "libssl >= 3.0"   -> { name="libssl", op=GE,   version="3.0" }
+ */
+static int append_dep(struct dep_entry **arr,
+                      size_t           *count,
+                      const char       *value)
+{
+    struct dep_entry *tmp = realloc(*arr,
+                                    (*count + 1) * sizeof(struct dep_entry));
+    if (!tmp) return 0;
+    *arr = tmp;
+
+    struct dep_entry *e = &(*arr)[*count];
+    e->name    = NULL;
+    e->version = NULL;
+    e->op      = DEP_OP_NONE;
+
+    /* Parse name (up to first whitespace) */
+    const char *p = value;
+    while (*p && !isspace((unsigned char)*p)) p++;
+
+    size_t name_len = (size_t)(p - value);
+    if (name_len == 0) return 0;
+
+    e->name = malloc(name_len + 1);
+    if (!e->name) return 0;
+    memcpy(e->name, value, name_len);
+    e->name[name_len] = '\0';
+
+    /* Skip whitespace */
+    while (isspace((unsigned char)*p)) p++;
+
+    if (*p == '\0') {
+        /* No constraint */
+        (*count)++;
+        return 1;
+    }
+
+    /* Parse operator */
+    size_t op_len = 0;
+    e->op = parse_op(p, &op_len);
+
+    if (e->op == DEP_OP_NONE) {
+        log_error("pkg_parser: unrecognised operator in depend: %s", value);
+        free(e->name);
+        return 0;
+    }
+
+    p += op_len;
+    while (isspace((unsigned char)*p)) p++;
+
+    if (*p == '\0') {
+        log_error("pkg_parser: operator with no version in depend: %s", value);
+        free(e->name);
+        return 0;
+    }
+
+    e->version = strdup(p);
+    if (!e->version) {
+        free(e->name);
+        return 0;
     }
 
     (*count)++;
+    return 1;
 }
 
 /* =========================
@@ -95,12 +171,10 @@ struct flappy_pkg *pkg_parse(char *buffer, size_t size) {
     (void)size;
 
     struct pkg_parse_tmp tmp = {0};
-
     char *saveptr = NULL;
     char *line = strtok_r(buffer, "\n", &saveptr);
 
     while (line) {
-        /* strip CR if present */
         size_t len = strlen(line);
         if (len > 0 && line[len - 1] == '\r')
             line[len - 1] = '\0';
@@ -120,8 +194,7 @@ struct flappy_pkg *pkg_parse(char *buffer, size_t size) {
         }
 
         *eq = '\0';
-
-        char *key = trim(trimmed);
+        char *key   = trim(trimmed);
         char *value = trim(eq + 1);
 
         if (*key == '\0') {
@@ -130,63 +203,41 @@ struct flappy_pkg *pkg_parse(char *buffer, size_t size) {
             return NULL;
         }
 
-        /* Single-value fields */
         if (strcmp(key, "pkgname") == 0) {
-            if (tmp.name) {
-                log_error("Duplicate pkgname");
-                tmp_free(&tmp);
-                return NULL;
-            }
+            if (tmp.name) { log_error("Duplicate pkgname"); tmp_free(&tmp); return NULL; }
             tmp.name = strdup(value);
         }
         else if (strcmp(key, "pkgver") == 0) {
-            if (tmp.version) {
-                log_error("Duplicate pkgver");
-                tmp_free(&tmp);
-                return NULL;
-            }
+            if (tmp.version) { log_error("Duplicate pkgver"); tmp_free(&tmp); return NULL; }
             tmp.version = strdup(value);
         }
         else if (strcmp(key, "arch") == 0) {
-            if (tmp.arch) {
-                log_error("Duplicate arch");
-                tmp_free(&tmp);
-                return NULL;
-            }
+            if (tmp.arch) { log_error("Duplicate arch"); tmp_free(&tmp); return NULL; }
             tmp.arch = strdup(value);
         }
         else if (strcmp(key, "pkgdesc") == 0) {
-            if (tmp.desc) {
-                log_error("Duplicate pkgdesc");
-                tmp_free(&tmp);
-                return NULL;
-            }
+            if (tmp.desc) { log_error("Duplicate pkgdesc"); tmp_free(&tmp); return NULL; }
             tmp.desc = strdup(value);
         }
         else if (strcmp(key, "size") == 0) {
-            if (tmp.size_set) {
-                log_error("Duplicate size");
-                tmp_free(&tmp);
-                return NULL;
-            }
-
+            if (tmp.size_set) { log_error("Duplicate size"); tmp_free(&tmp); return NULL; }
             errno = 0;
             char *end = NULL;
             unsigned long long v = strtoull(value, &end, 10);
-
             if (errno != 0 || end == value || *end != '\0') {
                 log_error("Invalid size value: %s", value);
                 tmp_free(&tmp);
                 return NULL;
             }
-
             tmp.size = (size_t)v;
             tmp.size_set = 1;
         }
-
-        /* List fields */
         else if (strcmp(key, "depend") == 0) {
-            append_string(&tmp.depends, &tmp.depends_count, value);
+            if (!append_dep(&tmp.depends, &tmp.depends_count, value)) {
+                log_error("Failed to parse depend field: %s", value);
+                tmp_free(&tmp);
+                return NULL;
+            }
         }
         else if (strcmp(key, "conflict") == 0) {
             append_string(&tmp.conflicts, &tmp.conflicts_count, value);
@@ -194,8 +245,6 @@ struct flappy_pkg *pkg_parse(char *buffer, size_t size) {
         else if (strcmp(key, "provide") == 0) {
             append_string(&tmp.provides, &tmp.provides_count, value);
         }
-
-        /* Unknown keys */
         else {
             log_info("Unknown PKGINFO key: %s", key);
         }
@@ -203,19 +252,11 @@ struct flappy_pkg *pkg_parse(char *buffer, size_t size) {
         line = strtok_r(NULL, "\n", &saveptr);
     }
 
-    /* =========================
-       Semantic validation
-       ========================= */
-
     if (!tmp.name || !tmp.version || !tmp.arch) {
         log_error("Missing required PKGINFO fields");
         tmp_free(&tmp);
         return NULL;
     }
-
-    /* =========================
-       Final construction
-       ========================= */
 
     struct flappy_pkg *pkg = malloc(sizeof(*pkg));
     if (!pkg) {
@@ -224,18 +265,18 @@ struct flappy_pkg *pkg_parse(char *buffer, size_t size) {
         return NULL;
     }
 
-    pkg->name = tmp.name;
+    pkg->name    = tmp.name;
     pkg->version = tmp.version;
-    pkg->arch = tmp.arch;
-    pkg->desc = tmp.desc;
+    pkg->arch    = tmp.arch;
+    pkg->desc    = tmp.desc;
 
-    pkg->depends = tmp.depends;
+    pkg->depends       = tmp.depends;
     pkg->depends_count = tmp.depends_count;
 
-    pkg->conflicts = tmp.conflicts;
+    pkg->conflicts       = tmp.conflicts;
     pkg->conflicts_count = tmp.conflicts_count;
 
-    pkg->provides = tmp.provides;
+    pkg->provides       = tmp.provides;
     pkg->provides_count = tmp.provides_count;
 
     pkg->size = tmp.size;
@@ -255,8 +296,10 @@ void pkg_meta_free(struct flappy_pkg *pkg) {
     free(pkg->arch);
     free(pkg->desc);
 
-    for (size_t i = 0; i < pkg->depends_count; i++)
-        free(pkg->depends[i]);
+    for (size_t i = 0; i < pkg->depends_count; i++) {
+        free(pkg->depends[i].name);
+        free(pkg->depends[i].version);
+    }
     free(pkg->depends);
 
     for (size_t i = 0; i < pkg->conflicts_count; i++)

@@ -71,7 +71,8 @@ SRCS := \
 	$(SRC_DIR)/cmd_verify.c \
 	$(SRC_DIR)/cmd_clean.c \
 	$(SRC_DIR)/ui.c \
-	$(SRC_DIR)/env.c
+	$(SRC_DIR)/env.c \
+	$(SRC_DIR)/install_constraints.c 
 
 # Object files
 OBJS := $(SRCS:.c=.o)

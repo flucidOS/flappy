@@ -27,6 +27,7 @@
 
 #include "flappy.h"
 #include "graph.h"
+#include "install_constraints.h"
 #include "pkg_meta.h"
 #include "db_guard.h"
 
@@ -330,16 +331,42 @@ int install_commit(const char *pkgname,
     }
 
     /*
-     * 3. Register package + dependencies in DB (BEGIN IMMEDIATE inside
-     *    graph_add_package).  This also validates deps and detects cycles.
+     * 3a. Check version constraints on dependencies.
+     *     Done before graph_add_package so we never partially register.
+     */
+    if (install_check_constraints(meta)) {
+        pkg_meta_free(meta);
+        pathlist_free(&staged);
+        return 1;
+    }
+
+    /*
+     * 3b. Build plain name array for graph_add_package
+     *     (graph only needs names, not constraint details).
+     */
+    const char **dep_names = NULL;
+    if (meta->depends_count > 0) {
+        dep_names = malloc(meta->depends_count * sizeof(char *));
+        if (!dep_names) {
+            pkg_meta_free(meta);
+            pathlist_free(&staged);
+            return 1;
+        }
+        for (size_t i = 0; i < meta->depends_count; i++)
+            dep_names[i] = meta->depends[i].name;
+    }
+
+    /*
+     * 3c. Register package + dependencies in DB.
      */
     int rc = graph_add_package(
         meta->name,
         meta->version,
-        1,   /* explicit — installed by user */
-        (const char **)meta->depends,
+        1,
+        dep_names,
         meta->depends_count
     );
+    free(dep_names);
 
     if (rc != 0) {
         /* graph_add_package already printed the reason */
