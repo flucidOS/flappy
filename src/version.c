@@ -14,6 +14,9 @@
  *   return -1  if a < b
  */
 
+#include "version.h"
+#include "pkg_meta.h"
+
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
@@ -124,4 +127,35 @@ int version_cmp(const char *a, const char *b)
     }
 
     return 0;
+}
+
+/*
+ * version_satisfies
+ *
+ * Evaluates whether `installed` satisfies the constraint (op, required).
+ *
+ * Returns:
+ *   1  constraint satisfied (or op is DEP_OP_NONE)
+ *   0  constraint not satisfied, or invalid version strings
+ */
+int version_satisfies(const char *installed,
+                      dep_op_t    op,
+                      const char *required)
+{
+    if (op == DEP_OP_NONE)
+        return 1;
+
+    if (!version_is_valid(installed) || !version_is_valid(required))
+        return 0;
+
+    int cmp = version_cmp(installed, required);
+
+    switch (op) {
+    case DEP_OP_GE: return cmp >= 0;
+    case DEP_OP_LE: return cmp <= 0;
+    case DEP_OP_GT: return cmp >  0;
+    case DEP_OP_LT: return cmp <  0;
+    case DEP_OP_EQ: return cmp == 0;
+    default:        return 0;
+    }
 }
