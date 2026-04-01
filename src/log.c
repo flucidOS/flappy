@@ -9,52 +9,46 @@
 #define LOG_PATH "/var/log/flappy.log"
 
 /*
- * write_log - Write a formatted log message to the log file
- * @level: Log level string (e.g., "INFO", "ERROR")
- * @fmt: Format string for the log message
- * @ap: Variable argument list
+ * G_LOG_FP — process-lifetime log file handle.
  *
- * Appends a timestamped log entry to the log file with the specified level.
- * Terminates the program if the log file cannot be opened.
+ * Opened once in log_init() and never closed (the OS reclaims it on
+ * process exit).  Previously every log_info/log_error call did
+ * fopen + fclose, causing unnecessary syscall overhead and a small
+ * window between open and write on each call.
+ */
+static FILE *G_LOG_FP = NULL;
+
+/*
+ * write_log - Write a formatted log message
  */
 static void write_log(const char *level, const char *fmt, va_list ap) {
-    FILE *fp = fopen(LOG_PATH, "a");
-    if (!fp) {
-        fprintf(stderr,
-                "Fatal: cannot open log file %s: %s\n",
-                LOG_PATH, strerror(errno));
+    if (!G_LOG_FP) {
+        /* Should not happen after log_init, but guard defensively */
+        fprintf(stderr, "Fatal: log not initialised\n");
         exit(1);
     }
 
-    fprintf(fp, "[%s] ", level);
-    vfprintf(fp, fmt, ap);
-    fprintf(fp, "\n");
-
-    fclose(fp);
+    fprintf(G_LOG_FP, "[%s] ", level);
+    vfprintf(G_LOG_FP, fmt, ap);
+    fprintf(G_LOG_FP, "\n");
+    fflush(G_LOG_FP);
 }
 
 /*
- * log_init - Initialize the logging system
+ * log_init - Open the log file once for the process lifetime.
  *
- * Verifies that the log file is accessible and can be written to.
- * Terminates the program if logging cannot be initialized.
+ * Terminates if the log file cannot be opened.
  */
 void log_init(void) {
-    FILE *fp = fopen(LOG_PATH, "a");
-    if (!fp) {
+    G_LOG_FP = fopen(LOG_PATH, "a");
+    if (!G_LOG_FP) {
         fprintf(stderr,
                 "Fatal: logging unavailable (%s): %s\n",
                 LOG_PATH, strerror(errno));
         exit(1);
     }
-    fclose(fp);
 }
 
-/*
- * log_info - Log an informational message
- * @fmt: Format string
- * ...: Variable arguments
- */
 void log_info(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
@@ -62,11 +56,6 @@ void log_info(const char *fmt, ...) {
     va_end(ap);
 }
 
-/*
- * log_error - Log an error message
- * @fmt: Format string
- * ...: Variable arguments
- */
 void log_error(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);

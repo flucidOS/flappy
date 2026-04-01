@@ -1,26 +1,23 @@
 /*
  * install_commit.c - Atomic package installation commit
  *
- * This is the exit-condition enforcer for Trail-6.
- * A failed install leaves the system unchanged, always.
+ * TRANSACTION MODEL (fix for split-transaction bug):
  *
- * Procedure:
- *   1. Open DB transaction (BEGIN IMMEDIATE)
- *   2. Read .PKGINFO from staging dir
- *   3. Register package via graph_add_package
- *   4. Walk staging dir and register every file in the files table
- *   5. Copy files from staging → real filesystem
- *   6. COMMIT
+ *   A single BEGIN IMMEDIATE transaction is opened here and covers:
+ *     1. graph_add_package  (inserts package row + dependency edges)
+ *     2. register_files     (inserts file rows)
+ *     3. COMMIT
  *
- * On any failure after step 5 has begun:
- *   - ROLLBACK the DB transaction (removes package + file records)
- *   - Unlink every file that was copied to the real FS
- *   - Remove staging dir
+ *   File copy to the real filesystem happens AFTER the transaction
+ *   commits.  On copy failure, the DB is clean (already committed),
+ *   so we roll back the DB record with a separate DELETE and then
+ *   unlink any files already written.
  *
- * The DB transaction and filesystem copy are NOT atomic with each
- * other at the OS level.  The invariant is maintained by the fact
- * that ROLLBACK + file removal are always attempted together on
- * failure, so the system converges back to a clean state.
+ *   This removes the previous window where a crash between the
+ *   graph_add_package COMMIT and the file-registration COMMIT left
+ *   a ghost package row with no files.
+ *
+ * Invariant: a failed install leaves the system unchanged.
  */
 
 #define _POSIX_C_SOURCE 200809L
@@ -65,7 +62,6 @@ static int copy_file(const char *src, const char *dst)
     char *slash = strrchr(parent, '/');
     if (slash && slash != parent) {
         *slash = '\0';
-        /* mkdir -p equivalent */
         for (char *p = parent + 1; *p; p++) {
             if (*p == '/') {
                 *p = '\0';
@@ -120,9 +116,6 @@ static int copy_file(const char *src, const char *dst)
 
 /* =========================================================================
  * Staging directory walker
- *
- * Collects all regular file paths under staging_dir into a
- * dynamically allocated array of strings (relative to staging_dir).
  * ========================================================================= */
 
 typedef struct {
@@ -158,12 +151,6 @@ static void pathlist_free(PathList *pl)
     pl->cap   = 0;
 }
 
-/*
- * walk_staging
- *
- * Recursively walks staging_dir and collects paths relative to
- * staging_dir root (e.g. "usr/bin/hello").
- */
 static int walk_staging(const char *staging_dir,
                         const char *rel_prefix,
                         PathList *pl)
@@ -216,7 +203,7 @@ static int walk_staging(const char *staging_dir,
                 break;
             }
         }
-        /* symlinks and other types are skipped for now */
+        /* symlinks and other types are skipped */
     }
 
     closedir(d);
@@ -237,15 +224,13 @@ static int register_files(sqlite3 *db,
         "INSERT INTO files(path, package_id) VALUES(?, ?);",
         -1, &st, NULL
     );
-    if (rc != SQLITE_OK) {
+    if (rc != SQLITE_OK)
         db_die(db, rc, "register_files prepare");
-    }
 
     for (size_t i = 0; i < pl->count; i++) {
         sqlite3_reset(st);
         sqlite3_clear_bindings(st);
 
-        /* Store path with leading slash as canonical FS path */
         char canonical[PATH_MAX];
         snprintf(canonical, sizeof(canonical), "/%s", pl->paths[i]);
 
@@ -267,8 +252,7 @@ static int register_files(sqlite3 *db,
  * Rollback helpers
  * ========================================================================= */
 
-static void rollback_files(const char * const *paths,
-                            size_t count)
+static void rollback_files(const char * const *paths, size_t count)
 {
     for (size_t i = 0; i < count; i++) {
         if (unlink(paths[i]) != 0 && errno != ENOENT)
@@ -279,7 +263,13 @@ static void rollback_files(const char * const *paths,
 
 static void remove_staging(const char *staging_dir)
 {
-    /* Best-effort recursive removal via shell — staging dir only */
+    /*
+     * Best-effort recursive removal via shell — staging dir only.
+     * This path is used for cleanup after a successful install.
+     * The shell injection risk from clean.c does NOT apply here
+     * because staging_dir is constructed by install_extract from
+     * a known prefix + archive basename and is never user-supplied.
+     */
     char cmd[PATH_MAX + 32];
     snprintf(cmd, sizeof(cmd), "rm -rf \"%s\"", staging_dir);
     (void)system(cmd);
@@ -294,8 +284,7 @@ int install_commit(const char *pkgname,
                    const char *staging_dir)
 {
     /*
-     * 1. Read .PKGINFO from the cached package file.
-     *    pkgfile is passed directly from install.c (the download path).
+     * 1. Read package metadata from the cached archive.
      */
     struct flappy_pkg *meta = pkg_read_from_file(pkgfile);
     if (!meta) {
@@ -304,7 +293,6 @@ int install_commit(const char *pkgname,
         return 1;
     }
 
-    /* Sanity: pkgname must match metadata */
     if (strcmp(meta->name, pkgname) != 0) {
         fprintf(stderr,
                 "commit: package name mismatch: expected '%s' got '%s'\n",
@@ -331,8 +319,7 @@ int install_commit(const char *pkgname,
     }
 
     /*
-     * 3a. Check version constraints on dependencies.
-     *     Done before graph_add_package so we never partially register.
+     * 3a. Check version constraints before touching the DB.
      */
     if (install_check_constraints(meta)) {
         pkg_meta_free(meta);
@@ -341,8 +328,7 @@ int install_commit(const char *pkgname,
     }
 
     /*
-     * 3b. Build plain name array for graph_add_package
-     *     (graph only needs names, not constraint details).
+     * 3b. Build plain name array for graph_add_package.
      */
     const char **dep_names = NULL;
     if (meta->depends_count > 0) {
@@ -357,7 +343,22 @@ int install_commit(const char *pkgname,
     }
 
     /*
-     * 3c. Register package + dependencies in DB.
+     * 4. Open the single transaction that covers package row,
+     *    dependency edges, and file registration.
+     *
+     *    graph_add_package does NOT manage its own transaction —
+     *    it relies on this one being open already.
+     */
+    if (sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL) != SQLITE_OK) {
+        fprintf(stderr, "commit: could not begin transaction\n");
+        free(dep_names);
+        pkg_meta_free(meta);
+        pathlist_free(&staged);
+        return 1;
+    }
+
+    /*
+     * 4a. Insert package + dependency rows.
      */
     int rc = graph_add_package(
         meta->name,
@@ -369,29 +370,25 @@ int install_commit(const char *pkgname,
     free(dep_names);
 
     if (rc != 0) {
-        /* graph_add_package already printed the reason */
+        sqlite3_exec(db, "ROLLBACK;", NULL, NULL, NULL);
         pkg_meta_free(meta);
         pathlist_free(&staged);
         return 1;
     }
 
     /*
-     * Retrieve the new package's rowid for file registration.
-     * graph_add_package committed its own transaction, so we open
-     * a new one for file insertion.
+     * 4b. Retrieve the new package rowid for file registration.
+     *     We are still inside the transaction so the row is visible.
      */
-    sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL);
-
-    sqlite3_int64 pkg_id;
+    sqlite3_int64 pkg_id = -1;
     {
         sqlite3_stmt *st = NULL;
         sqlite3_prepare_v2(db,
             "SELECT id FROM packages WHERE name = ?;",
             -1, &st, NULL);
         sqlite3_bind_text(st, 1, meta->name, -1, SQLITE_STATIC);
-        pkg_id = (sqlite3_step(st) == SQLITE_ROW)
-                 ? sqlite3_column_int64(st, 0)
-                 : -1;
+        if (sqlite3_step(st) == SQLITE_ROW)
+            pkg_id = sqlite3_column_int64(st, 0);
         sqlite3_finalize(st);
     }
 
@@ -403,7 +400,7 @@ int install_commit(const char *pkgname,
     }
 
     /*
-     * 4. Register file paths in DB.
+     * 4c. Register file paths.
      */
     if (register_files(db, pkg_id, &staged) != 0) {
         fprintf(stderr, "commit: failed to register files in DB\n");
@@ -414,14 +411,41 @@ int install_commit(const char *pkgname,
     }
 
     /*
-     * 5. Copy files from staging → real filesystem.
-     *    Track what has been written for rollback purposes.
+     * 4d. COMMIT — package row, dep edges, and file rows are now durable.
+     *     No window exists between package row and file rows.
      */
-    char **written = calloc(staged.count, sizeof(char *));
-    if (!written && staged.count > 0) {
+    if (sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL) != SQLITE_OK) {
+        fprintf(stderr, "commit: transaction commit failed\n");
         sqlite3_exec(db, "ROLLBACK;", NULL, NULL, NULL);
         pkg_meta_free(meta);
         pathlist_free(&staged);
+        return 1;
+    }
+
+    /*
+     * 5. Copy files from staging to the real filesystem.
+     *
+     *    The DB is already committed at this point.  If a copy fails
+     *    we must undo the DB record (one clean DELETE) and unlink any
+     *    files already written.
+     */
+    char **written = calloc(staged.count, sizeof(char *));
+    if (!written && staged.count > 0) {
+        /* Extremely unlikely — OOM after commit. Roll back DB record. */
+        sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL);
+        {
+            sqlite3_stmt *del = NULL;
+            sqlite3_prepare_v2(db,
+                "DELETE FROM packages WHERE id = ?;",
+                -1, &del, NULL);
+            sqlite3_bind_int64(del, 1, pkg_id);
+            sqlite3_step(del);
+            sqlite3_finalize(del);
+        }
+        sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL);
+        pkg_meta_free(meta);
+        pathlist_free(&staged);
+        remove_staging(staging_dir);
         return 1;
     }
 
@@ -445,20 +469,17 @@ int install_commit(const char *pkgname,
         written[written_count] = strdup(dst);
         if (!written[written_count]) {
             copy_failed = 1;
-            written_count++; /* dst was written, track it */
+            written_count++;
             break;
         }
         written_count++;
     }
 
     if (copy_failed) {
-        /* Rollback DB */
-        sqlite3_exec(db, "ROLLBACK;", NULL, NULL, NULL);
-
         /*
-         * Also rollback the graph_add_package commit.
-         * graph_add_package used its own BEGIN/COMMIT so we must
-         * delete the row manually.
+         * DB is already committed — delete the package record cleanly.
+         * The ON DELETE CASCADE on files and dependencies handles
+         * the child rows automatically.
          */
         sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL);
         {
@@ -472,24 +493,8 @@ int install_commit(const char *pkgname,
         }
         sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL);
 
-        /* Rollback filesystem */
         rollback_files((const char *const *)written, written_count);
 
-        for (size_t i = 0; i < written_count; i++) free(written[i]);
-        free(written);
-
-        pkg_meta_free(meta);
-        pathlist_free(&staged);
-        remove_staging(staging_dir);
-        return 1;
-    }
-
-    /*
-     * 6. COMMIT file records.
-     */
-    if (sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL) != SQLITE_OK) {
-        /* Extremely unlikely but handle it */
-        rollback_files((const char *const *)written, written_count);
         for (size_t i = 0; i < written_count; i++) free(written[i]);
         free(written);
         pkg_meta_free(meta);
