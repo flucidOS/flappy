@@ -1,24 +1,15 @@
 /*
  * graph.c - Deterministic installed dependency graph engine
  *
- * Trail-6 unlocks graph_add_package.
+ * TRANSACTION CONTRACT (important):
  *
- * Trail-4 scope (unchanged):
- *   - Direct dependency query
- *   - Reverse dependency query
- *   - Orphan detection
- *   - Deterministic ordering
+ *   graph_add_package does NOT open or commit its own transaction.
+ *   The caller (install_commit) is responsible for wrapping the
+ *   entire install — package row + deps + file registration + file
+ *   copy — in a single BEGIN IMMEDIATE … COMMIT.
  *
- * Trail-6 addition:
- *   - graph_add_package: atomic insert of package + dependencies
- *
- * graph_add_package guarantees:
- *   - Fails if package already exists
- *   - Fails if any declared dependency is not installed
- *   - Fails on self-dependency
- *   - Detects cycles via DFS before committing
- *   - Entire operation is wrapped in BEGIN IMMEDIATE … COMMIT
- *   - No partial graph states ever committed
+ *   All other public functions (graph_depends, graph_rdepends,
+ *   graph_orphans) open and close their own read transactions.
  */
 
 #define _POSIX_C_SOURCE 200809L
@@ -44,21 +35,22 @@ static void normalize_lower(char *s)
 }
 
 /* =========================================================================
- * Transaction Helpers
+ * Transaction Helpers (used only by read-query functions)
+ *
+ * Read-only queries use BEGIN DEFERRED, which is SQLite's default but
+ * is stated explicitly here so the intent is clear and a future
+ * maintainer cannot confuse it with BEGIN IMMEDIATE (used by writes).
+ *
+ * BEGIN DEFERRED acquires no lock until the first read, and never
+ * escalates to a write lock, which is exactly what we want for
+ * graph_depends, graph_rdepends, and graph_orphans.
  * ========================================================================= */
 
-static void begin_read_tx(sqlite3 *db)
+static void begin_deferred_tx(sqlite3 *db)
 {
-    int rc = sqlite3_exec(db, "BEGIN;", NULL, NULL, NULL);
+    int rc = sqlite3_exec(db, "BEGIN DEFERRED;", NULL, NULL, NULL);
     if (rc != SQLITE_OK)
-        db_die(db, rc, "begin");
-}
-
-static void begin_immediate_tx(sqlite3 *db)
-{
-    int rc = sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL);
-    if (rc != SQLITE_OK)
-        db_die(db, rc, "begin immediate");
+        db_die(db, rc, "begin deferred");
 }
 
 static void commit_tx(sqlite3 *db)
@@ -66,11 +58,6 @@ static void commit_tx(sqlite3 *db)
     int rc = sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL);
     if (rc != SQLITE_OK)
         db_die(db, rc, "commit");
-}
-
-static void rollback_tx(sqlite3 *db)
-{
-    sqlite3_exec(db, "ROLLBACK;", NULL, NULL, NULL);
 }
 
 /* =========================================================================
@@ -125,10 +112,8 @@ static sqlite3_int64 get_package_id(sqlite3 *db, const char *name)
 /* =========================================================================
  * Cycle Detection (DFS)
  *
- * After inserting the new package and its dependency edges (but before
- * committing), we walk the graph from the new node to ensure no cycle
- * is reachable.  All work is inside the open transaction so the check
- * sees the tentative state.
+ * Called inside the caller's open transaction so it sees the
+ * tentative package + dependency rows before they are committed.
  * ========================================================================= */
 
 #define MAX_VISITED 1024
@@ -154,12 +139,6 @@ static int visited_add(VisitedSet *v, sqlite3_int64 id)
     return 0;
 }
 
-/*
- * dfs_has_cycle
- *
- * Returns 1 if a cycle is reachable from `start`, 0 otherwise.
- * `target` is the node we're looking for (the new package's id).
- */
 static int dfs_has_cycle(sqlite3 *db,
                          sqlite3_int64 start,
                          sqlite3_int64 target,
@@ -170,7 +149,7 @@ static int dfs_has_cycle(sqlite3 *db,
 
     if (visited_add(visited, start) != 0) {
         log_error("cycle detection: visited set overflow");
-        return 1; /* treat overflow as cycle to be safe */
+        return 1;
     }
 
     sqlite3_stmt *st = NULL;
@@ -207,6 +186,14 @@ static int dfs_has_cycle(sqlite3 *db,
 
 /* =========================================================================
  * graph_add_package
+ *
+ * CALLER MUST hold an open BEGIN IMMEDIATE transaction before calling
+ * this function.  graph_add_package does NOT begin or commit a
+ * transaction — it only performs inserts and validation queries.
+ *
+ * On success: rows are inserted; caller commits when ready.
+ * On failure: returns non-zero; caller must ROLLBACK.
+ *             All allocated memory is freed before returning.
  * ========================================================================= */
 
 int graph_add_package(
@@ -226,12 +213,9 @@ int graph_add_package(
         return 1;
     normalize_lower(canon);
 
-    begin_immediate_tx(db);
-
     /* 1. Reject duplicate */
     if (package_exists(db, canon)) {
         fprintf(stderr, "install: package '%s' is already installed\n", name);
-        rollback_tx(db);
         free(canon);
         return 1;
     }
@@ -241,7 +225,6 @@ int graph_add_package(
     if (depends_count > 0) {
         dep_canons = calloc(depends_count, sizeof(char *));
         if (!dep_canons) {
-            rollback_tx(db);
             free(canon);
             return 1;
         }
@@ -252,7 +235,6 @@ int graph_add_package(
         if (!dep_canons[i]) {
             for (size_t j = 0; j < i; j++) free(dep_canons[j]);
             free(dep_canons);
-            rollback_tx(db);
             free(canon);
             return 1;
         }
@@ -264,7 +246,6 @@ int graph_add_package(
                     "install: self-dependency not allowed (%s)\n", name);
             for (size_t j = 0; j <= i; j++) free(dep_canons[j]);
             free(dep_canons);
-            rollback_tx(db);
             free(canon);
             return 1;
         }
@@ -276,7 +257,6 @@ int graph_add_package(
                     dep_canons[i]);
             for (size_t j = 0; j <= i; j++) free(dep_canons[j]);
             free(dep_canons);
-            rollback_tx(db);
             free(canon);
             return 1;
         }
@@ -303,7 +283,6 @@ int graph_add_package(
         fprintf(stderr, "install: failed to insert package record\n");
         for (size_t i = 0; i < depends_count; i++) free(dep_canons[i]);
         free(dep_canons);
-        rollback_tx(db);
         free(canon);
         return 1;
     }
@@ -316,7 +295,6 @@ int graph_add_package(
         if (dep_id < 0) {
             for (size_t j = 0; j < depends_count; j++) free(dep_canons[j]);
             free(dep_canons);
-            rollback_tx(db);
             free(canon);
             return 1;
         }
@@ -338,7 +316,6 @@ int graph_add_package(
         if (rc != SQLITE_DONE) {
             for (size_t j = 0; j < depends_count; j++) free(dep_canons[j]);
             free(dep_canons);
-            rollback_tx(db);
             free(canon);
             return 1;
         }
@@ -355,15 +332,12 @@ int graph_add_package(
                     name);
             for (size_t j = 0; j < depends_count; j++) free(dep_canons[j]);
             free(dep_canons);
-            rollback_tx(db);
             free(canon);
             return 1;
         }
     }
 
-    /* 6. Commit */
-    commit_tx(db);
-
+    /* Success — caller commits. */
     for (size_t i = 0; i < depends_count; i++) free(dep_canons[i]);
     free(dep_canons);
     free(canon);
@@ -387,7 +361,7 @@ int graph_depends(const char *name)
         return 1;
     normalize_lower(canon);
 
-    begin_read_tx(db);
+    begin_deferred_tx(db);
 
     if (!package_exists(db, canon)) {
         commit_tx(db);
@@ -436,7 +410,7 @@ int graph_rdepends(const char *name)
         return 1;
     normalize_lower(canon);
 
-    begin_read_tx(db);
+    begin_deferred_tx(db);
 
     if (!package_exists(db, canon)) {
         commit_tx(db);
@@ -480,7 +454,7 @@ int graph_orphans(void)
     if (!db)
         return 1;
 
-    begin_read_tx(db);
+    begin_deferred_tx(db);
 
     sqlite3_stmt *st = NULL;
     int rc = sqlite3_prepare_v2(
@@ -497,10 +471,13 @@ int graph_orphans(void)
     if (rc != SQLITE_OK)
         db_die(db, rc, "orphans prepare");
 
-    while ((rc = sqlite3_step(st)) == SQLITE_ROW)
+    int found = 0;
+    while ((rc = sqlite3_step(st)) == SQLITE_ROW) {
         printf("%s\n", sqlite3_column_text(st, 0));
+        found++;
+    }
 
     sqlite3_finalize(st);
     commit_tx(db);
-    return 0;
+    return found;  /* caller prints "no orphans" message when 0 */
 }

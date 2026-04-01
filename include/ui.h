@@ -1,6 +1,8 @@
 #ifndef UI_H
 #define UI_H
 
+#include <curl/curl.h>
+
 /*
  * ui.h - Flappy UX system
  *
@@ -37,10 +39,10 @@ void ui_progress_finish(void);
 
 /* curl XFERINFO callback — wire directly to CURLOPT_XFERINFOFUNCTION */
 int ui_curl_progress_cb(void *clientp,
-                        double dltotal,
-                        double dlnow,
-                        double ultotal,
-                        double ulnow);
+                        curl_off_t dltotal,
+                        curl_off_t dlnow,
+                        curl_off_t ultotal,
+                        curl_off_t ulnow);
 
 /* =====================
  * TTY detection

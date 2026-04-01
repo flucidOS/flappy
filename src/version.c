@@ -9,15 +9,23 @@
  *   - Missing trailing segments are treated as 0
  *
  * Comparison contract:
- *   return  1  if a > b
- *   return  0  if a == b
- *   return -1  if a < b
+ *   return  1      if a > b
+ *   return  0      if a == b
+ *   return -1      if a < b
+ *   return INT_MIN if either version string is invalid
+ *
+ * Returning 0 on invalid input (the previous behaviour) was wrong:
+ * it caused version_satisfies with DEP_OP_GE to return "satisfied"
+ * for a package with a malformed installed version string, silently
+ * bypassing the constraint check.  INT_MIN is unambiguous — it is
+ * outside the normal {-1, 0, 1} range and callers can detect it.
  */
 
 #include "version.h"
 #include "pkg_meta.h"
 
 #include <ctype.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -69,7 +77,7 @@ int version_is_valid(const char *v)
  * parse_segment
  *
  * Parses numeric segment starting at *p.
- * Advances pointer to next segment.
+ * Advances pointer past the digits and the following dot (if any).
  */
 static long parse_segment(const char **p)
 {
@@ -93,17 +101,18 @@ static long parse_segment(const char **p)
  * Strict numeric dot-segment comparison.
  *
  * Returns:
- *   1  if a > b
- *   0  if equal
- *  -1  if a < b
+ *   1      if a > b
+ *   0      if equal
+ *  -1      if a < b
+ *  INT_MIN if either version string fails version_is_valid()
  *
- * If either version is invalid, comparison fails hard
- * and returns 0 (caller should validate beforehand).
+ * Callers that receive INT_MIN must treat the comparison as failed
+ * rather than as "equal".  version_satisfies() handles this correctly.
  */
 int version_cmp(const char *a, const char *b)
 {
     if (!version_is_valid(a) || !version_is_valid(b))
-        return 0;
+        return INT_MIN;
 
     const char *pa = a;
     const char *pb = b;
@@ -136,7 +145,8 @@ int version_cmp(const char *a, const char *b)
  *
  * Returns:
  *   1  constraint satisfied (or op is DEP_OP_NONE)
- *   0  constraint not satisfied, or invalid version strings
+ *   0  constraint not satisfied, invalid version strings, or
+ *      version_cmp returned INT_MIN (invalid input)
  */
 int version_satisfies(const char *installed,
                       dep_op_t    op,
@@ -145,10 +155,11 @@ int version_satisfies(const char *installed,
     if (op == DEP_OP_NONE)
         return 1;
 
-    if (!version_is_valid(installed) || !version_is_valid(required))
-        return 0;
-
+    /* version_cmp validates both strings internally; check its return */
     int cmp = version_cmp(installed, required);
+
+    if (cmp == INT_MIN)
+        return 0; /* invalid version — constraint cannot be satisfied */
 
     switch (op) {
     case DEP_OP_GE: return cmp >= 0;

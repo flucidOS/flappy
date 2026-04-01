@@ -15,7 +15,8 @@
 
 struct pkg_parse_tmp {
     char *name;
-    char *version;
+    char *version;  /* pkgver, later optionally suffixed with -pkgrel */
+    char *pkgrel;   /* stored separately until finalisation */
     char *arch;
     char *desc;
 
@@ -48,6 +49,7 @@ static char *trim(char *s) {
 static void tmp_free(struct pkg_parse_tmp *t) {
     free(t->name);
     free(t->version);
+    free(t->pkgrel);
     free(t->arch);
     free(t->desc);
 
@@ -90,15 +92,6 @@ static dep_op_t parse_op(const char *s, size_t *op_len)
     return DEP_OP_NONE;
 }
 
-/*
- * append_dep
- *
- * Parses a depend value string into a dep_entry and appends it.
- *
- * Formats:
- *   "libssl"          -> { name="libssl", op=NONE, version=NULL }
- *   "libssl >= 3.0"   -> { name="libssl", op=GE,   version="3.0" }
- */
 static int append_dep(struct dep_entry **arr,
                       size_t           *count,
                       const char       *value)
@@ -211,6 +204,18 @@ struct flappy_pkg *pkg_parse(char *buffer, size_t size) {
             if (tmp.version) { log_error("Duplicate pkgver"); tmp_free(&tmp); return NULL; }
             tmp.version = strdup(value);
         }
+        else if (strcmp(key, "pkgrel") == 0) {
+            /*
+             * pkgrel is the package release number (e.g. 1, 2).
+             * It is appended to pkgver as "pkgver-pkgrel" at
+             * finalisation so the installed version stored in the DB
+             * matches the composite format the repository uses.
+             * Silently ignoring pkgrel meant the DB stored "2.12"
+             * while the repo stored "2.12-1", breaking upgrade detection.
+             */
+            if (tmp.pkgrel) { log_error("Duplicate pkgrel"); tmp_free(&tmp); return NULL; }
+            tmp.pkgrel = strdup(value);
+        }
         else if (strcmp(key, "arch") == 0) {
             if (tmp.arch) { log_error("Duplicate arch"); tmp_free(&tmp); return NULL; }
             tmp.arch = strdup(value);
@@ -256,6 +261,33 @@ struct flappy_pkg *pkg_parse(char *buffer, size_t size) {
         log_error("Missing required PKGINFO fields");
         tmp_free(&tmp);
         return NULL;
+    }
+
+    /*
+     * Finalise version: if pkgrel is present, produce "pkgver-pkgrel".
+     * This matches the composite version format used in repo.db so that
+     * flappy upgrade compares apples to apples.
+     */
+    if (tmp.pkgrel) {
+        size_t vlen = strlen(tmp.version);
+        size_t rlen = strlen(tmp.pkgrel);
+        /* "pkgver" + "-" + "pkgrel" + NUL */
+        char *composite = malloc(vlen + 1 + rlen + 1);
+        if (!composite) {
+            fprintf(stderr, "Out of memory\n");
+            tmp_free(&tmp);
+            return NULL;
+        }
+        memcpy(composite, tmp.version, vlen);
+        composite[vlen] = '-';
+        memcpy(composite + vlen + 1, tmp.pkgrel, rlen);
+        composite[vlen + 1 + rlen] = '\0';
+
+        free(tmp.version);
+        tmp.version = composite;
+
+        free(tmp.pkgrel);
+        tmp.pkgrel = NULL;
     }
 
     struct flappy_pkg *pkg = malloc(sizeof(*pkg));

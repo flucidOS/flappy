@@ -10,33 +10,40 @@
 #include <string.h>
 #include <unistd.h>
 
+/*
+ * PRAGMA foreign_keys must be set OUTSIDE any transaction.
+ * SQLite silently ignores it when issued inside BEGIN...COMMIT.
+ * It is therefore applied first, then the schema transaction follows.
+ */
+static const char *PRAGMA_SQL =
+    "PRAGMA foreign_keys = ON;";
+
 static const char *SCHEMA_SQL =
-"PRAGMA foreign_keys = ON;"
-"BEGIN;"
-"CREATE TABLE IF NOT EXISTS meta ("
-"  schema_version INTEGER NOT NULL"
-");"
-"DELETE FROM meta;"
-"INSERT INTO meta(schema_version) VALUES (2);"
-"CREATE TABLE IF NOT EXISTS packages ("
-"  id INTEGER PRIMARY KEY,"
-"  name TEXT UNIQUE NOT NULL,"
-"  version TEXT NOT NULL,"
-"  explicit INTEGER NOT NULL CHECK (explicit IN (0,1))"
-");"
-"CREATE TABLE IF NOT EXISTS files ("
-"  path TEXT PRIMARY KEY,"
-"  package_id INTEGER NOT NULL,"
-"  FOREIGN KEY(package_id) REFERENCES packages(id) ON DELETE CASCADE"
-");"
-"CREATE TABLE IF NOT EXISTS dependencies ("
-"  package_id INTEGER NOT NULL,"
-"  depends_on INTEGER NOT NULL,"
-"  PRIMARY KEY(package_id, depends_on),"
-"  FOREIGN KEY(package_id) REFERENCES packages(id) ON DELETE CASCADE,"
-"  FOREIGN KEY(depends_on) REFERENCES packages(id) ON DELETE CASCADE"
-");"
-"COMMIT;";
+    "BEGIN;"
+    "CREATE TABLE IF NOT EXISTS meta ("
+    "  schema_version INTEGER NOT NULL"
+    ");"
+    "DELETE FROM meta;"
+    "INSERT INTO meta(schema_version) VALUES (2);"
+    "CREATE TABLE IF NOT EXISTS packages ("
+    "  id INTEGER PRIMARY KEY,"
+    "  name TEXT UNIQUE NOT NULL,"
+    "  version TEXT NOT NULL,"
+    "  explicit INTEGER NOT NULL CHECK (explicit IN (0,1))"
+    ");"
+    "CREATE TABLE IF NOT EXISTS files ("
+    "  path TEXT PRIMARY KEY,"
+    "  package_id INTEGER NOT NULL,"
+    "  FOREIGN KEY(package_id) REFERENCES packages(id) ON DELETE CASCADE"
+    ");"
+    "CREATE TABLE IF NOT EXISTS dependencies ("
+    "  package_id INTEGER NOT NULL,"
+    "  depends_on INTEGER NOT NULL,"
+    "  PRIMARY KEY(package_id, depends_on),"
+    "  FOREIGN KEY(package_id) REFERENCES packages(id) ON DELETE CASCADE,"
+    "  FOREIGN KEY(depends_on) REFERENCES packages(id) ON DELETE CASCADE"
+    ");"
+    "COMMIT;";
 
 static void mkdir_or_die(const char *p) {
     if (mkdir(p, 0755) == -1 && errno != EEXIST) {
@@ -54,6 +61,10 @@ int db_bootstrap_install(void) {
 
     rc = sqlite3_open(FLAPPY_DB_PATH, &db);
     if (rc != SQLITE_OK) db_die(db, rc, "open");
+
+    /* Apply PRAGMA outside the transaction — SQLite ignores it inside one */
+    rc = sqlite3_exec(db, PRAGMA_SQL, NULL, NULL, NULL);
+    if (rc != SQLITE_OK) db_die(db, rc, "pragma");
 
     rc = sqlite3_exec(db, SCHEMA_SQL, NULL, NULL, NULL);
     if (rc != SQLITE_OK) db_die(db, rc, "schema");

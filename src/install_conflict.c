@@ -1,15 +1,23 @@
 /*
- * install_conflict.c - File conflict detection
+ * install_conflict.c - File conflict detection against staged paths
  *
- * Reads the .FILES entry from the package archive and checks
- * every listed path against the installed DB's files table.
+ * Previously read the .FILES manifest from the package archive and
+ * checked those paths against the installed DB.  This meant that if
+ * .FILES and the actual archive content diverged (malformed package,
+ * hand-edited archive), conflicts could be silently missed.
  *
- * A conflict exists when a path is already owned by a
- * *different* package (re-installing the same package is
- * handled separately and is not a conflict here).
+ * This version is called AFTER install_extract has run.  It walks the
+ * staging directory — the definitive list of what would actually be
+ * installed — and checks each real path against the DB.
  *
- * Must be called BEFORE extraction so the system is never
- * partially modified when a conflict is found.
+ * The function signature is now:
+ *
+ *   int install_conflict_staged(const char *pkgname,
+ *                               const char *staging_dir);
+ *
+ * install.c calls this after extraction and before commit.
+ * Atomicity is preserved: nothing has been written to the real
+ * filesystem yet (staging is separate), so an abort here is clean.
  *
  * Returns:
  *   0  no conflicts
@@ -21,120 +29,137 @@
 #include "flappy.h"
 #include "db_guard.h"
 
-#include <archive.h>
-#include <archive_entry.h>
 #include <sqlite3.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define MAX_FILES_SIZE (256 * 1024)
-#define READ_CHUNK     8192
+#include <dirent.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <limits.h>
 
 /* =========================================================================
- * Read .FILES from archive into a buffer
+ * Recursive staging walker
+ *
+ * Collects canonical FS paths (with leading /) for every non-directory
+ * entry under staging_dir.
  * ========================================================================= */
 
-static char *read_files_entry(const char *pkgfile, size_t *out_size)
+typedef struct {
+    char  **paths;
+    size_t  count;
+    size_t  cap;
+} PathList;
+
+static int pathlist_add(PathList *pl, const char *path)
 {
-    struct archive *a = archive_read_new();
-    if (!a)
-        return NULL;
-
-    archive_read_support_format_tar(a);
-    archive_read_support_filter_zstd(a);
-
-    if (archive_read_open_filename(a, pkgfile, 65536) != ARCHIVE_OK) {
-        archive_read_free(a);
-        return NULL;
+    if (pl->count >= pl->cap) {
+        size_t newcap = pl->cap ? pl->cap * 2 : 64;
+        char **tmp = realloc(pl->paths, newcap * sizeof(char *));
+        if (!tmp) return -1;
+        pl->paths = tmp;
+        pl->cap   = newcap;
     }
+    pl->paths[pl->count] = strdup(path);
+    if (!pl->paths[pl->count]) return -1;
+    pl->count++;
+    return 0;
+}
 
-    struct archive_entry *entry;
-    char   *buffer = NULL;
-    size_t  total  = 0;
-    int     found  = 0;
+static void pathlist_free(PathList *pl)
+{
+    for (size_t i = 0; i < pl->count; i++) free(pl->paths[i]);
+    free(pl->paths);
+    pl->paths = NULL;
+    pl->count = 0;
+    pl->cap   = 0;
+}
 
-    while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
+static int walk_staged(const char *staging_dir,
+                       const char *rel_prefix,
+                       PathList   *pl)
+{
+    char abs_dir[PATH_MAX];
+    if (*rel_prefix)
+        snprintf(abs_dir, sizeof(abs_dir), "%s/%s", staging_dir, rel_prefix);
+    else
+        snprintf(abs_dir, sizeof(abs_dir), "%s", staging_dir);
 
-        const char *name = archive_entry_pathname(entry);
+    DIR *d = opendir(abs_dir);
+    if (!d) return -1;
 
-        if (!name || (strcmp(name, ".FILES") != 0 &&
-                      strcmp(name, "./.FILES") != 0)) {
-            archive_read_data_skip(a);
+    struct dirent *ent;
+    int err = 0;
+
+    while ((ent = readdir(d)) != NULL) {
+        if (strcmp(ent->d_name, ".") == 0 ||
+            strcmp(ent->d_name, "..") == 0)
             continue;
-        }
 
-        found = 1;
+        char rel[PATH_MAX];
+        if (*rel_prefix)
+            snprintf(rel, sizeof(rel), "%s/%s", rel_prefix, ent->d_name);
+        else
+            snprintf(rel, sizeof(rel), "%s", ent->d_name);
 
-        char chunk[READ_CHUNK];
-        ssize_t n;
+        char abs[PATH_MAX];
+        int n = snprintf(abs, sizeof(abs), "%s/%s", staging_dir, rel);
+        if (n < 0 || n >= (int)sizeof(abs)) { err = -1; break; }
 
-        while ((n = archive_read_data(a, chunk, sizeof(chunk))) > 0) {
+        struct stat st;
+        if (lstat(abs, &st) != 0) { err = -1; break; }
 
-            if (total + (size_t)n > MAX_FILES_SIZE) {
-                log_error("conflict: .FILES exceeds size limit");
-                archive_read_free(a);
-                free(buffer);
-                return NULL;
+        if (S_ISDIR(st.st_mode)) {
+            if (walk_staged(staging_dir, rel, pl) != 0) {
+                err = -1; break;
             }
-
-            char *tmp = realloc(buffer, total + (size_t)n + 1);
-            if (!tmp) {
-                archive_read_free(a);
-                free(buffer);
-                return NULL;
+        } else {
+            /* Regular files, symlinks, and any other non-dir entries */
+            /* PATH_MAX already consumed by rel; prepend '/' safely */
+            if (strlen(rel) >= PATH_MAX - 1) {
+                err = -1; break;
             }
-
-            buffer = tmp;
-            memcpy(buffer + total, chunk, (size_t)n);
-            total += (size_t)n;
+            char canonical[PATH_MAX + 1];
+            canonical[0] = '/';
+            memcpy(canonical + 1, rel, strlen(rel) + 1);
+            if (pathlist_add(pl, canonical) != 0) {
+                err = -1; break;
+            }
         }
-
-        break; /* found .FILES, stop scanning */
     }
 
-    archive_read_free(a);
-
-    if (!found) {
-        /* .FILES is optional in this design; no conflict possible */
-        *out_size = 0;
-        return NULL;
-    }
-
-    if (buffer)
-        buffer[total] = '\0';
-
-    *out_size = total;
-    return buffer;
+    closedir(d);
+    return err;
 }
 
 /* =========================================================================
  * Public entry
  * ========================================================================= */
 
-int install_conflict(const char *pkgname, const char *pkgfile)
+int install_conflict_staged(const char *pkgname, const char *staging_dir)
 {
-    size_t  size   = 0;
-    char   *buffer = read_files_entry(pkgfile, &size);
+    PathList pl = {0};
 
-    if (!buffer) {
-        /* No .FILES present — skip conflict check */
+    if (walk_staged(staging_dir, "", &pl) != 0) {
+        fprintf(stderr, "conflict: failed to walk staging directory\n");
+        pathlist_free(&pl);
+        return 1;
+    }
+
+    if (pl.count == 0) {
+        /* Empty staging — nothing to conflict with */
+        pathlist_free(&pl);
         return 0;
     }
 
     sqlite3 *db = db_handle();
     if (!db) {
-        free(buffer);
+        pathlist_free(&pl);
         return 1;
     }
 
     sqlite3_stmt *st = NULL;
-
-    /*
-     * For each path in .FILES, find which package owns it.
-     * A conflict is when that package is not pkgname itself.
-     */
     int rc = sqlite3_prepare_v2(
         db,
         "SELECT p.name FROM files f "
@@ -142,47 +167,30 @@ int install_conflict(const char *pkgname, const char *pkgfile)
         "WHERE f.path = ? AND p.name != ?;",
         -1, &st, NULL
     );
-
     if (rc != SQLITE_OK) {
         db_die(db, rc, "conflict prepare");
     }
 
     int conflict = 0;
 
-    char *saveptr = NULL;
-    char *line = strtok_r(buffer, "\n", &saveptr);
-
-    while (line && !conflict) {
-
-        /* Strip trailing CR */
-        size_t len = strlen(line);
-        if (len > 0 && line[len - 1] == '\r')
-            line[len - 1] = '\0';
-
-        /* Skip blank lines and metadata markers */
-        if (*line == '\0' || *line == '#') {
-            line = strtok_r(NULL, "\n", &saveptr);
-            continue;
-        }
-
+    for (size_t i = 0; i < pl.count && !conflict; i++) {
         sqlite3_reset(st);
         sqlite3_clear_bindings(st);
-        sqlite3_bind_text(st, 1, line, -1, SQLITE_STATIC);
-        sqlite3_bind_text(st, 2, pkgname, -1, SQLITE_STATIC);
+        sqlite3_bind_text(st, 1, pl.paths[i], -1, SQLITE_STATIC);
+        sqlite3_bind_text(st, 2, pkgname,     -1, SQLITE_STATIC);
 
         if (sqlite3_step(st) == SQLITE_ROW) {
             const unsigned char *owner = sqlite3_column_text(st, 0);
             fprintf(stderr,
-                    "conflict: /%s is already owned by %s\n",
-                    line, owner ? (const char *)owner : "unknown");
+                    "conflict: %s is already owned by %s\n",
+                    pl.paths[i],
+                    owner ? (const char *)owner : "unknown");
             conflict = 1;
         }
-
-        line = strtok_r(NULL, "\n", &saveptr);
     }
 
     sqlite3_finalize(st);
-    free(buffer);
+    pathlist_free(&pl);
 
     return conflict;
 }
