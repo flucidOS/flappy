@@ -6,6 +6,13 @@
  *   purge:  purged: <pkg>
  *   purge --force: [WARN] forced purge of <pkg> / required by: <dep>
  *   autoremove: removing: <pkg> / [INFO] no orphan packages
+ *
+ * autoremove runs in a loop until no orphans remain.
+ * Removing a dependency package can expose new orphans (e.g. A depends
+ * on B and C; removing A makes B and C orphans in the next pass).
+ * A single-pass implementation would leave those behind.
+ * The loop exits early if any removal in a pass fails, to avoid
+ * leaving the system in a partially-removed state with no clear cause.
  */
 
 #define _POSIX_C_SOURCE 200809L
@@ -289,13 +296,17 @@ int purge_package(const char *name, int force)
 }
 
 /* =========================================================================
- * Public: autoremove_packages
+ * Internal: collect one pass of orphans
+ *
+ * Returns the number of orphans found, or -1 on DB error.
+ * The caller owns the returned array and must free each element and
+ * the array itself.
  * ========================================================================= */
 
-int autoremove_packages(void)
+static int collect_orphans(sqlite3 *db, char ***out, size_t *out_count)
 {
-    sqlite3 *db = db_handle();
-    if (!db) return 1;
+    *out       = NULL;
+    *out_count = 0;
 
     sqlite3_stmt *st = NULL;
     int rc = sqlite3_prepare_v2(db,
@@ -310,58 +321,143 @@ int autoremove_packages(void)
     if (rc != SQLITE_OK)
         db_die(db, rc, "autoremove prepare");
 
-    char **orphans = NULL;
-    size_t count = 0, cap = 0;
+    char  **orphans = NULL;
+    size_t  count   = 0;
+    size_t  cap     = 0;
 
     while (sqlite3_step(st) == SQLITE_ROW) {
         const char *n = (const char *)sqlite3_column_text(st, 0);
         if (!n) continue;
+
         if (count >= cap) {
-            size_t nc = cap ? cap * 2 : 16;
+            size_t nc  = cap ? cap * 2 : 16;
             char **tmp = realloc(orphans, nc * sizeof(char *));
-            if (!tmp) break;
-            orphans = tmp; cap = nc;
+            if (!tmp) {
+                /* OOM — free what we have and abort */
+                for (size_t i = 0; i < count; i++) free(orphans[i]);
+                free(orphans);
+                sqlite3_finalize(st);
+                return -1;
+            }
+            orphans = tmp;
+            cap     = nc;
         }
+
         orphans[count] = strdup(n);
-        if (!orphans[count]) break;
+        if (!orphans[count]) {
+            for (size_t i = 0; i < count; i++) free(orphans[i]);
+            free(orphans);
+            sqlite3_finalize(st);
+            return -1;
+        }
         count++;
     }
+
     sqlite3_finalize(st);
 
-    if (count == 0) {
-        ui_info("no orphan packages");
+    *out       = orphans;
+    *out_count = count;
+    return (int)count;
+}
+
+/* =========================================================================
+ * Public: autoremove_packages
+ *
+ * Removes orphaned dependency packages in a loop.
+ *
+ * Why a loop:
+ *   Suppose A (explicit) depends on B and C, and B depends on D.
+ *   When A is removed manually, B, C, and D are all potential orphans.
+ *   But on the first pass only B and C are orphans (D is still needed
+ *   by B). After B is removed, D becomes an orphan.  A second pass
+ *   is required to catch D.  The loop continues until no orphans remain
+ *   or until a pass encounters a removal error (to avoid looping
+ *   indefinitely on a broken state).
+ * ========================================================================= */
+
+int autoremove_packages(void)
+{
+    sqlite3 *db = db_handle();
+    if (!db) return 1;
+
+    int total_errors  = 0;
+    int total_removed = 0;
+
+    for (;;) {
+        char  **orphans = NULL;
+        size_t  count   = 0;
+
+        int found = collect_orphans(db, &orphans, &count);
+        if (found < 0) {
+            ui_error("out of memory while collecting orphans");
+            return 1;
+        }
+
+        /* No orphans left — done. */
+        if (count == 0) {
+            free(orphans);
+            break;
+        }
+
+        int pass_errors = 0;
+
+        for (size_t i = 0; i < count; i++) {
+            fprintf(stdout, "removing: %s\n", orphans[i]);
+
+            sqlite3_int64 pkg_id = get_pkg_id(db, orphans[i]);
+            if (pkg_id < 0) {
+                /* Already gone — not an error, just skip. */
+                free(orphans[i]);
+                continue;
+            }
+
+            FileList fl = {0};
+            if (collect_files(db, pkg_id, &fl) != 0) {
+                pass_errors++;
+                free(orphans[i]);
+                continue;
+            }
+
+            int errs = delete_files(&fl, 1);
+            filelist_free(&fl);
+
+            if (errs > 0) {
+                pass_errors++;
+                free(orphans[i]);
+                continue;
+            }
+
+            if (delete_db_record(db, pkg_id) != 0) {
+                pass_errors++;
+                free(orphans[i]);
+                continue;
+            }
+
+            log_info("autoremove: removed orphan %s", orphans[i]);
+            total_removed++;
+            free(orphans[i]);
+        }
+
         free(orphans);
+        total_errors += pass_errors;
+
+        /*
+         * Stop looping if this pass had errors.
+         * A partial removal state needs operator attention; continuing
+         * to loop could remove packages that depended on the ones
+         * that failed to remove, worsening the inconsistency.
+         */
+        if (pass_errors > 0)
+            break;
+    }
+
+    if (total_removed == 0 && total_errors == 0) {
+        ui_info("no orphan packages");
         return 0;
     }
 
-    int errors = 0;
-    for (size_t i = 0; i < count; i++) {
-        fprintf(stdout, "removing: %s\n", orphans[i]);
-
-        sqlite3_int64 pkg_id = get_pkg_id(db, orphans[i]);
-        if (pkg_id < 0) { free(orphans[i]); continue; }
-
-        FileList fl = {0};
-        if (collect_files(db, pkg_id, &fl) != 0) {
-            errors++; free(orphans[i]); continue;
-        }
-
-        int errs = delete_files(&fl, 1);
-        filelist_free(&fl);
-
-        if (errs > 0) { errors++; free(orphans[i]); continue; }
-        if (delete_db_record(db, pkg_id) != 0) {
-            errors++; free(orphans[i]); continue;
-        }
-
-        log_info("autoremove: removed orphan %s", orphans[i]);
-        free(orphans[i]);
-    }
-
-    free(orphans);
-
-    if (errors > 0) {
-        ui_error("%d package(s) could not be removed", errors);
+    if (total_errors > 0) {
+        ui_error("%d package(s) could not be removed", total_errors);
         return 1;
     }
 
