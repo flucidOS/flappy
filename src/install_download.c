@@ -179,8 +179,7 @@ int install_download(const char *filename, char *local_path,
         char cached_hash[65];
         if (sha256_file(local_path, cached_hash) == 0 &&
                 strcmp(cached_hash, expected_checksum) == 0) {
-            fprintf(stderr, "downloading %s\n", filename);
-            ui_ok("cached");
+            ui_ok("using cached %s", filename);
             log_info("download: using cached %s", local_path);
             return 0;
         }

@@ -19,6 +19,10 @@
  *   3. compute_sha256 and read_sha_file helpers are removed; their
  *      roles are now filled by sha256_file() and a simple fread.
  *
+ *   4. repo_update now checks for root privileges at entry and prints
+ *      a clear diagnostic instead of letting the first write syscall
+ *      fail with a confusing errno message.
+ *
  * UX contract (unchanged):
  *   [INFO] updating repository metadata...
  *   downloading repo.db
@@ -212,6 +216,17 @@ static int validate_repo_packages(sqlite3 *db)
 
 int repo_update(const char *base_url)
 {
+    /*
+     * repo_update writes to /var/lib/flappy/ which is root-owned.
+     * Check early so the operator gets a clear message rather than
+     * a confusing "cannot create /var/lib/flappy/repo.db.tmp: Permission denied"
+     * from deep inside the download path.
+     */
+    if (geteuid() != 0) {
+        ui_error("flappy update requires root privileges");
+        return 1;
+    }
+
     /* Build URLs — no shell interpolation at any point */
     char url_db[1024], url_sha[1024];
     snprintf(url_db,  sizeof(url_db),  "%s/repo.db",        base_url);
