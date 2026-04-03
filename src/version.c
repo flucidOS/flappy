@@ -4,9 +4,12 @@
  * Implements deterministic numeric dot-segment comparison.
  *
  * Rules:
- *   - Version format: [0-9]+(\.[0-9]+)*
- *   - No alpha, beta, rc, or metadata allowed
- *   - Missing trailing segments are treated as 0
+ *   - Version format: [0-9]+(\.[0-9]+)*(-[0-9]+)?
+ *   - The optional trailing -pkgrel suffix (e.g. "2.12-1") is accepted
+ *     and treated as an additional numeric segment for comparison.
+ *   - No alpha, beta, rc, or other metadata allowed.
+ *   - Missing trailing segments are treated as 0.
+ *   - Only one hyphen is permitted (pkgrel boundary).
  *
  * Comparison contract:
  *   return  1      if a > b
@@ -33,7 +36,11 @@
  * version_is_valid
  *
  * Validates that version string matches:
- *   [0-9]+(\.[0-9]+)*
+ *   [0-9]+(\.[0-9]+)*(-[0-9]+)?
+ *
+ * A single hyphen is permitted as the pkgrel separator, e.g. "2.12-1".
+ * The hyphen must be preceded by a digit and followed by at least one digit.
+ * No second hyphen is allowed.
  *
  * Returns:
  *   1 if valid
@@ -44,7 +51,8 @@ int version_is_valid(const char *v)
     if (!v || !*v)
         return 0;
 
-    int seen_digit = 0;
+    int seen_digit  = 0;
+    int seen_hyphen = 0;
 
     for (size_t i = 0; v[i]; i++) {
 
@@ -54,15 +62,28 @@ int version_is_valid(const char *v)
         }
 
         if (v[i] == '.') {
-            /* dot cannot be first or follow another dot */
+            /* dot cannot be first, cannot follow another dot */
             if (!seen_digit)
                 return 0;
-
-            /* next must be digit */
+            /* next character must be a digit */
             if (!isdigit((unsigned char)v[i + 1]))
                 return 0;
-
             seen_digit = 0;
+            continue;
+        }
+
+        if (v[i] == '-') {
+            /* hyphen must follow a digit */
+            if (!seen_digit)
+                return 0;
+            /* only one hyphen permitted */
+            if (seen_hyphen)
+                return 0;
+            /* next character must be a digit (pkgrel cannot be empty) */
+            if (!isdigit((unsigned char)v[i + 1]))
+                return 0;
+            seen_hyphen = 1;
+            seen_digit  = 0;
             continue;
         }
 
@@ -76,8 +97,12 @@ int version_is_valid(const char *v)
 /*
  * parse_segment
  *
- * Parses numeric segment starting at *p.
- * Advances pointer past the digits and the following dot (if any).
+ * Parses a numeric segment starting at *p.
+ * Advances the pointer past the digits and the following separator
+ * (dot or hyphen) if present.
+ *
+ * Both '.' and '-' are treated as equivalent segment separators so
+ * that "2.12-1" compares as three segments: 2, 12, 1.
  */
 static long parse_segment(const char **p)
 {
@@ -88,8 +113,8 @@ static long parse_segment(const char **p)
         (*p)++;
     }
 
-    /* skip dot if present */
-    if (**p == '.')
+    /* skip separator (dot or hyphen) if present */
+    if (**p == '.' || **p == '-')
         (*p)++;
 
     return value;
@@ -99,6 +124,8 @@ static long parse_segment(const char **p)
  * version_cmp
  *
  * Strict numeric dot-segment comparison.
+ * The '-' pkgrel separator is treated identically to '.' so that
+ * "2.12-1" < "2.12-2" and "2.12-1" > "2.11-9".
  *
  * Returns:
  *   1      if a > b
