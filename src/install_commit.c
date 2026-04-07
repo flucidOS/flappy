@@ -17,6 +17,20 @@
  *   graph_add_package COMMIT and the file-registration COMMIT left
  *   a ghost package row with no files.
  *
+ * SYMLINK HANDLING:
+ *
+ *   walk_staging previously only collected S_ISREG entries, silently
+ *   dropping any symlinks in the staged tree.  install_conflict.c
+ *   already walks all non-directory entries (including symlinks), so
+ *   a symlink would pass the conflict check and then vanish — not
+ *   installed, not tracked in the DB.
+ *
+ *   walk_staging now collects both regular files and symlinks.
+ *   The copy step dispatches on lstat type: regular files go through
+ *   copy_file (open/read/write), symlinks go through copy_symlink
+ *   (readlink/symlink).  Both share ensure_parent_dirs for parent
+ *   directory creation.
+ *
  * Invariant: a failed install leaves the system unchanged.
  */
 
@@ -42,7 +56,44 @@
 #include <limits.h>
 
 /* =========================================================================
- * Helpers
+ * Parent directory creation (shared by copy_file and copy_symlink)
+ * ========================================================================= */
+
+/*
+ * ensure_parent_dirs
+ *
+ * Creates every directory component of `dst`'s parent path.
+ * Returns 0 on success, -1 on failure.
+ */
+static int ensure_parent_dirs(const char *dst)
+{
+    char parent[PATH_MAX];
+    strncpy(parent, dst, sizeof(parent) - 1);
+    parent[sizeof(parent) - 1] = '\0';
+
+    char *slash = strrchr(parent, '/');
+    if (!slash || slash == parent)
+        return 0; /* root or no parent component */
+
+    *slash = '\0';
+
+    for (char *p = parent + 1; *p; p++) {
+        if (*p == '/') {
+            *p = '\0';
+            if (mkdir(parent, 0755) == -1 && errno != EEXIST)
+                return -1;
+            *p = '/';
+        }
+    }
+
+    if (mkdir(parent, 0755) == -1 && errno != EEXIST)
+        return -1;
+
+    return 0;
+}
+
+/* =========================================================================
+ * File copy helpers
  * ========================================================================= */
 
 /*
@@ -54,37 +105,18 @@
  */
 static int copy_file(const char *src, const char *dst)
 {
-    /* Create parent directory */
-    char parent[PATH_MAX];
-    strncpy(parent, dst, sizeof(parent) - 1);
-    parent[sizeof(parent) - 1] = '\0';
-
-    char *slash = strrchr(parent, '/');
-    if (slash && slash != parent) {
-        *slash = '\0';
-        for (char *p = parent + 1; *p; p++) {
-            if (*p == '/') {
-                *p = '\0';
-                if (mkdir(parent, 0755) == -1 && errno != EEXIST)
-                    return -1;
-                *p = '/';
-            }
-        }
-        if (mkdir(parent, 0755) == -1 && errno != EEXIST)
-            return -1;
-    }
+    if (ensure_parent_dirs(dst) != 0)
+        return -1;
 
     /* Get source permissions */
     struct stat st;
     if (stat(src, &st) != 0)
         return -1;
 
-    /* Open src */
     int fdin = open(src, O_RDONLY);
     if (fdin < 0)
         return -1;
 
-    /* Open dst (create/truncate) */
     int fdout = open(dst, O_WRONLY | O_CREAT | O_TRUNC, st.st_mode & 0777);
     if (fdout < 0) {
         close(fdin);
@@ -112,6 +144,38 @@ static int copy_file(const char *src, const char *dst)
         unlink(dst);
 
     return err ? -1 : 0;
+}
+
+/*
+ * copy_symlink
+ *
+ * Recreates the symlink at src as a new symlink at dst.
+ * Creates parent directories as needed.
+ * Removes any existing file at dst before creating the symlink.
+ *
+ * Note: symlink ownership is determined by the target filesystem;
+ * lchown is not called here to keep the implementation minimal.
+ */
+static int copy_symlink(const char *src, const char *dst)
+{
+    char target[PATH_MAX];
+
+    ssize_t len = readlink(src, target, sizeof(target) - 1);
+    if (len < 0)
+        return -1;
+    target[len] = '\0';
+
+    if (ensure_parent_dirs(dst) != 0)
+        return -1;
+
+    /* Remove any existing entry at dst before creating the new symlink */
+    if (unlink(dst) != 0 && errno != ENOENT)
+        return -1;
+
+    if (symlink(target, dst) != 0)
+        return -1;
+
+    return 0;
 }
 
 /* =========================================================================
@@ -151,6 +215,15 @@ static void pathlist_free(PathList *pl)
     pl->cap   = 0;
 }
 
+/*
+ * walk_staging
+ *
+ * Recursively collects relative paths of all non-directory entries
+ * under staging_dir.  This includes both regular files and symlinks,
+ * matching the behaviour of install_conflict.c's walk_staged so that
+ * every entry that passes the conflict check is also installed and
+ * registered in the DB.
+ */
 static int walk_staging(const char *staging_dir,
                         const char *rel_prefix,
                         PathList *pl)
@@ -197,13 +270,21 @@ static int walk_staging(const char *staging_dir,
                 err = -1;
                 break;
             }
-        } else if (S_ISREG(st.st_mode)) {
+        } else if (S_ISREG(st.st_mode) || S_ISLNK(st.st_mode)) {
+            /*
+             * Collect both regular files and symlinks.
+             * Previously only S_ISREG was collected, which meant symlinks
+             * passed the conflict check but were never installed or
+             * registered in the DB.
+             */
             if (pathlist_add(pl, rel) != 0) {
                 err = -1;
                 break;
             }
         }
-        /* symlinks and other types are skipped */
+        /* Other types (devices, sockets, etc.) are silently skipped.
+         * flappycook does not produce them, and extracting them would
+         * require elevated privileges or special handling we don't want. */
     }
 
     closedir(d);
@@ -308,7 +389,7 @@ int install_commit(const char *pkgname,
     }
 
     /*
-     * 2. Collect staged files.
+     * 2. Collect staged files (regular files and symlinks).
      */
     PathList staged = {0};
     if (walk_staging(staging_dir, "", &staged) != 0) {
@@ -345,9 +426,6 @@ int install_commit(const char *pkgname,
     /*
      * 4. Open the single transaction that covers package row,
      *    dependency edges, and file registration.
-     *
-     *    graph_add_package does NOT manage its own transaction —
-     *    it relies on this one being open already.
      */
     if (sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL) != SQLITE_OK) {
         fprintf(stderr, "commit: could not begin transaction\n");
@@ -378,7 +456,6 @@ int install_commit(const char *pkgname,
 
     /*
      * 4b. Retrieve the new package rowid for file registration.
-     *     We are still inside the transaction so the row is visible.
      */
     sqlite3_int64 pkg_id = -1;
     {
@@ -400,7 +477,7 @@ int install_commit(const char *pkgname,
     }
 
     /*
-     * 4c. Register file paths.
+     * 4c. Register file paths (regular files and symlinks).
      */
     if (register_files(db, pkg_id, &staged) != 0) {
         fprintf(stderr, "commit: failed to register files in DB\n");
@@ -411,8 +488,7 @@ int install_commit(const char *pkgname,
     }
 
     /*
-     * 4d. COMMIT — package row, dep edges, and file rows are now durable.
-     *     No window exists between package row and file rows.
+     * 4d. COMMIT.
      */
     if (sqlite3_exec(db, "COMMIT;", NULL, NULL, NULL) != SQLITE_OK) {
         fprintf(stderr, "commit: transaction commit failed\n");
@@ -425,13 +501,15 @@ int install_commit(const char *pkgname,
     /*
      * 5. Copy files from staging to the real filesystem.
      *
-     *    The DB is already committed at this point.  If a copy fails
-     *    we must undo the DB record (one clean DELETE) and unlink any
-     *    files already written.
+     *    Regular files are copied with copy_file (open/read/write).
+     *    Symlinks are recreated with copy_symlink (readlink/symlink).
+     *    lstat on the staged path determines which path to take.
+     *
+     *    The DB is already committed.  On failure: delete the package
+     *    record and unlink any files already written.
      */
     char **written = calloc(staged.count, sizeof(char *));
     if (!written && staged.count > 0) {
-        /* Extremely unlikely — OOM after commit. Roll back DB record. */
         sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL);
         {
             sqlite3_stmt *del = NULL;
@@ -458,10 +536,29 @@ int install_commit(const char *pkgname,
         snprintf(src, sizeof(src), "%s/%s", staging_dir, staged.paths[i]);
         snprintf(dst, sizeof(dst), "/%s", staged.paths[i]);
 
-        if (copy_file(src, dst) != 0) {
+        /*
+         * Determine type of the staged entry and dispatch accordingly.
+         * lstat is used so we see the symlink itself, not its target.
+         */
+        struct stat src_st;
+        if (lstat(src, &src_st) != 0) {
             fprintf(stderr,
-                    "commit: failed to install /%s: %s\n",
-                    staged.paths[i], strerror(errno));
+                    "commit: cannot stat staged file %s: %s\n",
+                    src, strerror(errno));
+            copy_failed = 1;
+            break;
+        }
+
+        int cp_rc;
+        if (S_ISLNK(src_st.st_mode))
+            cp_rc = copy_symlink(src, dst);
+        else
+            cp_rc = copy_file(src, dst);
+
+        if (cp_rc != 0) {
+            fprintf(stderr,
+                    "commit: failed to install %s: %s\n",
+                    dst, strerror(errno));
             copy_failed = 1;
             break;
         }
@@ -476,11 +573,6 @@ int install_commit(const char *pkgname,
     }
 
     if (copy_failed) {
-        /*
-         * DB is already committed — delete the package record cleanly.
-         * The ON DELETE CASCADE on files and dependencies handles
-         * the child rows automatically.
-         */
         sqlite3_exec(db, "BEGIN IMMEDIATE;", NULL, NULL, NULL);
         {
             sqlite3_stmt *del = NULL;

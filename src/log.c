@@ -20,12 +20,26 @@ static FILE *G_LOG_FP = NULL;
 
 /*
  * write_log - Write a formatted log message
+ *
+ * If log_init() has not been called (G_LOG_FP is NULL), the message
+ * is written to stderr rather than crashing the process.  A missing
+ * log entry is never a reason to abort an operation that may have
+ * already succeeded.
  */
-static void write_log(const char *level, const char *fmt, va_list ap) {
+static void write_log(const char *level, const char *fmt, va_list ap)
+{
     if (!G_LOG_FP) {
-        /* Should not happen after log_init, but guard defensively */
-        fprintf(stderr, "Fatal: log not initialised\n");
-        exit(1);
+        /*
+         * Log not initialised — fall back to stderr so the message
+         * is not silently lost, but do not abort.  This can happen if
+         * a log_* call is made from a code path that runs before
+         * log_init() (e.g. a stale object file or a constructor).
+         * Crashing here would hide the real error from the operator.
+         */
+        fprintf(stderr, "[%s] ", level);
+        vfprintf(stderr, fmt, ap);
+        fprintf(stderr, "\n");
+        return;
     }
 
     fprintf(G_LOG_FP, "[%s] ", level);

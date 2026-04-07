@@ -1,14 +1,21 @@
 /*
  * cmd_install.c - CLI entry for `flappy install`
  *
- * Responsibilities:
- *   - Validate CLI arguments
- *   - Pass package name to installer
- *   - Handle user-level errors
+ * Routes through resolve_and_install() which:
+ *   1. Computes the full transitive dependency closure from repo.db
+ *   2. Filters out already-installed packages
+ *   3. Installs the remainder in dependency-first topological order
+ *
+ * Each package in the resolved list goes through the standard pipeline:
+ *   guard → lookup → download → verify → extract → conflict → commit
+ *
+ * All atomicity and integrity guarantees are preserved per-package.
+ * If any package in the chain fails, installation stops and the
+ * remaining packages are not attempted.
  */
 
 #include "flappy.h"
-#include "install.h"
+#include "resolve.h"
 
 #include <stdio.h>
 
@@ -19,7 +26,5 @@ int cmd_install(int argc, char **argv)
         return 2;
     }
 
-    const char *pkgname = argv[0];
-
-    return install_package(pkgname);
+    return resolve_and_install(argv[0]);
 }
