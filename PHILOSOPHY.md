@@ -81,7 +81,7 @@ The staging directory (`/var/cache/flappy/staging/`) holds the extracted package
 This means `flappy clean` is always safe to run. If staging contains anything, it is either an in-progress install (do not run clean) or a leftover from a failed install (safe to clean).
 
 ---
-
+<!-- 
 ## Dependency Model
 
 Flappy uses a directed dependency graph stored in the `dependencies` table. Edges represent "package A requires package B to be installed."
@@ -92,7 +92,7 @@ Three invariants are enforced at install time:
 2. All declared dependencies must already be installed
 3. No cycles (verified via DFS before committing the new node)
 
-This means Flappy does not resolve dependency chains. If you install package A which depends on B and C, you must install B and C first. This is intentional. Automatic dependency resolution introduces complexity proportional to the number of packages and their version constraints. Flappy has no version constraint solver, and does not need one.
+This means Flappy does not resolve dependency chains. If you install package A which depends on B and C, you must install B and C first. This is intentional. Automatic dependency resolution introduces complexity proportional to the number of packages and their version constraints. Flappy has no version constraint solver, and does not need one. -->
 
 ---
 
@@ -143,7 +143,6 @@ These features were considered and explicitly excluded:
 
 | Feature | Reason excluded |
 |---|---|
-| Dependency resolution | Adds resolver complexity; no version constraint model |
 | Post-install scripts | Arbitrary code execution; maintenance burden |
 | Optional dependencies | No deterministic model for "optional" |
 | Package signing | Infrastructure cost exceeds benefit for this scope |

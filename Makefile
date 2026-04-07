@@ -62,6 +62,7 @@ SRCS := \
 	$(SRC_DIR)/install_extract.c \
 	$(SRC_DIR)/install_commit.c \
 	$(SRC_DIR)/install_conflict.c \
+	$(SRC_DIR)/resolve.c \
 	$(SRC_DIR)/remove.c \
 	$(SRC_DIR)/cmd_remove.c \
 	$(SRC_DIR)/cmd_purge.c \
@@ -73,7 +74,7 @@ SRCS := \
 	$(SRC_DIR)/ui.c \
 	$(SRC_DIR)/env.c \
 	$(SRC_DIR)/install_constraints.c \
-	$(SRC_DIR)/sha256.c 
+	$(SRC_DIR)/sha256.c
 
 # Object files
 OBJS := $(SRCS:.c=.o)
