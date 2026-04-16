@@ -74,7 +74,8 @@ SRCS := \
 	$(SRC_DIR)/ui.c \
 	$(SRC_DIR)/env.c \
 	$(SRC_DIR)/install_constraints.c \
-	$(SRC_DIR)/sha256.c
+	$(SRC_DIR)/sha256.c \
+	$(SRC_DIR)/hooks.c
 
 # Object files
 OBJS := $(SRCS:.c=.o)

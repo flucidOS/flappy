@@ -18,9 +18,6 @@ typedef enum {
 
 /*
  * A single dependency entry.
- * name     = package name
- * op       = version constraint operator (DEP_OP_NONE if unconstrained)
- * version  = required version string (NULL if op == DEP_OP_NONE)
  */
 struct dep_entry {
     char    *name;
@@ -47,6 +44,13 @@ struct flappy_pkg {
     size_t provides_count;
 
     size_t size;
+
+    /*
+     * has_install: 1 if the package contains a .INSTALL hook script.
+     * Set by pkg_parser when it encounters an "install" field in .PKGINFO.
+     * Used by install_commit to extract and run hooks.
+     */
+    int has_install;
 };
 
 void pkg_meta_free(struct flappy_pkg *pkg);
