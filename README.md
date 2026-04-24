@@ -15,7 +15,6 @@ Flappy is built under a specific set of constraints:
 - **No silent actions** — every mutation is printed, every forced action is logged
 - **No auto-fix** — flappy diagnoses problems; the operator decides what to do
 
-These constraints are not limitations. They are decisions. See [PHILOSOPHY.md](PHILOSOPHY.md) for the full rationale.
 
 ---
 
