@@ -10,7 +10,6 @@ Flappy is a minimal, deterministic package manager built for FlucidOS. It manage
 
 Flappy is built under a specific set of constraints:
 
-- **Two-year maintenance window** — no feature that requires long-term maintenance burden
 - **Single maintainer** — no infrastructure beyond GitHub Pages
 - **Deterministic behaviour** — same input always produces the same output
 - **No silent actions** — every mutation is printed, every forced action is logged
