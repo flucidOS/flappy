@@ -54,6 +54,11 @@ static void mkdir_or_die(const char *p) {
 }
 
 int db_bootstrap_install(void) {
+    if (geteuid() != 0) {
+        fprintf(stderr, "Error: flappy --init-db requires root privileges\n");
+        return 1;
+    }
+
     sqlite3 *db = NULL;
     int rc;
 

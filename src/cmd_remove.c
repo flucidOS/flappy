@@ -12,12 +12,18 @@
 #include "remove.h"
 
 #include <stdio.h>
+#include <unistd.h>
 
 int cmd_remove(int argc, char **argv)
 {
     if (argc < 1) {
         fprintf(stderr, "usage: flappy remove <package>\n");
         return 2;
+    }
+
+    if (geteuid() != 0) {
+        fprintf(stderr, "Error: flappy remove requires root privileges\n");
+        return 1;
     }
 
     db_open_or_die();

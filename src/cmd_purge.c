@@ -17,12 +17,18 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 int cmd_purge(int argc, char **argv)
 {
     if (argc < 1) {
         fprintf(stderr, "usage: flappy purge [--force] <package>\n");
         return 2;
+    }
+
+    if (geteuid() != 0) {
+        fprintf(stderr, "Error: flappy purge requires root privileges\n");
+        return 1;
     }
 
     int force = 0;

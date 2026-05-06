@@ -342,18 +342,79 @@ static void rollback_files(const char * const *paths, size_t count)
     }
 }
 
+static int rmtree(int parent_dfd, const char *dirname);
+
 static void remove_staging(const char *staging_dir)
 {
     /*
-     * Best-effort recursive removal via shell — staging dir only.
-     * This path is used for cleanup after a successful install.
-     * The shell injection risk from clean.c does NOT apply here
-     * because staging_dir is constructed by install_extract from
-     * a known prefix + archive basename and is never user-supplied.
+     * Best-effort recursive removal of the staging directory.
+     * Uses pure POSIX syscalls (openat/unlinkat/fdopendir) —
+     * no shell, no system(), no injection risk regardless of
+     * directory entry names.
      */
-    char cmd[PATH_MAX + 32];
-    snprintf(cmd, sizeof(cmd), "rm -rf \"%s\"", staging_dir);
-    (void)system(cmd);
+    if (!staging_dir || staging_dir[0] == '\0')
+        return;
+
+    const char *slash = strrchr(staging_dir, '/');
+    if (!slash)
+        return;
+
+    char parent[PATH_MAX];
+    size_t plen = (size_t)(slash - staging_dir);
+    if (plen == 0 || plen >= sizeof(parent))
+        return;
+    memcpy(parent, staging_dir, plen);
+    parent[plen] = '\0';
+
+    const char *dirname = slash + 1;
+    if (*dirname == '\0')
+        return;
+
+    int parent_fd = open(parent, O_RDONLY | O_DIRECTORY);
+    if (parent_fd < 0)
+        return;
+
+    (void)rmtree(parent_fd, dirname);
+    close(parent_fd);
+}
+
+static int rmtree(int parent_dfd, const char *dirname)
+{
+    int dfd = openat(parent_dfd, dirname, O_RDONLY | O_DIRECTORY);
+    if (dfd < 0)
+        return errno == ENOENT ? 0 : 1;
+
+    DIR *d = fdopendir(dfd);
+    if (!d) { close(dfd); return 1; }
+
+    int errors = 0;
+    struct dirent *ent;
+
+    while ((ent = readdir(d)) != NULL) {
+        if (strcmp(ent->d_name, ".") == 0 ||
+            strcmp(ent->d_name, "..") == 0)
+            continue;
+
+        struct stat st;
+        if (fstatat(dfd, ent->d_name, &st, AT_SYMLINK_NOFOLLOW) != 0) {
+            errors++;
+            continue;
+        }
+
+        if (S_ISDIR(st.st_mode))
+            errors += rmtree(dfd, ent->d_name);
+        else if (unlinkat(dfd, ent->d_name, 0) != 0 && errno != ENOENT)
+            errors++;
+    }
+
+    closedir(d);
+
+    if (errors == 0 &&
+            unlinkat(parent_dfd, dirname, AT_REMOVEDIR) != 0 &&
+            errno != ENOENT)
+        errors++;
+
+    return errors;
 }
 
 /* =========================================================================

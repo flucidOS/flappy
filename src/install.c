@@ -33,6 +33,8 @@
  *   ✔ installed: <pkg> <ver>
  */
 
+#define _POSIX_C_SOURCE 200809L
+
 #include "install.h"
 #include "flappy.h"
 #include "ui.h"
@@ -40,6 +42,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
 
 int install_guard(void);
 int install_lookup(const char *pkg, char *filename, char *checksum);
@@ -113,11 +121,91 @@ int install_package(const char *pkgname)
     return 0;
 }
 
+/* =========================================================================
+ * remove_tree_at
+ *
+ * Recursively removes all entries under the open directory fd `parent_dfd`
+ * named `dirname`, then removes the directory itself.
+ *
+ * Never passes any path to a shell.  Returns the number of errors.
+ * ========================================================================= */
+
+static int remove_tree_at(int parent_dfd, const char *dirname)
+{
+    int dfd = openat(parent_dfd, dirname, O_RDONLY | O_DIRECTORY);
+    if (dfd < 0) {
+        if (errno == ENOENT)
+            return 0;
+        return 1;
+    }
+
+    DIR *d = fdopendir(dfd);
+    if (!d) {
+        close(dfd);
+        return 1;
+    }
+
+    int errors = 0;
+    struct dirent *ent;
+
+    while ((ent = readdir(d)) != NULL) {
+        if (strcmp(ent->d_name, ".") == 0 ||
+            strcmp(ent->d_name, "..") == 0)
+            continue;
+
+        struct stat st;
+        if (fstatat(dfd, ent->d_name, &st, AT_SYMLINK_NOFOLLOW) != 0) {
+            errors++;
+            continue;
+        }
+
+        if (S_ISDIR(st.st_mode))
+            errors += remove_tree_at(dfd, ent->d_name);
+        else if (unlinkat(dfd, ent->d_name, 0) != 0 && errno != ENOENT)
+            errors++;
+    }
+
+    closedir(d); /* also closes dfd */
+
+    if (errors == 0 &&
+            unlinkat(parent_dfd, dirname, AT_REMOVEDIR) != 0 &&
+            errno != ENOENT)
+        errors++;
+
+    return errors;
+}
+
+/*
+ * abort_cleanup
+ *
+ * Best-effort removal of the staging directory on install abort.
+ * Uses pure POSIX syscalls — no shell, no system().
+ */
 static void abort_cleanup(const char *staging_dir)
 {
     if (!staging_dir || staging_dir[0] == '\0')
         return;
-    char cmd[512 + 32];
-    snprintf(cmd, sizeof(cmd), "rm -rf \"%s\"", staging_dir);
-    (void)system(cmd);
+
+    /* Find the last path separator to split parent + dirname */
+    const char *slash = strrchr(staging_dir, '/');
+    if (!slash)
+        return;
+
+    char parent[PATH_MAX];
+    size_t plen = (size_t)(slash - staging_dir);
+    if (plen == 0 || plen >= sizeof(parent))
+        return;
+    memcpy(parent, staging_dir, plen);
+    parent[plen] = '\0';
+
+    const char *dirname = slash + 1;
+    if (*dirname == '\0')
+        return;
+
+    int parent_fd = open(parent, O_RDONLY | O_DIRECTORY);
+    if (parent_fd < 0)
+        return;
+
+    (void)remove_tree_at(parent_fd, dirname);
+    close(parent_fd);
 }

@@ -17,9 +17,15 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 int cmd_clean(int argc, char **argv)
 {
+    if (geteuid() != 0) {
+        fprintf(stderr, "Error: flappy clean requires root privileges\n");
+        return 1;
+    }
+
     int all = 0;
 
     for (int i = 0; i < argc; i++) {
