@@ -34,7 +34,7 @@
 #include <archive.h>
 #include <archive_entry.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 #include "fetch.h"
 
 /**
@@ -49,21 +49,21 @@ open_archive(const char *url)
 	struct archive *ar;
 	int r;
 
-	ar = xbps_archive_read_new();
+	ar = flappy_archive_read_new();
 	if (!ar) {
 		r = -errno;
-		xbps_error_printf("failed to open archive: %s: %s\n", url, strerror(-r));
+		flappy_error_printf("failed to open archive: %s: %s\n", url, strerror(-r));
 		errno = -r;
 		return NULL;
 	}
 
-	if (xbps_repository_is_remote(url)) {
-		r = xbps_archive_read_open_remote(ar, url);
+	if (flappy_repository_is_remote(url)) {
+		r = flappy_archive_read_open_remote(ar, url);
 	} else {
-		r = xbps_archive_read_open(ar, url);
+		r = flappy_archive_read_open(ar, url);
 	}
 	if (r < 0) {
-		xbps_error_printf("failed to open archive: %s: %s\n", url, strerror(-r));
+		flappy_error_printf("failed to open archive: %s: %s\n", url, strerror(-r));
 		archive_read_free(ar);
 		errno = -r;
 		return NULL;
@@ -73,7 +73,7 @@ open_archive(const char *url)
 }
 
 char *
-xbps_archive_fetch_file(const char *url, const char *fname)
+flappy_archive_fetch_file(const char *url, const char *fname)
 {
 	struct archive *a;
 	struct archive_entry *entry;
@@ -90,12 +90,12 @@ xbps_archive_fetch_file(const char *url, const char *fname)
 
 		bfile = archive_entry_pathname(entry);
 		if (!bfile)
-			xbps_unreachable();
+			flappy_unreachable();
 		if (bfile[0] == '.')
 			bfile++; /* skip first dot */
 
 		if (strcmp(bfile, fname) == 0) {
-			buf = xbps_archive_get_file(a, entry);
+			buf = flappy_archive_get_file(a, entry);
 			break;
 		}
 		archive_read_data_skip(a);
@@ -106,7 +106,7 @@ xbps_archive_fetch_file(const char *url, const char *fname)
 }
 
 int
-xbps_archive_fetch_file_into_fd(const char *url, const char *fname, int fd)
+flappy_archive_fetch_file_into_fd(const char *url, const char *fname, int fd)
 {
 	struct archive *a;
 	struct archive_entry *entry;
@@ -129,27 +129,27 @@ xbps_archive_fetch_file_into_fd(const char *url, const char *fname, int fd)
 		if (rv == ARCHIVE_FATAL) {
 			const char *error = archive_error_string(a);
 			if (error != NULL) {
-				xbps_error_printf(
+				flappy_error_printf(
 				    "Reading archive entry from: %s: %s\n",
 				    url, error);
 			} else {
-				xbps_error_printf(
+				flappy_error_printf(
 				    "Reading archive entry from: %s: %s\n",
-				    url, strerror(xbps_archive_errno(a)));
+				    url, strerror(flappy_archive_errno(a)));
 			}
-			rv = xbps_archive_errno(a);
+			rv = flappy_archive_errno(a);
 			break;
 		}
 		bfile = archive_entry_pathname(entry);
 		if (!bfile)
-			xbps_unreachable();
+			flappy_unreachable();
 		if (bfile[0] == '.')
 			bfile++; /* skip first dot */
 
 		if (strcmp(bfile, fname) == 0) {
 			rv = archive_read_data_into_fd(a, fd);
 			if (rv != ARCHIVE_OK)
-				rv = xbps_archive_errno(a);
+				rv = flappy_archive_errno(a);
 			break;
 		}
 		archive_read_data_skip(a);
@@ -159,16 +159,16 @@ xbps_archive_fetch_file_into_fd(const char *url, const char *fname, int fd)
 	return rv;
 }
 
-xbps_dictionary_t
-xbps_archive_fetch_plist(const char *url, const char *plistf)
+flappy_dictionary_t
+flappy_archive_fetch_plist(const char *url, const char *plistf)
 {
-	xbps_dictionary_t d;
+	flappy_dictionary_t d;
 	char *buf;
 
-	if ((buf = xbps_archive_fetch_file(url, plistf)) == NULL)
+	if ((buf = flappy_archive_fetch_file(url, plistf)) == NULL)
 		return NULL;
 
-	d = xbps_dictionary_internalize(buf);
+	d = flappy_dictionary_internalize(buf);
 	free(buf);
 	return d;
 }

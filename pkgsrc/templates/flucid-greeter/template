@@ -1,0 +1,16 @@
+pkgname=flucid-greeter
+version=1.0
+revision=1
+arch=noarch
+depends="flucid-hello>=1.0_1"
+short_desc="Greeter that depends on flucid-hello (tests dependency resolution)"
+maintainer="FlucidOS <flucidos@localhost>"
+license="BSD-2-Clause"
+homepage="https://github.com/FlucidOS/flappy"
+
+do_install() {
+	mkdir -p "$DESTDIR/usr/bin"
+	printf '#!/bin/sh\nflucid-hello\necho "greeter ${version}_${revision}"\n' \
+		> "$DESTDIR/usr/bin/flucid-greeter"
+	chmod 755 "$DESTDIR/usr/bin/flucid-greeter"
+}

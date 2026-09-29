@@ -33,17 +33,17 @@
 #include <archive_entry.h>
 
 #include "fetch.h"
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 int HIDDEN
-xbps_archive_errno(struct archive *ar)
+flappy_archive_errno(struct archive *ar)
 {
 	int err = archive_errno(ar);
 	return err == -1 ? EINVAL : err;
 }
 
 char HIDDEN *
-xbps_archive_get_file(struct archive *ar, struct archive_entry *entry)
+flappy_archive_get_file(struct archive *ar, struct archive_entry *entry)
 {
 	int64_t entry_size;
 	size_t used = 0;
@@ -63,7 +63,7 @@ xbps_archive_get_file(struct archive *ar, struct archive_entry *entry)
 
 	buf = malloc(len + 1);
 	if (!buf) {
-		xbps_error_oom();
+		flappy_error_oom();
 		errno = ENOMEM;
 		return NULL;
 	}
@@ -73,9 +73,9 @@ xbps_archive_get_file(struct archive *ar, struct archive_entry *entry)
 		if (rd == ARCHIVE_FATAL || rd == ARCHIVE_WARN) {
 			const char *pname = archive_entry_pathname(entry);
 			if (!pname)
-				xbps_unreachable();
-			r = -xbps_archive_errno(ar);
-			xbps_error_printf(
+				flappy_unreachable();
+			r = -flappy_archive_errno(ar);
+			flappy_error_printf(
 			    "failed to read archive entry: %s: %s\n",
 			    pname, archive_error_string(ar));
 			goto err;
@@ -89,9 +89,9 @@ xbps_archive_get_file(struct archive *ar, struct archive_entry *entry)
 	if (used < len) {
 		const char *pname = archive_entry_pathname(entry);
 		if (!pname)
-			xbps_unreachable();
+			flappy_unreachable();
 		r = -EIO;
-		xbps_error_printf(
+		flappy_error_printf(
 		    "failed to read archive entry: %s: could not read enough "
 		    "data: %s\n", pname, strerror(-r));
 		goto err;
@@ -105,23 +105,23 @@ err:
 	return NULL;
 }
 
-xbps_dictionary_t HIDDEN
-xbps_archive_get_dictionary(struct archive *ar, struct archive_entry *entry)
+flappy_dictionary_t HIDDEN
+flappy_archive_get_dictionary(struct archive *ar, struct archive_entry *entry)
 {
-	xbps_dictionary_t d = NULL;
+	flappy_dictionary_t d = NULL;
 	char *buf;
 
-	if ((buf = xbps_archive_get_file(ar, entry)) == NULL)
+	if ((buf = flappy_archive_get_file(ar, entry)) == NULL)
 		return NULL;
 
 	/* If blob is already a dictionary we are done */
-	d = xbps_dictionary_internalize(buf);
+	d = flappy_dictionary_internalize(buf);
 	free(buf);
 	return d;
 }
 
 int
-xbps_archive_append_buf(struct archive *ar, const void *buf, const size_t buflen,
+flappy_archive_append_buf(struct archive *ar, const void *buf, const size_t buflen,
 	const char *fname, const mode_t mode, const char *uname, const char *gname)
 {
 	struct archive_entry *entry;
@@ -134,7 +134,7 @@ xbps_archive_append_buf(struct archive *ar, const void *buf, const size_t buflen
 
 	entry = archive_entry_new();
 	if (!entry)
-		return -xbps_archive_errno(ar);
+		return -flappy_archive_errno(ar);
 
 	archive_entry_set_filetype(entry, AE_IFREG);
 	archive_entry_set_perm(entry, mode);
@@ -145,15 +145,15 @@ xbps_archive_append_buf(struct archive *ar, const void *buf, const size_t buflen
 
 	if (archive_write_header(ar, entry) != ARCHIVE_OK) {
 		archive_entry_free(entry);
-		return -xbps_archive_errno(ar);
+		return -flappy_archive_errno(ar);
 	}
 	if (archive_write_data(ar, buf, buflen) != ARCHIVE_OK) {
 		archive_entry_free(entry);
-		return -xbps_archive_errno(ar);
+		return -flappy_archive_errno(ar);
 	}
 	if (archive_write_finish_entry(ar) != ARCHIVE_OK) {
 		archive_entry_free(entry);
-		return -xbps_archive_errno(ar);
+		return -flappy_archive_errno(ar);
 	}
 	archive_entry_free(entry);
 
@@ -173,7 +173,7 @@ fetch_archive_open(struct archive *a, void *client_data)
 
 	f->fetch = fetchGet(f->url, NULL);
 	if (!f->fetch) {
-		const char *errstr = xbps_fetch_error_string();
+		const char *errstr = flappy_fetch_error_string();
 		int err;
 		switch (fetchLastErrCode) {
 		case FETCH_UNAVAIL:
@@ -199,7 +199,7 @@ fetch_archive_read(struct archive *a UNUSED, void *client_data, const void **buf
 	*buf = f->buffer;
 	rd = fetchIO_read(f->fetch, f->buffer, sizeof(f->buffer));
 	if (rd == -1) {
-		const char *errstr = xbps_fetch_error_string();
+		const char *errstr = flappy_fetch_error_string();
 		archive_set_error(a, EIO, "%s", errstr ? errstr : "unknown fetch error");
 		return -1;
 	}
@@ -220,7 +220,7 @@ fetch_archive_close(struct archive *a UNUSED, void *client_data)
 }
 
 struct archive HIDDEN *
-xbps_archive_read_new(void)
+flappy_archive_read_new(void)
 {
 	struct archive *ar = archive_read_new();
 	if (!ar)
@@ -235,16 +235,16 @@ xbps_archive_read_new(void)
 }
 
 int HIDDEN
-xbps_archive_read_open(struct archive *ar, const char *filename)
+flappy_archive_read_open(struct archive *ar, const char *filename)
 {
 	int r = archive_read_open_filename(ar, filename, 4096);
 	if (r == ARCHIVE_FATAL)
-		return -xbps_archive_errno(ar);
+		return -flappy_archive_errno(ar);
 	return 0;
 }
 
 int HIDDEN
-xbps_archive_read_open_remote(struct archive *ar, const char *url)
+flappy_archive_read_open_remote(struct archive *ar, const char *url)
 {
 	struct url *furl;
 	struct fetch_archive *f;
@@ -265,7 +265,7 @@ xbps_archive_read_open_remote(struct archive *ar, const char *url)
 	r = archive_read_open(ar, f, fetch_archive_open, fetch_archive_read,
 	    fetch_archive_close);
 	if (r == ARCHIVE_FATAL) {
-		return -xbps_archive_errno(ar);
+		return -flappy_archive_errno(ar);
 	}
 
 	return 0;

@@ -37,7 +37,7 @@
 #include <string.h>
 #include <locale.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 #include "compat.h"
 
 int HIDDEN

@@ -1,0 +1,1 @@
+TESTSSUBDIR = flappy/libflappy

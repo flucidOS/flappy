@@ -37,7 +37,7 @@
 
 #include <openssl/sha.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 /**
  * @file lib/util.c
@@ -62,7 +62,7 @@ digest2string(const uint8_t *digest, char *string, size_t len)
 }
 
 bool
-xbps_mmap_file(const char *file, void **mmf, size_t *mmflen, size_t *filelen)
+flappy_mmap_file(const char *file, void **mmf, size_t *mmflen, size_t *filelen)
 {
 	struct stat st;
 	size_t pgsize = (size_t)sysconf(_SC_PAGESIZE);
@@ -113,15 +113,15 @@ xbps_mmap_file(const char *file, void **mmf, size_t *mmflen, size_t *filelen)
 }
 
 bool
-xbps_file_sha256_raw(unsigned char *dst, size_t dstlen, const char *file)
+flappy_file_sha256_raw(unsigned char *dst, size_t dstlen, const char *file)
 {
 	int fd;
 	ssize_t len;
 	char buf[65536];
 	SHA256_CTX sha256;
 
-	assert(dstlen >= XBPS_SHA256_DIGEST_SIZE);
-	if (dstlen < XBPS_SHA256_DIGEST_SIZE) {
+	assert(dstlen >= FLAPPY_SHA256_DIGEST_SIZE);
+	if (dstlen < FLAPPY_SHA256_DIGEST_SIZE) {
 		errno = ENOBUFS;
 		return false;
 	}
@@ -145,20 +145,20 @@ xbps_file_sha256_raw(unsigned char *dst, size_t dstlen, const char *file)
 }
 
 bool
-xbps_file_sha256(char *dst, size_t dstlen, const char *file)
+flappy_file_sha256(char *dst, size_t dstlen, const char *file)
 {
-	unsigned char digest[XBPS_SHA256_DIGEST_SIZE];
+	unsigned char digest[FLAPPY_SHA256_DIGEST_SIZE];
 
-	assert(dstlen >= XBPS_SHA256_SIZE);
-	if (dstlen < XBPS_SHA256_SIZE) {
+	assert(dstlen >= FLAPPY_SHA256_SIZE);
+	if (dstlen < FLAPPY_SHA256_SIZE) {
 		errno = ENOBUFS;
 		return false;
 	}
 
-	if (!xbps_file_sha256_raw(digest, sizeof digest, file))
+	if (!flappy_file_sha256_raw(digest, sizeof digest, file))
 		return false;
 
-	digest2string(digest, dst, XBPS_SHA256_DIGEST_SIZE);
+	digest2string(digest, dst, FLAPPY_SHA256_DIGEST_SIZE);
 
 	return true;
 }
@@ -168,12 +168,12 @@ sha256_digest_compare(const char *sha256, size_t shalen,
 		const unsigned char *digest, size_t digestlen)
 {
 
-	assert(shalen == XBPS_SHA256_SIZE - 1);
-	if (shalen != XBPS_SHA256_SIZE -1)
+	assert(shalen == FLAPPY_SHA256_SIZE - 1);
+	if (shalen != FLAPPY_SHA256_SIZE -1)
 		return false;
 
-	assert(digestlen == XBPS_SHA256_DIGEST_SIZE);
-	if (digestlen != XBPS_SHA256_DIGEST_SIZE)
+	assert(digestlen == FLAPPY_SHA256_DIGEST_SIZE);
+	if (digestlen != FLAPPY_SHA256_DIGEST_SIZE)
 		return false;
 
 	for (; *sha256;) {
@@ -198,14 +198,14 @@ sha256_digest_compare(const char *sha256, size_t shalen,
 }
 
 int
-xbps_file_sha256_check(const char *file, const char *sha256)
+flappy_file_sha256_check(const char *file, const char *sha256)
 {
-	unsigned char digest[XBPS_SHA256_DIGEST_SIZE];
+	unsigned char digest[FLAPPY_SHA256_DIGEST_SIZE];
 
 	assert(file != NULL);
 	assert(sha256 != NULL);
 
-	if (!xbps_file_sha256_raw(digest, sizeof digest, file))
+	if (!flappy_file_sha256_raw(digest, sizeof digest, file))
 		return errno;
 
 	if (!sha256_digest_compare(sha256, strlen(sha256), digest, sizeof digest))
@@ -215,32 +215,32 @@ xbps_file_sha256_check(const char *file, const char *sha256)
 }
 
 static const char *
-file_hash_dictionary(xbps_dictionary_t d, const char *key, const char *file)
+file_hash_dictionary(flappy_dictionary_t d, const char *key, const char *file)
 {
-	xbps_object_t obj;
-	xbps_object_iterator_t iter;
+	flappy_object_t obj;
+	flappy_object_iterator_t iter;
 	const char *curfile = NULL, *sha256 = NULL;
 
-	assert(xbps_object_type(d) == XBPS_TYPE_DICTIONARY);
+	assert(flappy_object_type(d) == FLAPPY_TYPE_DICTIONARY);
 	assert(key != NULL);
 	assert(file != NULL);
 
-	iter = xbps_array_iter_from_dict(d, key);
+	iter = flappy_array_iter_from_dict(d, key);
 	if (iter == NULL) {
 		errno = ENOENT;
 		return NULL;
 	}
-	while ((obj = xbps_object_iterator_next(iter)) != NULL) {
-		xbps_dictionary_get_cstring_nocopy(obj,
+	while ((obj = flappy_object_iterator_next(iter)) != NULL) {
+		flappy_dictionary_get_cstring_nocopy(obj,
 		    "file", &curfile);
 		if (strcmp(file, curfile) == 0) {
 			/* file matched */
-			xbps_dictionary_get_cstring_nocopy(obj,
+			flappy_dictionary_get_cstring_nocopy(obj,
 			    "sha256", &sha256);
 			break;
 		}
 	}
-	xbps_object_iterator_release(iter);
+	flappy_object_iterator_release(iter);
 	if (sha256 == NULL)
 		errno = ENOENT;
 
@@ -248,8 +248,8 @@ file_hash_dictionary(xbps_dictionary_t d, const char *key, const char *file)
 }
 
 int HIDDEN
-xbps_file_hash_check_dictionary(struct xbps_handle *xhp,
-				xbps_dictionary_t d,
+flappy_file_hash_check_dictionary(struct flappy_handle *xhp,
+				flappy_dictionary_t d,
 				const char *key,
 				const char *file)
 {
@@ -257,7 +257,7 @@ xbps_file_hash_check_dictionary(struct xbps_handle *xhp,
 	char *buf;
 	int rv;
 
-	assert(xbps_object_type(d) == XBPS_TYPE_DICTIONARY);
+	assert(flappy_object_type(d) == FLAPPY_TYPE_DICTIONARY);
 	assert(key != NULL);
 	assert(file != NULL);
 
@@ -269,10 +269,10 @@ xbps_file_hash_check_dictionary(struct xbps_handle *xhp,
 	}
 
 	if (strcmp(xhp->rootdir, "/") == 0) {
-		rv = xbps_file_sha256_check(file, sha256d);
+		rv = flappy_file_sha256_check(file, sha256d);
 	} else {
-		buf = xbps_xasprintf("%s/%s", xhp->rootdir, file);
-		rv = xbps_file_sha256_check(buf, sha256d);
+		buf = flappy_xasprintf("%s/%s", xhp->rootdir, file);
+		rv = flappy_file_sha256_check(buf, sha256d);
 		free(buf);
 	}
 	if (rv == 0)

@@ -38,7 +38,7 @@
 #include <archive.h>
 #include <archive_entry.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 #define EXTRACT_FLAGS	ARCHIVE_EXTRACT_SECURE_NODOTDOT | \
 			ARCHIVE_EXTRACT_SECURE_SYMLINKS | \
@@ -62,7 +62,7 @@ set_extract_flags(uid_t euid)
 }
 
 static bool
-match_preserved_file(struct xbps_handle *xhp, const char *entry)
+match_preserved_file(struct flappy_handle *xhp, const char *entry)
 {
 	const char *file;
 
@@ -75,21 +75,21 @@ match_preserved_file(struct xbps_handle *xhp, const char *entry)
 		file = entry;
 	}
 
-	return xbps_match_string_in_array(xhp->preserved_files, file);
+	return flappy_match_string_in_array(xhp->preserved_files, file);
 }
 
 static int
-unpack_archive(struct xbps_handle *xhp,
-	       xbps_dictionary_t pkg_repod,
+unpack_archive(struct flappy_handle *xhp,
+	       flappy_dictionary_t pkg_repod,
 	       const char *pkgver,
 	       const char *fname,
 	       struct archive *ar)
 {
-	xbps_dictionary_t binpkg_filesd, pkg_filesd, obsd;
-	xbps_array_t array, obsoletes;
+	flappy_dictionary_t binpkg_filesd, pkg_filesd, obsd;
+	flappy_array_t array, obsoletes;
 	const struct stat *entry_statp;
 	struct stat st;
-	struct xbps_unpack_cb_data xucd;
+	struct flappy_unpack_cb_data xucd;
 	struct archive_entry *entry;
 	ssize_t entry_size;
 	const char *entry_pname, *pkgname;
@@ -104,17 +104,17 @@ unpack_archive(struct xbps_handle *xhp,
 	xucd_stats = false;
 	ar_rv = rv = error = 0;
 
-	xbps_dictionary_get_bool(pkg_repod, "preserve", &preserve);
+	flappy_dictionary_get_bool(pkg_repod, "preserve", &preserve);
 
 	memset(&xucd, 0, sizeof(xucd));
 
 	euid = geteuid();
 
-	if (!xbps_dictionary_get_cstring_nocopy(pkg_repod, "pkgname", &pkgname)) {
+	if (!flappy_dictionary_get_cstring_nocopy(pkg_repod, "pkgname", &pkgname)) {
 		return EINVAL;
 	}
 
-	if (xhp->flags & XBPS_FLAG_FORCE_UNPACK) {
+	if (xhp->flags & FLAPPY_FLAG_FORCE_UNPACK) {
 		force = true;
 	}
 
@@ -122,21 +122,21 @@ unpack_archive(struct xbps_handle *xhp,
 	 * Remove obsolete files.
 	 */
 	if (!preserve &&
-	    xbps_dictionary_get_dict(xhp->transd, "obsolete_files", &obsd) &&
-	    (obsoletes = xbps_dictionary_get(obsd, pkgname))) {
-		for (unsigned int i = 0; i < xbps_array_count(obsoletes); i++) {
+	    flappy_dictionary_get_dict(xhp->transd, "obsolete_files", &obsd) &&
+	    (obsoletes = flappy_dictionary_get(obsd, pkgname))) {
+		for (unsigned int i = 0; i < flappy_array_count(obsoletes); i++) {
 			const char *obsolete = NULL;
-			xbps_array_get_cstring_nocopy(obsoletes, i, &obsolete);
+			flappy_array_get_cstring_nocopy(obsoletes, i, &obsolete);
 			if (remove(obsolete) == -1) {
-				xbps_set_cb_state(xhp,
-					XBPS_STATE_REMOVE_FILE_OBSOLETE_FAIL,
+				flappy_set_cb_state(xhp,
+					FLAPPY_STATE_REMOVE_FILE_OBSOLETE_FAIL,
 					errno, pkgver,
 					"%s: failed to remove obsolete entry `%s': %s",
 					pkgver, obsolete, strerror(errno));
 				continue;
 			}
-			xbps_set_cb_state(xhp,
-				XBPS_STATE_REMOVE_FILE_OBSOLETE,
+			flappy_set_cb_state(xhp,
+				FLAPPY_STATE_REMOVE_FILE_OBSOLETE,
 				0, pkgver, "%s: removed obsolete entry: %s", pkgver, obsolete);
 		}
 	}
@@ -153,7 +153,7 @@ unpack_archive(struct xbps_handle *xhp,
 	 * 	- props.plist	<required> but currently ignored
 	 * 	- files.plist	<required>
 	 *
-	 * The XBPS package must contain props and files plists, otherwise
+	 * The FLAPPY package must contain props and files plists, otherwise
 	 * it's not a valid package.
 	 */
 	for (uint8_t i = 0; i < 4; i++) {
@@ -163,14 +163,14 @@ unpack_archive(struct xbps_handle *xhp,
 
 		entry_pname = archive_entry_pathname(entry);
 		if (!entry_pname)
-			xbps_unreachable();
+			flappy_unreachable();
 
 		if (strcmp("./INSTALL", entry_pname) == 0 ||
 		    strcmp("./REMOVE", entry_pname) == 0 ||
 		    strcmp("./props.plist", entry_pname) == 0) {
 			archive_read_data_skip(ar);
 		} else if (strcmp("./files.plist", entry_pname) == 0) {
-			binpkg_filesd = xbps_archive_get_dictionary(ar, entry);
+			binpkg_filesd = flappy_archive_get_dictionary(ar, entry);
 			if (binpkg_filesd == NULL) {
 				rv = EINVAL;
 				goto out;
@@ -184,7 +184,7 @@ unpack_archive(struct xbps_handle *xhp,
 	 * If there was any error extracting files from archive, error out.
 	 */
 	if (ar_rv == ARCHIVE_FATAL) {
-		xbps_set_cb_state(xhp, XBPS_STATE_UNPACK_FAIL, rv, pkgver,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_UNPACK_FAIL, rv, pkgver,
 		    "%s: [unpack] 1: failed to extract files: %s",
 		    pkgver, archive_error_string(ar));
 		rv = EINVAL;
@@ -194,7 +194,7 @@ unpack_archive(struct xbps_handle *xhp,
 	 * Bail out if required metadata files are not in archive.
 	 */
 	if (binpkg_filesd == NULL) {
-		xbps_set_cb_state(xhp, XBPS_STATE_UNPACK_FAIL, ENODEV, pkgver,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_UNPACK_FAIL, ENODEV, pkgver,
 		    "%s: [unpack] invalid binary package `%s'.", pkgver, fname);
 		rv = ENODEV;
 		goto out;
@@ -203,7 +203,7 @@ unpack_archive(struct xbps_handle *xhp,
 	/*
 	 * Internalize current pkg metadata files plist.
 	 */
-	pkg_filesd = xbps_pkgdb_get_pkg_files(xhp, pkgname);
+	pkg_filesd = flappy_pkgdb_get_pkg_files(xhp, pkgname);
 
 	/*
 	 * Unpack all files on archive now.
@@ -217,7 +217,7 @@ unpack_archive(struct xbps_handle *xhp,
 
 		entry_pname = archive_entry_pathname(entry);
 		if (!entry_pname)
-			xbps_unreachable();
+			flappy_unreachable();
 
 		entry_size = archive_entry_size(entry);
 		entry_type = archive_entry_filetype(entry);
@@ -235,7 +235,7 @@ unpack_archive(struct xbps_handle *xhp,
 		 * instead of / for a long time, we can enforce it.
 		 */
 		if (entry_pname[0] != '.') {
-			xbps_error_printf("%s: invalid archive entry: %s\n",
+			flappy_error_printf("%s: invalid archive entry: %s\n",
 			    pkgver, entry_pname);
 			archive_read_data_skip(ar);
 			continue;
@@ -255,24 +255,24 @@ unpack_archive(struct xbps_handle *xhp,
 			 * total_entries = files + conf_files + links.
 			 */
 			if (binpkg_filesd && !xucd_stats) {
-				array = xbps_dictionary_get(binpkg_filesd, "files");
+				array = flappy_dictionary_get(binpkg_filesd, "files");
 				xucd.entry_total_count +=
-				    (ssize_t)xbps_array_count(array);
-				array = xbps_dictionary_get(binpkg_filesd, "conf_files");
+				    (ssize_t)flappy_array_count(array);
+				array = flappy_dictionary_get(binpkg_filesd, "conf_files");
 				xucd.entry_total_count +=
-				    (ssize_t)xbps_array_count(array);
-				array = xbps_dictionary_get(binpkg_filesd, "links");
+				    (ssize_t)flappy_array_count(array);
+				array = flappy_dictionary_get(binpkg_filesd, "links");
 				xucd.entry_total_count +=
-				    (ssize_t)xbps_array_count(array);
+				    (ssize_t)flappy_array_count(array);
 				xucd_stats = true;
 			}
 		}
 		/*
 		 * Skip files that match noextract patterns from configuration file.
 		 */
-		if (xhp->noextract && xbps_patterns_match(xhp->noextract, entry_pname+1)) {
-			xbps_dbg_printf("[unpack] %s skipped (matched by a pattern)\n", entry_pname+1);
-			xbps_set_cb_state(xhp, XBPS_STATE_UNPACK_FILE_PRESERVED, 0,
+		if (xhp->noextract && flappy_patterns_match(xhp->noextract, entry_pname+1)) {
+			flappy_dbg_printf("[unpack] %s skipped (matched by a pattern)\n", entry_pname+1);
+			flappy_set_cb_state(xhp, FLAPPY_STATE_UNPACK_FILE_PRESERVED, 0,
 			    pkgver, "%s: file `%s' won't be extracted, "
 			    "it matches a noextract pattern.", pkgver, entry_pname);
 			archive_read_data_skip(ar);
@@ -292,9 +292,9 @@ unpack_archive(struct xbps_handle *xhp,
 		 */
 		if (file_exists && match_preserved_file(xhp, entry_pname)) {
 			archive_read_data_skip(ar);
-			xbps_dbg_printf("[unpack] `%s' exists on disk "
+			flappy_dbg_printf("[unpack] `%s' exists on disk "
 			    "and must be preserved, skipping.\n", entry_pname);
-			xbps_set_cb_state(xhp, XBPS_STATE_UNPACK_FILE_PRESERVED, 0,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_UNPACK_FILE_PRESERVED, 0,
 			    pkgver, "%s: file `%s' won't be extracted, "
 			    "it's preserved.", pkgver, entry_pname);
 			continue;
@@ -306,7 +306,7 @@ unpack_archive(struct xbps_handle *xhp,
 		 */
 		if (!force && (entry_type == AE_IFREG)) {
 			file = entry_pname + 1;
-			keep_conf_file = xbps_entry_is_a_conf_file(binpkg_filesd, file);
+			keep_conf_file = flappy_entry_is_a_conf_file(binpkg_filesd, file);
 		}
 
 		/*
@@ -323,14 +323,14 @@ unpack_archive(struct xbps_handle *xhp,
 				/*
 				 * Handle configuration files.
 				 * Skip packages that don't have "conf_files"
-				 * array on its XBPS_PKGPROPS
+				 * array on its FLAPPY_PKGPROPS
 				 * dictionary.
 				 */
 				if (keep_conf_file) {
 					if (xhp->unpack_cb != NULL)
 						xucd.entry_is_conf = true;
 
-					rv = xbps_entry_install_conf_file(xhp,
+					rv = flappy_entry_install_conf_file(xhp,
 					    binpkg_filesd, pkg_filesd, entry,
 					    entry_pname, pkgver, S_ISLNK(st.st_mode));
 					if (rv == -1) {
@@ -344,11 +344,11 @@ unpack_archive(struct xbps_handle *xhp,
 					}
 					rv = 0;
 				} else {
-					rv = xbps_file_hash_check_dictionary(
+					rv = flappy_file_hash_check_dictionary(
 					    xhp, binpkg_filesd, "files", file);
 					if (rv == -1) {
 						/* error */
-						xbps_dbg_printf(
+						flappy_dbg_printf(
 						    "%s: failed to check"
 						    " hash for `%s': %s\n",
 						    pkgver, entry_pname,
@@ -358,7 +358,7 @@ unpack_archive(struct xbps_handle *xhp,
 						/*
 						 * hash match, skip extraction.
 						 */
-						xbps_dbg_printf(
+						flappy_dbg_printf(
 						    "%s: file %s "
 						    "matches existing SHA256, "
 						    "skipping...\n",
@@ -379,14 +379,14 @@ unpack_archive(struct xbps_handle *xhp,
 			if (lchown(entry_pname,
 			    archive_entry_uid(entry),
 			    archive_entry_gid(entry)) != 0) {
-				xbps_dbg_printf(
+				flappy_dbg_printf(
 				    "%s: failed "
 				    "to set uid/gid to %"PRIu64":%"PRIu64" (%s)\n",
 				    pkgver, archive_entry_uid(entry),
 				    archive_entry_gid(entry),
 				    strerror(errno));
 			} else {
-				xbps_dbg_printf("%s: entry %s changed "
+				flappy_dbg_printf("%s: entry %s changed "
 				    "uid/gid to %"PRIu64":%"PRIu64".\n", pkgver, entry_pname,
 				    archive_entry_uid(entry),
 				    archive_entry_gid(entry));
@@ -400,7 +400,7 @@ unpack_archive(struct xbps_handle *xhp,
 		    (archive_entry_mode(entry) != st.st_mode)) {
 			if (chmod(entry_pname,
 			    archive_entry_mode(entry)) != 0) {
-				xbps_dbg_printf(
+				flappy_dbg_printf(
 				    "%s: failed "
 				    "to set perms %s to %s: %s\n",
 				    pkgver, archive_entry_strmode(entry),
@@ -409,7 +409,7 @@ unpack_archive(struct xbps_handle *xhp,
 				rv = EINVAL;
 				goto out;
 			}
-			xbps_dbg_printf("%s: entry %s changed file "
+			flappy_dbg_printf("%s: entry %s changed file "
 			    "mode to %s.\n", pkgver, entry_pname,
 			    archive_entry_strmode(entry));
 		}
@@ -423,13 +423,13 @@ unpack_archive(struct xbps_handle *xhp,
 		 */
 		entry_pname = archive_entry_pathname(entry);
 		if (!entry_pname)
-			xbps_unreachable();
+			flappy_unreachable();
 		/*
 		 * Extract entry from archive.
 		 */
 		if (archive_read_extract(ar, entry, flags) != 0) {
-			error = xbps_archive_errno(ar);
-			xbps_set_cb_state(xhp, XBPS_STATE_UNPACK_FAIL,
+			error = flappy_archive_errno(ar);
+			flappy_set_cb_state(xhp, FLAPPY_STATE_UNPACK_FAIL,
 			    error, pkgver,
 			    "%s: [unpack] failed to extract file `%s': %s",
 			    pkgver, entry_pname, strerror(error));
@@ -449,7 +449,7 @@ unpack_archive(struct xbps_handle *xhp,
 		rv = error;
 		if (!rv)
 			rv = ar_rv;
-		xbps_set_cb_state(xhp, XBPS_STATE_UNPACK_FAIL, rv, pkgver,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_UNPACK_FAIL, rv, pkgver,
 		    "%s: [unpack] failed to extract files: %s",
 		    pkgver, strerror(rv));
 		goto out;
@@ -457,16 +457,16 @@ unpack_archive(struct xbps_handle *xhp,
 	/*
 	 * Externalize binpkg files.plist to disk, if not empty.
 	 */
-	if (xbps_dictionary_count(binpkg_filesd)) {
+	if (flappy_dictionary_count(binpkg_filesd)) {
 		char *buf;
 		mode_t prev_umask;
 		prev_umask = umask(022);
-		buf = xbps_xasprintf("%s/.%s-files.plist", xhp->metadir, pkgname);
-		if (!xbps_dictionary_externalize_to_file(binpkg_filesd, buf)) {
+		buf = flappy_xasprintf("%s/.%s-files.plist", xhp->metadir, pkgname);
+		if (!flappy_dictionary_externalize_to_file(binpkg_filesd, buf)) {
 			rv = errno;
 			umask(prev_umask);
 			free(buf);
-			xbps_set_cb_state(xhp, XBPS_STATE_UNPACK_FAIL,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_UNPACK_FAIL,
 			    rv, pkgver, "%s: [unpack] failed to externalize pkg "
 			    "pkg metadata files: %s", pkgver, strerror(rv));
 			goto out;
@@ -478,18 +478,18 @@ out:
 	/*
 	 * If unpacked pkg has no files, remove its files metadata plist.
 	 */
-	if (!xbps_dictionary_count(binpkg_filesd)) {
-		char *buf = xbps_xasprintf("%s/.%s-files.plist", xhp->metadir, pkgname);
+	if (!flappy_dictionary_count(binpkg_filesd)) {
+		char *buf = flappy_xasprintf("%s/.%s-files.plist", xhp->metadir, pkgname);
 		unlink(buf);
 		free(buf);
 	}
-	xbps_object_release(binpkg_filesd);
+	flappy_object_release(binpkg_filesd);
 
 	return rv;
 }
 
 int HIDDEN
-xbps_unpack_binary_pkg(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
+flappy_unpack_binary_pkg(struct flappy_handle *xhp, flappy_dictionary_t pkg_repod)
 {
 	char bpkg[PATH_MAX];
 	struct archive *ar = NULL;
@@ -499,14 +499,14 @@ xbps_unpack_binary_pkg(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
 	int pkg_fd = -1, rv = 0;
 	mode_t myumask;
 
-	assert(xbps_object_type(pkg_repod) == XBPS_TYPE_DICTIONARY);
+	assert(flappy_object_type(pkg_repod) == FLAPPY_TYPE_DICTIONARY);
 
-	xbps_dictionary_get_cstring_nocopy(pkg_repod, "pkgver", &pkgver);
-	xbps_set_cb_state(xhp, XBPS_STATE_UNPACK, 0, pkgver, NULL);
+	flappy_dictionary_get_cstring_nocopy(pkg_repod, "pkgver", &pkgver);
+	flappy_set_cb_state(xhp, FLAPPY_STATE_UNPACK, 0, pkgver, NULL);
 
-	l = xbps_pkg_path(xhp, bpkg, sizeof(bpkg), pkg_repod);
+	l = flappy_pkg_path(xhp, bpkg, sizeof(bpkg), pkg_repod);
 	if (l < 0) {
-		xbps_set_cb_state(xhp, XBPS_STATE_UNPACK_FAIL,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_UNPACK_FAIL,
 		    errno, pkgver,
 		    "%s: [unpack] cannot determine binary package "
 		    "file: %s", pkgver, strerror(errno));
@@ -530,7 +530,7 @@ xbps_unpack_binary_pkg(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
 	pkg_fd = open(bpkg, O_RDONLY|O_CLOEXEC);
 	if (pkg_fd == -1) {
 		rv = errno;
-		xbps_set_cb_state(xhp, XBPS_STATE_UNPACK_FAIL,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_UNPACK_FAIL,
 		    rv, pkgver,
 		    "%s: [unpack] failed to open binary package `%s': %s",
 		    pkgver, bpkg, strerror(rv));
@@ -538,15 +538,15 @@ xbps_unpack_binary_pkg(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
 	}
 	if (fstat(pkg_fd, &st) == -1) {
 		rv = errno;
-		xbps_set_cb_state(xhp, XBPS_STATE_UNPACK_FAIL,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_UNPACK_FAIL,
 		    rv, pkgver,
 		    "%s: [unpack] failed to fstat binary package `%s': %s",
 		    pkgver, bpkg, strerror(rv));
 		goto out;
 	}
 	if (archive_read_open_fd(ar, pkg_fd, st.st_blksize) == ARCHIVE_FATAL) {
-		rv = xbps_archive_errno(ar);
-		xbps_set_cb_state(xhp, XBPS_STATE_UNPACK_FAIL,
+		rv = flappy_archive_errno(ar);
+		flappy_set_cb_state(xhp, FLAPPY_STATE_UNPACK_FAIL,
 		    rv, pkgver,
 		    "%s: [unpack] failed to read binary package `%s': %s",
 		    pkgver, bpkg, strerror(rv));
@@ -560,7 +560,7 @@ xbps_unpack_binary_pkg(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
 		if (rv != ENOENT)
 			goto out;
 
-		if (xbps_mkpath(xhp->metadir, 0755) == -1) {
+		if (flappy_mkpath(xhp->metadir, 0755) == -1) {
 			rv = errno;
 			goto out;
 		}
@@ -569,7 +569,7 @@ xbps_unpack_binary_pkg(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
 	 * Extract archive files.
 	 */
 	if ((rv = unpack_archive(xhp, pkg_repod, pkgver, bpkg, ar)) != 0) {
-		xbps_set_cb_state(xhp, XBPS_STATE_UNPACK_FAIL, rv, pkgver,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_UNPACK_FAIL, rv, pkgver,
 		    "%s: [unpack] failed to unpack files from archive: %s",
 		    pkgver, strerror(rv));
 		goto out;
@@ -577,16 +577,16 @@ xbps_unpack_binary_pkg(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
 	/*
 	 * Set package state to unpacked.
 	 */
-	if ((rv = xbps_set_pkg_state_dictionary(pkg_repod,
-	    XBPS_PKG_STATE_UNPACKED)) != 0) {
-		xbps_set_cb_state(xhp, XBPS_STATE_UNPACK_FAIL,
+	if ((rv = flappy_set_pkg_state_dictionary(pkg_repod,
+	    FLAPPY_PKG_STATE_UNPACKED)) != 0) {
+		flappy_set_cb_state(xhp, FLAPPY_STATE_UNPACK_FAIL,
 		    rv, pkgver,
 		    "%s: [unpack] failed to set state to unpacked: %s",
 		    pkgver, strerror(rv));
 	}
 	/* register alternatives */
-	if ((rv = xbps_alternatives_register(xhp, pkg_repod)) != 0) {
-		xbps_set_cb_state(xhp, XBPS_STATE_UNPACK_FAIL,
+	if ((rv = flappy_alternatives_register(xhp, pkg_repod)) != 0) {
+		flappy_set_cb_state(xhp, FLAPPY_STATE_UNPACK_FAIL,
 		    rv, pkgver,
 		    "%s: [unpack] failed to register alternatives: %s",
 		    pkgver, strerror(rv));

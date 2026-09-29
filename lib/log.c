@@ -27,11 +27,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "xbps/macro.h"
-#include "xbps.h"
+#include "flappy/macro.h"
+#include "flappy.h"
 
-int xbps_debug_level = 0;
-int xbps_verbose_level = 0;
+int flappy_debug_level = 0;
+int flappy_verbose_level = 0;
 
 /**
  * @file lib/log.c
@@ -51,11 +51,11 @@ common_printf(FILE *f, const char *msg, const char *fmt, va_list ap)
 }
 
 void
-xbps_dbg_printf_append(const char *fmt, ...)
+flappy_dbg_printf_append(const char *fmt, ...)
 {
 	va_list ap;
 
-	if (xbps_debug_level == 0)
+	if (flappy_debug_level == 0)
 		return;
 
 	va_start(ap, fmt);
@@ -64,11 +64,11 @@ xbps_dbg_printf_append(const char *fmt, ...)
 }
 
 void
-xbps_dbg_printf(const char *fmt, ...)
+flappy_dbg_printf(const char *fmt, ...)
 {
 	va_list ap;
 
-	if (xbps_debug_level == 0)
+	if (flappy_debug_level == 0)
 		return;
 
 	va_start(ap, fmt);
@@ -77,11 +77,11 @@ xbps_dbg_printf(const char *fmt, ...)
 }
 
 void
-xbps_verbose_printf(const char *fmt, ...)
+flappy_verbose_printf(const char *fmt, ...)
 {
 	va_list ap;
 
-	if (xbps_verbose_level == 0)
+	if (flappy_verbose_level == 0)
 		return;
 
 	va_start(ap, fmt);
@@ -90,7 +90,7 @@ xbps_verbose_printf(const char *fmt, ...)
 }
 
 void
-xbps_error_printf(const char *fmt, ...)
+flappy_error_printf(const char *fmt, ...)
 {
 	va_list ap;
 
@@ -100,7 +100,7 @@ xbps_error_printf(const char *fmt, ...)
 }
 
 void
-xbps_warn_printf(const char *fmt, ...)
+flappy_warn_printf(const char *fmt, ...)
 {
 	va_list ap;
 
@@ -110,7 +110,7 @@ xbps_warn_printf(const char *fmt, ...)
 }
 
 int
-xbps_error_errno(int r, const char *fmt, ...)
+flappy_error_errno(int r, const char *fmt, ...)
 {
 	va_list ap;
 

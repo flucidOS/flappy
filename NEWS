@@ -1,239 +1,246 @@
-xbps-0.60.7 (2026-02-09):
+flappy (unreleased):
 
- * xbps-query(1): fix off-by-one error in list ellipsis. [@kkmisiaszek]
+ * flappy(1): new front-end with four commands: install, remove, update, upgrade.
 
- * xbps-query(1): fix jumbled lines in xbps-query.1 man page. [@leahneukirchen]
+ * data: no longer ships a default repository or a third-party signing key;
+   configure `repository=` in /etc/flappy.d/ for your FlucidOS repository.
 
- * libxbps: fix directory matching in file conflicts check. [@duncaen]
+flappy-0.60.7 (2026-02-09):
 
- * libxbps: fix regression for installing packages by pkgver. [@duncaen]
+ * flappy-query(1): fix off-by-one error in list ellipsis. [@kkmisiaszek]
 
- * libxbps: fix handling on cyclic dependencies. [@duncaen]
+ * flappy-query(1): fix jumbled lines in flappy-query.1 man page. [@leahneukirchen]
 
- * libxbps: fix replacing package that are currently being installed. [@classabbyamp]
+ * libflappy: fix directory matching in file conflicts check. [@duncaen]
 
-xbps-0.60.6 (2025-11-16):
+ * libflappy: fix regression for installing packages by pkgver. [@duncaen]
 
-* libxbps: improved error messages for package checksum mismatch and package
+ * libflappy: fix handling on cyclic dependencies. [@duncaen]
+
+ * libflappy: fix replacing package that are currently being installed. [@classabbyamp]
+
+flappy-0.60.6 (2025-11-16):
+
+* libflappy: improved error messages for package checksum mismatch and package
   database locking errors. [duncaen]
 
-* libxbps: packages in unpack state that will be configured in
+* libflappy: packages in unpack state that will be configured in
   transaction are no longer required to be found in the repo pool. [duncaen]
 
-* xbps-query(1): fixed memory leaks and refactor --search. [duncaen]
+* flappy-query(1): fixed memory leaks and refactor --search. [duncaen]
 
-* xbps-query(1): fixed off-by-one error in --search ellipsis. [achequisde]
+* flappy-query(1): fixed off-by-one error in --search ellipsis. [achequisde]
 
-xbps-0.60.5 (2025-08-02):
+flappy-0.60.5 (2025-08-02):
 
 * fixed typos in error messages and usage
 
-* xbps-uchroot(1): add /dev/pts mount separate from the host
+* flappy-uchroot(1): add /dev/pts mount separate from the host
 
 * print a warning message if the package database is locked and
-  xbps is waiting for the lock to be released.
+  flappy is waiting for the lock to be released.
 
-xbps-0.60.4 (2025-07-24):
+flappy-0.60.4 (2025-07-24):
 
 * reduce allocations and fix memory leaks
 
-* xbps-rindex fix bug where staging package would end up in the index if -c
+* flappy-rindex fix bug where staging package would end up in the index if -c
   is used on a staged repository.
 
 * fix error handling for --memory-sync and other remote metadata.
 
-* fix xbps-query --staging flag
+* fix flappy-query --staging flag
 
-xbps-0.60.3 (2025-06-17):
+flappy-0.60.3 (2025-06-17):
 
 * fix invalid free when config lines start with spaces
 
-xbps-0.60.2 (2025-06-15):
+flappy-0.60.2 (2025-06-15):
 
-* fix xbps-rindex --remove-obsolete
+* fix flappy-rindex --remove-obsolete
 
-xbps-0.60 (2025-06-14):
+flappy-0.60 (2025-06-14):
 
- * libxbps: fix issues with updating packages in unpacked state. [duncaen]
+ * libflappy: fix issues with updating packages in unpacked state. [duncaen]
 
- * libxbps: run all scripts before and after unpacking all packages,
+ * libflappy: run all scripts before and after unpacking all packages,
    to avoid running things in a half unpacked state. [duncaen]
 
- * libxbps: fix configuration parsing with missing trailing newline
+ * libflappy: fix configuration parsing with missing trailing newline
    and remove trailing spaces from values. [eater, duncaen]
 
- * libxbps: fix XBPS_ARCH environment variable if architecture
+ * libflappy: fix FLAPPY_ARCH environment variable if architecture
    is also defined in a configuration file. [duncaen]
 
- * libxbps: fix memory leaks. [ArsenArsen]
+ * libflappy: fix memory leaks. [ArsenArsen]
 
- * libxbps: fix file descriptor leaks. [gt7-void]
+ * libflappy: fix file descriptor leaks. [gt7-void]
 
- * libxbps: fix temporary redirect in libfetch. [ericonr]
+ * libflappy: fix temporary redirect in libfetch. [ericonr]
 
- * libxbps: fix how the automatic/manual mode is set when replacing a
+ * libflappy: fix how the automatic/manual mode is set when replacing a
     package using replaces. This makes it possible to correctly replace
     manually installed packages using a transitional packages. [duncaen]
 
- * libxbps: fix inconsistent dependency resolution when a dependency
-   is on hold. xbps will now exit with ENODEV (19) if a held dependency
+ * libflappy: fix inconsistent dependency resolution when a dependency
+   is on hold. flappy will now exit with ENODEV (19) if a held dependency
    breaks the installation or update of a package instead of just ignoring
    it, resulting in an inconsistent pkgdb. #392 [duncaen]
 
- * libxbps: fix issues with XBPS_FLAG_INSTALL_AUTO where already installed
+ * libflappy: fix issues with FLAPPY_FLAG_INSTALL_AUTO where already installed
    packages would get marked automatically installed when they are being
    updated while installing new packages in automatically installed mode.
    #557 [duncaen]
 
- * libxbps: when reinstalling a package, don't remove directories that are still
+ * libflappy: when reinstalling a package, don't remove directories that are still
    part of the new package. This avoids the recreation of directories which
    trips up runsv, as it keeps an fd to the service directory open that would
    be deleted and recreated. #561 [duncaen]
 
- * xbps-install(1): list reinstalled packages. [chocimier]
+ * flappy-install(1): list reinstalled packages. [chocimier]
 
- * xbps-install(1): in dry-run mode, ignore out of space error. [chocimier]
+ * flappy-install(1): in dry-run mode, ignore out of space error. [chocimier]
 
- * xbps-install(1): fix bug where a repo-locked dependency could be updated
+ * flappy-install(1): fix bug where a repo-locked dependency could be updated
    from a repository it was not locked to. [chocimier]
 
- * xbps-fetch(1): make sure to exit with failure if a failure was encountered.
+ * flappy-fetch(1): make sure to exit with failure if a failure was encountered.
    [duncaen]
 
- * xbps-fetch(1): fix printing uninitialized memory in error cases. [duncaen]
+ * flappy-fetch(1): fix printing uninitialized memory in error cases. [duncaen]
 
- * xbps-pkgdb(1): remove mtime checks, they are unreliable on fat filesystems
-   and xbps does not rely on mtime matching the package anymore. [duncaen]
+ * flappy-pkgdb(1): remove mtime checks, they are unreliable on fat filesystems
+   and flappy does not rely on mtime matching the package anymore. [duncaen]
 
- * xbps-checkvers(1): with --installed also list subpackages. [chocimier]
+ * flappy-checkvers(1): with --installed also list subpackages. [chocimier]
 
- * xbps-remove(1): fix dry-run cache cleaning inconsistencies. [duncaen]
+ * flappy-remove(1): fix dry-run cache cleaning inconsistencies. [duncaen]
 
- * xbps-remove(1): allow removing "uninstalled" packages (packages in the cache
+ * flappy-remove(1): allow removing "uninstalled" packages (packages in the cache
    that are still up to date but no long installed) from the package
    cache by specifying the -O/--clean-cache flag twice. #530 [duncaen]
 
- * xbps-query(1): --cat now works in either repo or pkgdb mode. [duncaen]
+ * flappy-query(1): --cat now works in either repo or pkgdb mode. [duncaen]
 
- * xbps-query(1): --list-repos/-L list all repos including ones that
+ * flappy-query(1): --list-repos/-L list all repos including ones that
    fail to open. [chocimier]
 
- * xbps.d(5): describe ignorepkg more precisely. [chocimier]
+ * flappy.d(5): describe ignorepkg more precisely. [chocimier]
 
- * libxbps, xbps-install(1), xbps-remove(1), xbps-reconfigure(1),
-   xbps-alternatives(1): add `XBPS_SYSLOG` environment variable to overwrite
+ * libflappy, flappy-install(1), flappy-remove(1), flappy-reconfigure(1),
+   flappy-alternatives(1): add `FLAPPY_SYSLOG` environment variable to overwrite
    syslog configuration option. [duncaen]
 
- * libxbps: Resolve performance issue caused by the growing number of virtual packages
+ * libflappy: Resolve performance issue caused by the growing number of virtual packages
    in the Void Linux repository. #625 [duncaen]
 
- * libxbps: Merge the staging data into the repository index (repodata) file.
+ * libflappy: Merge the staging data into the repository index (repodata) file.
    This allows downloading the staging index from remote repositories without
    having to keep the two index files in sync. #575 [duncaen]
 
- * xbps-install(1), xbps-query(1), xbps-checkvers(1), xbps.d(5): Added `--staging` flag,
-   `XBPS_STAGING` environment variable and `staging=true|false` configuration option.
-   Enabling staging allows xbps to use staged packages from remote repositories.
+ * flappy-install(1), flappy-query(1), flappy-checkvers(1), flappy.d(5): Added `--staging` flag,
+   `FLAPPY_STAGING` environment variable and `staging=true|false` configuration option.
+   Enabling staging allows flappy to use staged packages from remote repositories.
 
- * xbps-install(1), xbps-remove(1): Print package install and removal messages once,
+ * flappy-install(1), flappy-remove(1): Print package install and removal messages once,
    below the transaction summary, before applying the transaction. #572 [chocimier]
 
- * xbps-query(1): Improved argument parsing allows package arguments anywhere in the
+ * flappy-query(1): Improved argument parsing allows package arguments anywhere in the
    arguments. #588 [classabbyamp]
 
- * xbps-install(1): Make dry-run output consistent/machine parsable. #611 [classabbyamp]
+ * flappy-install(1): Make dry-run output consistent/machine parsable. #611 [classabbyamp]
 
- * libxbps: Do not url-escape tilde character in path for better compatibility with
+ * libflappy: Do not url-escape tilde character in path for better compatibility with
    some servers. #607 [gmbeard]
 
- * libxbps: use the proper ASN1 signature type for packages. Signatures now have a `.sig2`
+ * libflappy: use the proper ASN1 signature type for packages. Signatures now have a `.sig2`
    extension. #565 [classabbyamp]
 
- * xbps-uhelper(1): add verbose output for `pkgmatch` and `cmpver` subcommands if the
+ * flappy-uhelper(1): add verbose output for `pkgmatch` and `cmpver` subcommands if the
    -v/--verbose flag is specified. #549 [classabbyamp]
 
- * xbps-uhelper(1): support multiple arguments for many subcommands to improve pipelined
+ * flappy-uhelper(1): support multiple arguments for many subcommands to improve pipelined
    performance. #536 [classabbyamp]
 
- * xbps-alternatives(1): Add -R/--repository mode to -l/--list to show alternatives
+ * flappy-alternatives(1): Add -R/--repository mode to -l/--list to show alternatives
    of packages in the repository. #340 [duncaen]
 
- * libxbps: fix permanent (308) redirects when fetching packages and repositories. [duncaen]
+ * libflappy: fix permanent (308) redirects when fetching packages and repositories. [duncaen]
 
- * xbps-remove(1): ignores file not found errors for files it deletes. [duncaen]
+ * flappy-remove(1): ignores file not found errors for files it deletes. [duncaen]
 
- * libxbps: the `preserve` package metadata is now also respected for package removals. [duncaen]
+ * libflappy: the `preserve` package metadata is now also respected for package removals. [duncaen]
 
- * xbps-pkgdb(1): new --checks allows to choose which checks are run. #352 [ericonr,duncaen]
+ * flappy-pkgdb(1): new --checks allows to choose which checks are run. #352 [ericonr,duncaen]
 
-xbps-0.59.1 (2020-04-01):
+flappy-0.59.1 (2020-04-01):
 
- * libxbps: fixed a double free with malformed/incomplete
+ * libflappy: fixed a double free with malformed/incomplete
    repodata archives. Added new test case. [xtraeme]
 
  * zsh: updated completions. [Doàn Trần Công Danh, Piraty]
 
- * libxbps: fix regression while checking reverse dependencies,
+ * libflappy: fix regression while checking reverse dependencies,
    introduced in 0.59. Added new test case. [duncaen, Piotr Wójcik]
 
- * xbps-fetch(1): fix output when not using sha256 mode. [duncaen]
+ * flappy-fetch(1): fix output when not using sha256 mode. [duncaen]
 
- * xbps-install(1): fix regressions in transaction statistics,
+ * flappy-install(1): fix regressions in transaction statistics,
    introduced in 0.59. [duncaen, xtraeme]
 
-xbps-0.59 (2020-03-03):
+flappy-0.59 (2020-03-03):
 
- * xbps-fetch(1): added TIMEOUT_CONNECTION environment variable
+ * flappy-fetch(1): added TIMEOUT_CONNECTION environment variable
    to customize time waiting for response, defaults to 5 minutes.
    [Chocimier]
 
- * libxbps: API/ABI break and bumping major soname version to 5.
+ * libflappy: API/ABI break and bumping major soname version to 5.
    [duncaen, xtraeme]
 
- * Switch to uthash in libxbps and xbps-fbulk(1). [duncaen, xtraeme]
+ * Switch to uthash in libflappy and flappy-fbulk(1). [duncaen, xtraeme]
 
- * xbps-query(1): `-S, --show` mode now prints all properties. [xtraeme]
+ * flappy-query(1): `-S, --show` mode now prints all properties. [xtraeme]
 
- * xbps-create(1): zstd is now the default compression method. [xtraeme]
+ * flappy-create(1): zstd is now the default compression method. [xtraeme]
 
- * xbps-rindex(1): zstd is now the default compression method. [xtraeme]
+ * flappy-rindex(1): zstd is now the default compression method. [xtraeme]
 
- * xbps-install(1): show overall download progress percentage.
+ * flappy-install(1): show overall download progress percentage.
 
    - https://github.com/void-linux/xbps/pull/230
    - https://github.com/void-linux/xbps/issues/187
 
    Contributed by [sineemore](https://github.com/sineemore)
 
- * libxbps: multiple performance improvements to the transaction
+ * libflappy: multiple performance improvements to the transaction
    code, by reducing memory usage and getting rid of unnecessary
    operations. [xtraeme]
 
- * libxbps: improved code that handled file paths, with new test
+ * libflappy: improved code that handled file paths, with new test
    cases. [duncaen]
 
- * libxbps: ensure no multiple versions of the same package
+ * libflappy: ensure no multiple versions of the same package
    are stored in the transaction dictionary. [xtraeme]
 
- * xbps-uchroot(1): fixes to properly cleanup the temporary
+ * flappy-uchroot(1): fixes to properly cleanup the temporary
    tree with overlayfs. [xtraeme]
 
- * libxbps: improved hash code to avoid lots of heap allocs/frees
+ * libflappy: improved hash code to avoid lots of heap allocs/frees
    and use stack based memory instead. [duncaen]
 
- * libxbps: fixed 4 memory leaks in transaction/repo. [xtraeme]
+ * libflappy: fixed 4 memory leaks in transaction/repo. [xtraeme]
 
- * libxbps: replaced the pthread spinlock with a mutex. [xtraeme]
+ * libflappy: replaced the pthread spinlock with a mutex. [xtraeme]
 
- * libxbps: improved pkgname guessing code, avoiding lots of
+ * libflappy: improved pkgname guessing code, avoiding lots of
    heap allocs/frees and use stack based memory instead. [xtraeme]
 
- * libxbps: fixed 3 regressions that were added in 0.58. [xtraeme]
+ * libflappy: fixed 3 regressions that were added in 0.58. [xtraeme]
 
- * xbps-alternatives(1): fixed 3 issues, along with new test cases
+ * flappy-alternatives(1): fixed 3 issues, along with new test cases
    to verify its behaviour. [xtraeme]
 
- * xbps.d(5): added `keepconf` configuration option. If set, xbps
+ * flappy.d(5): added `keepconf` configuration option. If set, flappy
    won't overwrite unmodified configuration files on upgrades, rather
    new files will be unpacked as `<name>.new-<version>`.
 
@@ -241,7 +248,7 @@ xbps-0.59 (2020-03-03):
 
    Contributed by [Andreas Kempe](https://github.com/andkem)
 
-  * xbps-install(1): fixed manual page and usage of `-R`.
+  * flappy-install(1): fixed manual page and usage of `-R`.
 
    Contributed by [Roman Neuhauser](https://github.com/roman-neuhauser)
 
@@ -251,64 +258,64 @@ Andreas Kempe, Johannes Brechtmann, sineemore, Piotr Wójcik.
 
 238 test cases in total, with only 2 known issues in the alternatives code.
 
-xbps-0.58 (2020-01-30):
+flappy-0.58 (2020-01-30):
 
  * libfetch: fix CVE-2020-7450; from FreeBSD. [duncaen]
 
- * xbps-query(1), xbps-remove(1): improved detection
+ * flappy-query(1), flappy-remove(1): improved detection
    of orphans, needing multiple iterations to collect
    all of them in a single transaction. [xtraeme]
 
- * xbps-checkvers(1): added `-e, --removed`.
+ * flappy-checkvers(1): added `-e, --removed`.
    To list removed templates in srcpkgs. [Chocimier]
 
- * xbps-install(1): improved `-D, --download-only`.
+ * flappy-install(1): improved `-D, --download-only`.
    This now can be used to download all required
    binary packages of the target pkg without the need
    to have write permission to the `rootdir`.
 
-   $ xbps-install -c $PWD/cachedir -Dy xbps
+   $ flappy-install -c $PWD/cachedir -Dy flappy
 
    NOTE: `-c, --cachedir` must be specified as absolute
    pathname, otherwise it will treat it as relative to
    rootdir. [xtraeme]
 
- * xbps-fetch(1): added `-s` to print sha256sums of
+ * flappy-fetch(1): added `-s` to print sha256sums of
    downloaded files. [duncaen]
 
  * configure: re-add `--enable-debug` and enable it
    by default. [xtraeme]
 
- * xbps-install(1): ignore indirect reverse dependencies
-   while updating xbps. [xtraeme]
+ * flappy-install(1): ignore indirect reverse dependencies
+   while updating flappy. [xtraeme]
 
- * xbps-install(1): added `--reproducible` long option.
+ * flappy-install(1): added `--reproducible` long option.
    If set, enables reproducible mode in pkgdb. [xtraeme]
 
- * xbps-install(1): don't prompt if all packages in
+ * flappy-install(1): don't prompt if all packages in
    the transaction are on hold. [Mohamad Barbar]
 
- * xbps-rindex(1): stop adding the "build-date" pkg obj.
+ * flappy-rindex(1): stop adding the "build-date" pkg obj.
    Contained wrong info and did not provide enough value
    to be useful; another step towards reproducibility.
    [xtraeme]
 
- * xbps-create(1): always sanitize gathered symlinks. [xtraeme]
+ * flappy-create(1): always sanitize gathered symlinks. [xtraeme]
 
- * xbps-install(1): do not silently update `xbps' on
+ * flappy-install(1): do not silently update `flappy' on
    any install/update transaction. If there's a new update
-   for the `xbps` package, this needs to be explicitely
+   for the `flappy` package, this needs to be explicitely
    declared as a single transaction, i.e:
 
-	$ xbps-install -u xbps
+	$ flappy-install -u flappy
 
    Otherwise it will return EBUSY (16), making this a proper
    error code to diagnose what failed. [xtraeme]
 
- * xbps.d(5): new 'noextract' configuration option,
+ * flappy.d(5): new 'noextract' configuration option,
    to skip extracting files matching a pattern. [duncaen]
 
- * xbps.d(5): autodetected 'architecture' (glibc or musl)
+ * flappy.d(5): autodetected 'architecture' (glibc or musl)
    at compile-time on linux systems. [xtraeme]
 
  * configure: added `--enable-lto` and don't enable it
@@ -316,76 +323,76 @@ xbps-0.58 (2020-01-30):
 
  * Multiple bugs with packages on hold were fixed. [xtraeme]
 
- * xbps-uchroot(1), xbps-uunshare(1): document end of
+ * flappy-uchroot(1), flappy-uunshare(1): document end of
    options argument. [Doan Tran Cong Danh]
 
- * xbps-alternatives(1): prune obsolete alternatives groups. [q66]
+ * flappy-alternatives(1): prune obsolete alternatives groups. [q66]
 
 17 new test cases were added in this release, 6 people
 were involved: Juan RP, Piotr Wójcik, Duncan Overbruck,
 Doan Tran Cong Danh, Mohamad Barbar, q66.
 
-xbps-0.57.1 (2019-10-27):
+flappy-0.57.1 (2019-10-27):
 
  * Multiple changes and improvements to the transaction
    fetch code. [duncaen]
 
- * Verify revision in xbps_pkg_{version,revision,name},
+ * Verify revision in flappy_pkg_{version,revision,name},
    to handle properly package names that use '_'.
    [Chocimier]
 
- * xbps-checkvers(1): fixed a compile-time warning with glibc.
+ * flappy-checkvers(1): fixed a compile-time warning with glibc.
    [xtraeme]
 
- * xbps-alternatives(1): check if alternative is a
+ * flappy-alternatives(1): check if alternative is a
    symlink before removing it. [xtraeme]
 
  * Try to find a usable shell instead of using /bin/sh
    when executing package scripts. [Gottox]
 
- * xbps-rindex(1): better error handling for writing repodata
+ * flappy-rindex(1): better error handling for writing repodata
    archives. [Chocimier]
 
- * xbps-create(1): better error handling for writing archives.
+ * flappy-create(1): better error handling for writing archives.
    [Chocimier]
 
-xbps-0.57 (2019-08-06):
+flappy-0.57 (2019-08-06):
 
- * xbps now builds with tcc and pcc. [xtraeme]
+ * flappy now builds with tcc and pcc. [xtraeme]
 
- * xbps now uses the transactional file checks for package removals,
-   this fixes issues where xbps removes wrong files, if a package
+ * flappy now uses the transactional file checks for package removals,
+   this fixes issues where flappy removes wrong files, if a package
    replaces another packages with the same files. [duncaen]
 
- * xbps-remove(1): skip the transaction if no packages are found.
-   This restores the behaviour of xbps prior to 0.54. [xtraeme]
+ * flappy-remove(1): skip the transaction if no packages are found.
+   This restores the behaviour of flappy prior to 0.54. [xtraeme]
 
- * xbps-remove(1): fix `-o, --remove-orphans` not removing
+ * flappy-remove(1): fix `-o, --remove-orphans` not removing
    all orphaned packages. [duncaen]
 
- * xbps-install(1): if specified packages with `-u, --update` are
+ * flappy-install(1): if specified packages with `-u, --update` are
    up to date return EEXIST. [jnbr]
 
- * xbps-query(1): restores old behaviour of `--fulldeptree`,
+ * flappy-query(1): restores old behaviour of `--fulldeptree`,
    to not list the package itself. [duncaen]
 
  * Updated zsh completions. [leah2]
 
-xbps-0.56 (2019-06-24):
+flappy-0.56 (2019-06-24):
 
- * Fixed xbps_transaction_prepare() always returning
+ * Fixed flappy_transaction_prepare() always returning
    ENXIO because the transaction dictionary wasn't
    initialized before first use. Regression from 0.54. [xtraeme]
 
- * Fixed unlocking the pkgdb via xbps_end(). [xtraeme]
+ * Fixed unlocking the pkgdb via flappy_end(). [xtraeme]
 
  * Fixed flushing pkgdb to storage and re-reading it unnecessarily,
-   this affected xbps-alternatives(1), xbps-pkgdb(1) and
-   xbps-reconfigure(1). [xtraeme]
+   this affected flappy-alternatives(1), flappy-pkgdb(1) and
+   flappy-reconfigure(1). [xtraeme]
 
- * xbps now allows to remove an installed package that was
+ * flappy now allows to remove an installed package that was
    added to the ignored packages list with `ignorepkg` from
-   xbps.d(5). [duncaen]
+   flappy.d(5). [duncaen]
 
  * Fixed an issue with multi threaded for each loops
    processing the first slicecount*maxthreads entries twice. [duncaen]
@@ -394,20 +401,20 @@ xbps-0.56 (2019-06-24):
    fails within the connection delay it aborts with the error
    instead of continuing with the next address. [jnbr]
 
-xbps-0.55 (2019-06-21):
+flappy-0.55 (2019-06-21):
 
- * xbps-install(1): Added `-D, --download-only` flag to allow
+ * flappy-install(1): Added `-D, --download-only` flag to allow
    downloading packages to the cache without attempting to
    install them. [Toyam Cox]
 
- * xbps-install(1): added `-I, --ignore-file-conflicts` to not abort
+ * flappy-install(1): added `-I, --ignore-file-conflicts` to not abort
    the transaction even if file conflicts were detected. [xtraeme]
 
- * xbps-install(1): return 0 if package is already installed,
+ * flappy-install(1): return 0 if package is already installed,
    or up-to-date if updating, not EEXIST. EEXIST now is only
    returned if there are file conflicts in transaction. [xtraeme]
 
- * xbps-checkvers(1): fixed a segfault with `--format`. [duncaen]
+ * flappy-checkvers(1): fixed a segfault with `--format`. [duncaen]
 
  * Fixed a build failure on ppc64. [q66]
 
@@ -415,90 +422,90 @@ xbps-0.55 (2019-06-21):
 
  * Fixed cross compilation with `--enable-static`. [xtraeme]
 
-xbps-0.54 (2019-06-20):
+flappy-0.54 (2019-06-20):
 
- * xbps now collects all package files in transaction to check for
+ * flappy now collects all package files in transaction to check for
    file conflicts; any file, link or directory is now tracked before
    the transaction has been committed. [duncaen]
 
- * xbps now auto-updates reverse dependencies of target pkgs, while
+ * flappy now auto-updates reverse dependencies of target pkgs, while
    installing or updating any of them, without the need to perform a
-   system update (xbps-install -u). [xtraeme]
+   system update (flappy-install -u). [xtraeme]
 
- * xbps now auto-updates itself when there's a new version available
+ * flappy now auto-updates itself when there's a new version available
    in repos while installing or updating any pkg, as well as
    its reverse dependencies. [xtraeme]
 
- * xbps now supports multiple compression formats for repodata
+ * flappy now supports multiple compression formats for repodata
    and binary packages, including: gzip, bzip2, lz4, xz and zstd. [xtraeme]
 
- * libxbps: improve error handling in xbps_binpkg_{arch,pkgver}(). [huglovefan]
+ * libflappy: improve error handling in flappy_binpkg_{arch,pkgver}(). [huglovefan]
 
- * xbps-create(1): new `--compression` formats: lz4 and zstd, defaults to xz. [xtraeme]
+ * flappy-create(1): new `--compression` formats: lz4 and zstd, defaults to xz. [xtraeme]
 
- * xbps-create(1): reject unknown files (socket, fifo, etc). [duncaen]
+ * flappy-create(1): reject unknown files (socket, fifo, etc). [duncaen]
 
- * xbps-rindex(1): added `--compression` option, to mimic xbps-create(1). [xtraeme]
+ * flappy-rindex(1): added `--compression` option, to mimic flappy-create(1). [xtraeme]
 
- * xbps-query(1): `--fulldeptree [-R] -x` has been fixed and improved vastly,
+ * flappy-query(1): `--fulldeptree [-R] -x` has been fixed and improved vastly,
    50x faster in the worst scenario. This fixes the infamous `kde5` issue. [xtraeme]
 
- * xbps-query(1): `[-R] -X` (revdeps mode) has been fixed to fail
+ * flappy-query(1): `[-R] -X` (revdeps mode) has been fixed to fail
    gracefully if a dependency cannot be resolved. [xtraeme]
 
- * xbps-query(1): `[-R] -X` (revdeps mode) is now way faster.
+ * flappy-query(1): `[-R] -X` (revdeps mode) is now way faster.
    50x faster in the worst scenario. [xtraeme]
 
- * xbps-query(1): `-O` (list orphans mode) is now way faster. [yshui, xtraeme]
+ * flappy-query(1): `-O` (list orphans mode) is now way faster. [yshui, xtraeme]
 
- * xbps-query(1): now supports `$NO_COLOR` envvar. [leahneukirchen]
+ * flappy-query(1): now supports `$NO_COLOR` envvar. [leahneukirchen]
 
- * xbps-install(1): don't overwrite action with downgrade if package
+ * flappy-install(1): don't overwrite action with downgrade if package
    is on hold mode. [duncaen]
 
- * xbps-remove(1): `-R` (recursive mode) is now way faster, fixes
+ * flappy-remove(1): `-R` (recursive mode) is now way faster, fixes
    the infamous `kde5` issue. [yshui, xtraeme]
 
- * xbps-remove(1): `-o` (orphans mode) is now way faster. [yshui, xtraeme]
+ * flappy-remove(1): `-o` (orphans mode) is now way faster. [yshui, xtraeme]
 
- * xbps-remove(1): all directories are now sorted and removed
+ * flappy-remove(1): all directories are now sorted and removed
    properly. [jnbr]
 
- * xbps-fetch(1): new utility replacing "xbps-uhelper fetch". [xtraeme]
+ * flappy-fetch(1): new utility replacing "flappy-uhelper fetch". [xtraeme]
 
- * xbps-digest(1): new utility replacing "xbps-uhelper digest". [xtraeme]
+ * flappy-digest(1): new utility replacing "flappy-uhelper digest". [xtraeme]
 
- * xbps-alternatives(1): multiple improvements, all known bugs were fixed. [xtraeme]
+ * flappy-alternatives(1): multiple improvements, all known bugs were fixed. [xtraeme]
 
  * Sync with portableproplib-0.6.8. [xtraeme]
 
  * Fixed building with alternative C compilers: pcc and tcc. [xtraeme]
 
  * configure: added `enable-rpath` to set rpath in executables to `$ORIGIN/../lib`,
-   which makes xbps relocatable. [xtraeme]
+   which makes flappy relocatable. [xtraeme]
 
- * libxbps/fetch: Add happy eyeballs (RFC6555/RFC8305).
-   xbps now to connects to ipv6 and ipv4 addresses in a short interval and use the
+ * libflappy/fetch: Add happy eyeballs (RFC6555/RFC8305).
+   flappy now to connects to ipv6 and ipv4 addresses in a short interval and use the
    first established connection. [duncaen]
 
- * xbps now has a new configuration option `ignorepkg`, which allows to ignore
+ * flappy now has a new configuration option `ignorepkg`, which allows to ignore
    specified packages from being installed as dependency. [duncaen]
 
- * xbps-pkgdb(1): new check for alternative symlinks. [duncaen]
+ * flappy-pkgdb(1): new check for alternative symlinks. [duncaen]
 
- * xbps now doesn't delete symlinks a user created in place of files which
+ * flappy now doesn't delete symlinks a user created in place of files which
    are marked as config files.It will always extracts the configuration file
    with the `.new-$pkgver` suffix instead. [duncaen]
 
- * xbps-checkvers(1): new `--manual` flag to only check specified templates. [duncaen]
+ * flappy-checkvers(1): new `--manual` flag to only check specified templates. [duncaen]
 
- * xbps-checkvers(1): new `--format` flag to change the output format. [duncaen]
+ * flappy-checkvers(1): new `--format` flag to change the output format. [duncaen]
 
- * xbps-checkvers(1): rewritten for performance, uses libxbps (proplib)
+ * flappy-checkvers(1): rewritten for performance, uses libflappy (proplib)
    as data storage, fixes multiple issues. [duncaen]
 
- * libxbps: bumped XBPS_API_VERSION and soname major to 4,
-   "struct xbps_handle" has been modified. New interfaces were
+ * libflappy: bumped FLAPPY_API_VERSION and soname major to 4,
+   "struct flappy_handle" has been modified. New interfaces were
    added to the API. [duncaen, xtraeme]
 
 24 issues were fixed on this release, more information
@@ -514,68 +521,68 @@ q66, Foxlet, Robert Lowry, Frank Steinborn, Ingo Blechschmidt,
 Andres Kempe, Leah Neukirchen, Toyam Cox, Yuxuan Shui, Aleksej Lebedev,
 Enno Boland, m3tav3rse, kayvenm, parke, wuhank.
 
-xbps-0.53 (2018-07-30):
+flappy-0.53 (2018-07-30):
 
- * xbps-rindex(1): fix possible stagedata deadlock. (@Gottox)
+ * flappy-rindex(1): fix possible stagedata deadlock. (@Gottox)
 
- * xbps-create(1): Allow file paths longer than 128 characters. (@Gottox)
+ * flappy-create(1): Allow file paths longer than 128 characters. (@Gottox)
 
- * libxbps: share workload more efficient between threads and avoid idling
+ * libflappy: share workload more efficient between threads and avoid idling
    threads. (@Gottox)
 
- * xbps-rindex(1): By default xbps-rindex will not check hashes while cleaning.
+ * flappy-rindex(1): By default flappy-rindex will not check hashes while cleaning.
    To enable the old behavior the user can supply the --hashcheck flag.
    (@Gottox)
 
-xbps-0.52 (2018-04-30):
+flappy-0.52 (2018-04-30):
 
- * xbps-checkvers(1): avoid infinite loops while checking revers by @ebfe #250
+ * flappy-checkvers(1): avoid infinite loops while checking revers by @ebfe #250
 
- * libxbps: refuse to unpack absolute paths by @ebfe #247
+ * libflappy: refuse to unpack absolute paths by @ebfe #247
 
- * libxbps: verify that package version in repodata and the package metadata
+ * libflappy: verify that package version in repodata and the package metadata
    matches by @ebfe #246
 
- * xbps-rindex(1): better support for large files by @ebfe #245
+ * flappy-rindex(1): better support for large files by @ebfe #245
 
- * xbps-uunshare(1), xbps-uchroot(1): support relative chroot paths by
+ * flappy-uunshare(1), flappy-uchroot(1): support relative chroot paths by
    @Duncaen #207
 
- * libxbps: Default umask for internal plists by @Duncaen #234
+ * libflappy: Default umask for internal plists by @Duncaen #234
 
  * Fixes for GCC 7 by @AgustinCB #254
 
  * Fixed some random memleaks by @duncaen #206
 
- * xbps-query(1): added --list-repolock-pkgs for consistency with other
+ * flappy-query(1): added --list-repolock-pkgs for consistency with other
    modes #202
 
  * libfetch: send http proxy authorization header before a secure
    connection to the target is initialized. fixed by Enno Boland
    reported by pulux in #185
 
- * libxbps: avoid mmap in cases where the mmaped file can fill up the address
+ * libflappy: avoid mmap in cases where the mmaped file can fill up the address
    space on 32bit causing out of memory errors. Patches provided by Enno
    Boland in #183, reported by Christian Neukirchen in #182. See
-   https://github.com/voidlinux/xbps/pull/183 and
-   https://github.com/voidlinux/xbps/pull/182
+   https://github.com/void-linux/xbps/pull/183 and
+   https://github.com/void-linux/xbps/pull/182
 
- * xbps-create(1): accept -c/--changelog to set the changelog property of the
+ * flappy-create(1): accept -c/--changelog to set the changelog property of the
    package
 
- * xbps-query(1): fix segfault in -Ro with HTTPS repositories.
-   Fixes #167. See https://github.com/voidlinux/xbps/issues/167
+ * flappy-query(1): fix segfault in -Ro with HTTPS repositories.
+   Fixes #167. See https://github.com/void-linux/xbps/issues/167
 
- * xbps-uhelper: the 'arch' target now supports the XBPS_ARCH
-   and XBPS_TARGET_ARCH environmental variables to override the
+ * flappy-uhelper: the 'arch' target now supports the FLAPPY_ARCH
+   and FLAPPY_TARGET_ARCH environmental variables to override the
    resulting architecture.
 
  * portableproplib: merged two fixes from NetBSD CVS HEAD.
 
- * xbps-create(1): this now creates reproducible pkgs when the file
+ * flappy-create(1): this now creates reproducible pkgs when the file
    contents do not change. Implemented by Enno Boland (@Gottox).
 
- * xbps.d(5): the 'virtualpkg' keyword can now be used to map any pkg
+ * flappy.d(5): the 'virtualpkg' keyword can now be used to map any pkg
    to another, even if there's an existing real package. Example:
 
 	virtualpkg=wifi-firmware:base-system
@@ -583,36 +590,36 @@ xbps-0.52 (2018-04-30):
    Any request to the `wifi-firmware` pkg will be resolved to the
    `base-system` pkg.
 
- * libxbps: fixed some missing or incorrect printf format arguments
+ * libflappy: fixed some missing or incorrect printf format arguments
    found by using __attribute__((format,printf). Patch provided by
-   Michael Gehring in #148. See https://github.com/voidlinux/xbps/issues/148
+   Michael Gehring in #148. See https://github.com/void-linux/xbps/issues/148
 
- * libxbps: ignore updates for packages that have held dependencies.
-   Fixes #143. See https://github.com/voidlinux/xbps/issues/143
+ * libflappy: ignore updates for packages that have held dependencies.
+   Fixes #143. See https://github.com/void-linux/xbps/issues/143
 
- * xbps-install(1): in dry-run mode, do not stop after processing a package
+ * flappy-install(1): in dry-run mode, do not stop after processing a package
    that is already up-to-date. Fixes #145.
-   See https://github.com/voidlinux/xbps/issues/145
+   See https://github.com/void-linux/xbps/issues/145
 
- * libxbps: package INSTALL/REMOVE scripts do not need to be executables
+ * libflappy: package INSTALL/REMOVE scripts do not need to be executables
    anymore because they are executed with "/bin/sh" directly. That means
    "/tmp" can be mounted as "noexec". Fixed #149 correctly.
-   See https://github.com/voidlinux/xbps/issues/149
+   See https://github.com/void-linux/xbps/issues/149
 
- * xbps-query(1): fix a bug where the output of -o became mixed up
+ * flappy-query(1): fix a bug where the output of -o became mixed up
    when running on multiple cores.
 
- * xbps-rindex: changes introducing inconsistent shlib dependencies will be
+ * flappy-rindex: changes introducing inconsistent shlib dependencies will be
    moved to a stage area and moved to the main repo once all inconsistencies
    are resolved. Implemented by Enno Boland (@Gottox).
 
- * libxbps: if a local repository is opened also include the stage area.
+ * libflappy: if a local repository is opened also include the stage area.
 
-xbps-0.51 (2015-12-12):
+flappy-0.51 (2015-12-12):
 
- * zsh completion: added -U/--unpack-only support for xbps-install(1).
+ * zsh completion: added -U/--unpack-only support for flappy-install(1).
 
- * libxbps: initialize locale to be able to unpack UTF-8 encoded
+ * libflappy: initialize locale to be able to unpack UTF-8 encoded
    packages files correctly with the musl C library.
 
  * alternatives: preserve current order while updating packages.
@@ -620,63 +627,63 @@ xbps-0.51 (2015-12-12):
  * alternatives: always create the directory where the symlink is stored,
    in case this does not exist yet.
 
- * libxbps: another bugfix for conflicts: do not take into account packages
+ * libflappy: another bugfix for conflicts: do not take into account packages
    that are on hold mode.
 
-xbps-0.50 (2015-11-10):
+flappy-0.50 (2015-11-10):
 
- * libxbps: another bugfix for conflicts; do not take into account conflicts
+ * libflappy: another bugfix for conflicts; do not take into account conflicts
    in installed pkgs when the same pkg is in the transaction.
 
- * xbps-alternatives(1): symlinks are now always created relative to the
+ * flappy-alternatives(1): symlinks are now always created relative to the
    rootdir of the target file. Implemented by Enno Boland (@Gottox).
 
- * libxbps: fixed a bug in package conflicts: ignore conflicts for packages
+ * libflappy: fixed a bug in package conflicts: ignore conflicts for packages
    that are going to be removed.
 
- * xbps-alternatives(1): dangling symlinks are now supported, because the
+ * flappy-alternatives(1): dangling symlinks are now supported, because the
    target directory is always created.
 
  * Updated zsh completions, by Steve Prybylski.
 
- * xbps-checkvers(1): Joey Gouly fixed bug #120
-   (https://github.com/voidlinux/xbps/issues/120).
+ * flappy-checkvers(1): Joey Gouly fixed bug #120
+   (https://github.com/void-linux/xbps/issues/120).
 
- * libxbps: when configuring all packages ignore internal xbps objects of pkgdb.
-   Fixes an assertion with `xbps-reconfigure -a`.
+ * libflappy: when configuring all packages ignore internal flappy objects of pkgdb.
+   Fixes an assertion with `flappy-reconfigure -a`.
 
  * alternatives: really make relative symlinks this time.
 
-xbps-0.49 (2015-10-31):
+flappy-0.49 (2015-10-31):
 
  * alternatives: relative symlinks are now supported. Contributed
-   by Joey Guly in #126 (https://github.com/voidlinux/xbps/issues/126).
+   by Joey Guly in #126 (https://github.com/void-linux/xbps/issues/126).
 
- * xbps-alternatives(1): -g <grp> -l now works. To only print all alternatives
+ * flappy-alternatives(1): -g <grp> -l now works. To only print all alternatives
    associated with this group.
 
- * xbps-remove(1): this now will print the messages from alternatives.
+ * flappy-remove(1): this now will print the messages from alternatives.
 
  * alternatives: do not register duplicate alternative groups. Happened when
    reinstalling a package with alternatives.
 
-xbps-0.48 (2015-10-30):
+flappy-0.48 (2015-10-30):
 
- * xbps-alternatives(1): new utility to list or set alternatives provided by
+ * flappy-alternatives(1): new utility to list or set alternatives provided by
    packages. This effectively implements a functional alternatives framework
    to switch easily a default provider via symbolic links.
 
- * xbps-{install,reconfigure,remove}(1): do not log to console when the
-   syslog option (xbps.d(5)) is enabled. Messages are send to stderr/stdout,
+ * flappy-{install,reconfigure,remove}(1): do not log to console when the
+   syslog option (flappy.d(5)) is enabled. Messages are send to stderr/stdout,
    so that logging to the console duplicates them. Close #123
-   https://github.com/voidlinux/xbps/issues/123
+   https://github.com/void-linux/xbps/issues/123
 
- * xbps-fbulk(1): now comes with a manual page for the section 1.
+ * flappy-fbulk(1): now comes with a manual page for the section 1.
 
- * libxbps: implemented reverse conflicts. That means that just a single pkg
+ * libflappy: implemented reverse conflicts. That means that just a single pkg
    needs to set conflicts to be effective, rather than all involved pkgs.
 
- * libxbps: with -M (--memory-sync opt of xbps-{install,query}) only process
+ * libflappy: with -M (--memory-sync opt of flappy-{install,query}) only process
    remote repositories, not local ones.
 
  * libfetch: merge some features from FreeBSD:
@@ -694,95 +701,95 @@ xbps-0.48 (2015-10-30):
 	- SSL_NO_VERIFY_PEER: disable certificate verification.
 	- SSL_NO_VERIFY_HOSTNAME: disable certificate hostname verification.
 
- * lixbps: use a sane umask if the pkgdb file needs to created for the first
-   time. Thanks to Wolfgang Draxinger (https://github.com/voidlinux/xbps/pull/108).
+ * liflappy: use a sane umask if the pkgdb file needs to created for the first
+   time. Thanks to Wolfgang Draxinger (https://github.com/void-linux/xbps/pull/108).
 
- * xbps-install(1): -n/--dry-run mode now also prints "installed_size" and
+ * flappy-install(1): -n/--dry-run mode now also prints "installed_size" and
    "filename-size" objects as 5th and 6th argument, respectively.
-   This implements #109 (https://github.com/voidlinux/xbps/issues/109).
+   This implements #109 (https://github.com/void-linux/xbps/issues/109).
 
- * libxbps: fixed another issue when replacing an existing pkg with a virtual
+ * libflappy: fixed another issue when replacing an existing pkg with a virtual
    pkg, and there's an update for the original pkg in the transaction.
-   Fixes #116 (https://github.com/voidlinux/xbps/issues/116).
+   Fixes #116 (https://github.com/void-linux/xbps/issues/116).
 
- * libxbps: the rpool functions now set errno to ENOENT when the target
+ * libflappy: the rpool functions now set errno to ENOENT when the target
    pkg cannot be found in registered repos.
 
- * libxbps: fix a bug where broken reverse dependencies would be detected
+ * libflappy: fix a bug where broken reverse dependencies would be detected
    before detecting packages that need to be replaced in transaction.
 
- * xbps-query(1): fail if unused arguments are supplied.
+ * flappy-query(1): fail if unused arguments are supplied.
 
- * libxbps: relative cachedir set via xbps.d(5) now work correctly.
-   Fixes #117 (https://github.com/voidlinux/xbps/issues/117)
+ * libflappy: relative cachedir set via flappy.d(5) now work correctly.
+   Fixes #117 (https://github.com/void-linux/xbps/issues/117)
 
- * xbps-create(1): --compression now accepts "none" to not use any
+ * flappy-create(1): --compression now accepts "none" to not use any
    compression format.
 
- * xbps-create(1): it is now able to generate identical packages when its
+ * flappy-create(1): it is now able to generate identical packages when its
    content does not differ. This is the first part required to the
    "100% reproducible builds" goal.
 
- * xbps-create(1): do not add a build-date property to packages.
+ * flappy-create(1): do not add a build-date property to packages.
 
- * xbps-rindex(1): use mtime of file instead of the build-date field in the
+ * flappy-rindex(1): use mtime of file instead of the build-date field in the
    package to set build-date in the repo index.
 
- * libxbps: when using verbose mode (-v) also print pkgs that are being
+ * libflappy: when using verbose mode (-v) also print pkgs that are being
    added to the transaction, this way we can know what pkg(s) are blocking
    a transaction when there are unresolved (reverse)dependencies.
 
- * libxbps: improved messages when reverse dependencies in a transaction
-   are not satistfied. Close #113 (https://github.com/voidlinux/xbps/issues/113).
+ * libflappy: improved messages when reverse dependencies in a transaction
+   are not satistfied. Close #113 (https://github.com/void-linux/xbps/issues/113).
 
    After
    -----
-   $ xbps-install -un
+   $ flappy-install -un
    re2-2015.07.01_1 (update) breaks installed pkg `chromium-44.0.2403.155_1'
    Transaction aborted due to unresolved dependencies.
    $
 
    Before
    ------
-   $ xbps-install -un
+   $ flappy-install -un
    chromium-44.0.2403.155_1 broken, needs `re2-2015.07.01_1'
    Transaction aborted due to unresolved dependencies.
    $
 
  * Multiple minor issues found by Coverity scan were fixed.
 
- * xbps-checkvers(1): fixed an endless loop while processing templates containing
+ * flappy-checkvers(1): fixed an endless loop while processing templates containing
    extra alphanumeric characters in the `reverts' object. Added a new testcase
    to verify its correctness.
 
-xbps-0.47 (2015-07-18):
+flappy-0.47 (2015-07-18):
 
  * When executing pkg configuration, override the umask with sane defaults.
    Otherwise files might be created with undesired permissions.
-   Fixes #106 (https://github.com/voidlinux/xbps/issues/106)
+   Fixes #106 (https://github.com/void-linux/xbps/issues/106)
 
- * libxbps: when resuming a file transfer (.part file exists), check if the
+ * libflappy: when resuming a file transfer (.part file exists), check if the
    requested offset matches the remote file size, and if that's true,
    just rename the file to finish it. The HTTP server might return a 413
    return code to tell us that range is not satisfiable.
 
-xbps-0.46 (2015-06-24):
+flappy-0.46 (2015-06-24):
 
- * xbps-*: all utilities are now using getopt_long() rather than getopt()
+ * flappy-*: all utilities are now using getopt_long() rather than getopt()
    to avoid the differences with glibc and musl when handling arguments.
    Thanks to Chris M. Branon for #103.
 
- * xbps_transaction_prepare(): do not release the transaction dictionary
+ * flappy_transaction_prepare(): do not release the transaction dictionary
    if it returns ENOSPC, we need it to have access to this data to print
-   required/free space. Fixes #101 ((https://github.com/voidlinux/xbps/issues/101)
+   required/free space. Fixes #101 ((https://github.com/void-linux/xbps/issues/101)
 
- * xbps-uchroot(1): now handles SIG{INT,TERM,QUIT} signals to clean up the
+ * flappy-uchroot(1): now handles SIG{INT,TERM,QUIT} signals to clean up the
    temporary masterdir if `-t` is set.
 
  * /usr/sbin is now a symlink in void, don't consider it as obsolete and never
    remove it even if it was detected as obsolete.
 
- * xbps-rindex(1): use `-s, --sign` to initialize the repository archive
+ * flappy-rindex(1): use `-s, --sign` to initialize the repository archive
    with the required metadata to allow signed packages. Added `-S, --sign-pkg`
    to sign a specific package archive. This allows to sign a specific package,
    rather than all packages available in that repository.
@@ -795,293 +802,293 @@ xbps-0.46 (2015-06-24):
    signature file is incomplete, whatever, just remove both files. Let's assume
    next time the files are downloaded they will be valid.
 
-xbps-0.45 (2015-06-03):
+flappy-0.45 (2015-06-03):
 
- * xbps-install(1): added -U --unpack-only option, to only unpack packages
+ * flappy-install(1): added -U --unpack-only option, to only unpack packages
    in the transaction, skips the configuration phase.
 
  * configure: added `--enable-fulldebug` option to enable extra/expensive
    debug output.
 
- * libxbps: fixed a dangling pointer when unpacking configuration files that
+ * libflappy: fixed a dangling pointer when unpacking configuration files that
    are renamed (because they existed), if the unpack callback function is set.
 
  * proplib: extra checks when internalizing plists to avoid NULL pointer
    dereferences with broken files.
 
  * Move manual pages of all utilities to the section 1 (user commands).
-   The xbps utilities can be used by any user so that there's no point
+   The flappy utilities can be used by any user so that there's no point
    in having them in the section 8 (administraction and privileged commands).
 
  * configure: --sbindir -> --bindir and executables are installed into
    <prefix>/bin not <prefix>/sbin anymore.
 
- * xbps-install(1): if there's not enough sufficient free space on rootdir,
+ * flappy-install(1): if there's not enough sufficient free space on rootdir,
    print the required size by the transaction and free space.
 
- * libxbps: if a pkg signature file cannot be verified, don't continue processing
+ * libflappy: if a pkg signature file cannot be verified, don't continue processing
    other files, stop and return error immediately.
 
- * xbps-remove(1): fixed regression while removing recursively packages, don't remove
+ * flappy-remove(1): fixed regression while removing recursively packages, don't remove
    all package orphans, this task belongs to -o not -R.
 
-   This closes #95 (xbps-remove -R pkg lists/removes orphans):
-   https://github.com/voidlinux/xbps/issues/95
+   This closes #95 (flappy-remove -R pkg lists/removes orphans):
+   https://github.com/void-linux/xbps/issues/95
 
- * xbps-uunshare(1): replaced -D, -H and -S with -b src:dest. This bind mounts
+ * flappy-uunshare(1): replaced -D, -H and -S with -b src:dest. This bind mounts
    src into dir/dest and allows unlimited mounts.
 
- * xbps-uchroot(1): replaced -D, -H and -S with -b src:dest. This bind mounts
+ * flappy-uchroot(1): replaced -D, -H and -S with -b src:dest. This bind mounts
    src into dir/dest and allows unlimited mounts.
 
  * configure: added --dbdir to customize path to pkgdb.
 
- * xbps-uchroot(1): added -o option to pass arguments to the tmpfs mount,
+ * flappy-uchroot(1): added -o option to pass arguments to the tmpfs mount,
    as is. See mount(1). Useful to specify a size for the temporary tmpfs
    with overlayfs (-O).
 
- * xbps-uchroot(1): added -t option to mount a tmpfs as temporary directory
+ * flappy-uchroot(1): added -t option to mount a tmpfs as temporary directory
    for overlayfs (-O).
 
- * libxbps: file descriptors are now opened with O_CLOEXEC, to avoid warnings
+ * libflappy: file descriptors are now opened with O_CLOEXEC, to avoid warnings
    of leaked file descriptors while running package install/remove scripts.
 
- * xbps-query(1): do not truncate output if stdout is not a tty.
+ * flappy-query(1): do not truncate output if stdout is not a tty.
 
  * libfetch: added support for keep-alive connections even if the HTTP server returns
-   304 (Not Modified). This is a noticable performance improvement for `xbps-install -S`.
+   304 (Not Modified). This is a noticable performance improvement for `flappy-install -S`.
 
- * xbps now autoupdates itself when there's a package update.
+ * flappy now autoupdates itself when there's a package update.
 
- * xbps-uchroot(1): added -O option to use overlayfs to mount CHROOTDIR in
+ * flappy-uchroot(1): added -O option to use overlayfs to mount CHROOTDIR in
    a temporary directory stored on tmpfs. This needs linux >= 3.18.
 
- * xbps-rindex(1): fixed concurrency issues with -a and -c modes; use a simple
+ * flappy-rindex(1): fixed concurrency issues with -a and -c modes; use a simple
    file lock to avoid inconsistent results in generated repodata.
 
-xbps-0.44.1 (2015-03-21):
+flappy-0.44.1 (2015-03-21):
 
- * libxbps: fixed xbps_get_pkg_fulldeptree() when a pkg depends on itself via
+ * libflappy: fixed flappy_get_pkg_fulldeptree() when a pkg depends on itself via
    virtual packages. Reported by Duncan Overbrook.
 
  * portableproplib: fixed a regression introduced in 0.44 resulting in EBADF
    while internalizing plists.
 
- * xbps-uunshare(1): does not fork and run cmd in the child process anymore,
+ * flappy-uunshare(1): does not fork and run cmd in the child process anymore,
    replaces the execution environment with cmd instead.
 
- * xbps-uunshare(1): do not fail if we cannot disable setgroups; some kernels
+ * flappy-uunshare(1): do not fail if we cannot disable setgroups; some kernels
    might not support it. Found by @cheneukirchen on 3.16.
 
- * xbps-reconfigure(1): added -i/--ignore to usage(), by Christian Neukirchen.
+ * flappy-reconfigure(1): added -i/--ignore to usage(), by Christian Neukirchen.
 
  * Updated zsh completions, by Christian Neukirchen.
 
- * xbps-checkvers(1): fixed regression introduced in 0.44 adding packages
+ * flappy-checkvers(1): fixed regression introduced in 0.44 adding packages
    manually to the list as arguments.
 
-xbps-0.44 (2015-03-06):
+flappy-0.44 (2015-03-06):
 
- * xbps-uunshare(1): new utility analogue to xbps-uchroot(1), but uses
+ * flappy-uunshare(1): new utility analogue to flappy-uchroot(1), but uses
    user namespaces (see user_namespaces(7)) to avoid the need of elevated
    privileges.
 
- * xbps-rindex(1): fix -s short option; was omitted in the short options list.
+ * flappy-rindex(1): fix -s short option; was omitted in the short options list.
 
- * xbps-pkgdb(1): added a new mode to set in installed packages: "repolock".
+ * flappy-pkgdb(1): added a new mode to set in installed packages: "repolock".
    If that mode is set with `-m repo(un)lock`, a package will only be updated
    if there's an update in the same repository that was used for installing.
-   This implements #77 (https://github.com/voidlinux/xbps/issues/77)
+   This implements #77 (https://github.com/void-linux/xbps/issues/77)
 
- * libxbps: properly detect when a file has been moved between packages:
+ * libflappy: properly detect when a file has been moved between packages:
    if the mtime stored in the pkg metadata does not match the mtime
    of the same file stored on disk, don't detect this as an obsolete file.
 
- * xbps-pkgdb(1): this now exits with an error if any test has failed.
+ * flappy-pkgdb(1): this now exits with an error if any test has failed.
 
- * libxbps: while unpacking pkg files that were not modified (sha256 hash matched),
+ * libflappy: while unpacking pkg files that were not modified (sha256 hash matched),
    do not forget to also update the file timestamps on disk, to match
    what the binary package has stored in the metadata.
 
- * xbps-pkgdb(1): this now checks the modification time of pkg files
+ * flappy-pkgdb(1): this now checks the modification time of pkg files
    (iff the pkg metadata has that information).
 
- * xbps-create(1): modification time of regular files and links is now stored
+ * flappy-create(1): modification time of regular files and links is now stored
    in the package files metadata, will be used in a future version.
 
- * libxbps: file timestamps stored in binary packages are now restored while
+ * libflappy: file timestamps stored in binary packages are now restored while
    unpacking as regular user.
 
- * xbps-pkgdb(1): this now uses the code from libxbps to check the target file
+ * flappy-pkgdb(1): this now uses the code from libflappy to check the target file
    of symlinks. This fixes some false positives with symlinks.
 
- * xbps-create(1): properly detect target of relative symlinks in some cases.
+ * flappy-create(1): properly detect target of relative symlinks in some cases.
 
- * libxbps: make sure that symlinks with relative target are detected and removed
-   properly. Fix #78: https://github.com/voidlinux/xbps/issues/78
+ * libflappy: make sure that symlinks with relative target are detected and removed
+   properly. Fix #78: https://github.com/void-linux/xbps/issues/78
 
- * xbps-checkvers(1): this now does not segfault anymore when the source package
+ * flappy-checkvers(1): this now does not segfault anymore when the source package
    does not set required variables (pkgname/version/revision). Added new test
    cases to verify its correctness.
 
- * libxbps: globally check for unresolved reverse dependencies before accepting
+ * libflappy: globally check for unresolved reverse dependencies before accepting
    the transaction. This catches more cases of broken packages due to incompatible
    upgrades or unwanted removals. This also implements #46.
-   https://github.com/voidlinux/xbps/issues/46
+   https://github.com/void-linux/xbps/issues/46
 
- * xbps-query(1): in the ownedby mode, do not follow symbolic links and if the
+ * flappy-query(1): in the ownedby mode, do not follow symbolic links and if the
    matching file is a symlink print its target file too:
 
-	$ xbps-query -o `which whatis`
+	$ flappy-query -o `which whatis`
 	mdocml-1.13.2_5: /usr/bin/whatis -> /usr/bin/mandoc (link)
 
- * xbps-install(1): add additional actions to the column output: "downgrade"
+ * flappy-install(1): add additional actions to the column output: "downgrade"
    and "reinstall", as well as current installed version and new version.
-   Implement https://github.com/voidlinux/xbps/issues/72
+   Implement https://github.com/void-linux/xbps/issues/72
 
- * libxbps: add packages on hold mode to the transaction, but just ignore them.
-   This way those are shown in the xbps-install(1) output and the user really
+ * libflappy: add packages on hold mode to the transaction, but just ignore them.
+   This way those are shown in the flappy-install(1) output and the user really
    knows that there's a pending update that is not being applied.
    Idea by @chneukirchen.
 
- * libxbps: make sure to remove the pkg metadata file if a pkg upgrade does not
+ * libflappy: make sure to remove the pkg metadata file if a pkg upgrade does not
    own any file and a dependency replaces it due to moving files between them.
    Added two new test cases to verify its correctness.
 
- * xbps-query(1): --regex option now matches EREs in case insensitive mode.
+ * flappy-query(1): --regex option now matches EREs in case insensitive mode.
 
- * libxbps: globally check for unresolved shared libraries before accepting
+ * libflappy: globally check for unresolved shared libraries before accepting
    a transaction to make sure there's no broken packages.
 
- * libxbps: abort package unpacking as soon as a file failed
+ * libflappy: abort package unpacking as soon as a file failed
    to be written and return a meaningful error; close #74
-   https://github.com/voidlinux/xbps/issues/74
+   https://github.com/void-linux/xbps/issues/74
 
- * Change the xbps utils to just check for the first character when it
+ * Change the flappy utils to just check for the first character when it
    asks for confirmation, rather than "yes" or "no". This implements issue #73.
-   https://github.com/voidlinux/xbps/issues/73
+   https://github.com/void-linux/xbps/issues/73
 
- * libxbps: use a sane umask(2) while unpacking package files from
+ * libflappy: use a sane umask(2) while unpacking package files from
    binary packages (see https://github.com/voidlinux/void-packages/issues/835)
 
- * xbps-dgraph(1): the -m/--metadata option (default mode) is now properly
+ * flappy-dgraph(1): the -m/--metadata option (default mode) is now properly
    accepted. Regression introduced in 0.42.
 
- * xbps-{install,query}: the --repository argument now works with relative
+ * flappy-{install,query}: the --repository argument now works with relative
    paths for local repositories. The relative path is always converted to
    absolute.
 
- * libxbps: the provides obj (array of strings) now fully expects exact
+ * libflappy: the provides obj (array of strings) now fully expects exact
    pkgver strings, such as `foo-1.0_1`. Incomplete components such as
    `pkgname` or `pkgname-9` are not accepted anymore.
 
- * libxbps: detection of orphaned pkgs is now 66% faster (and even more in some cases).
-   This improves the performance of `xbps-remove -R` (recursively remove a pkg
-   and its dependencies) and `xbps-remove -o` (remove orphaned pkgs) marginally.
+ * libflappy: detection of orphaned pkgs is now 66% faster (and even more in some cases).
+   This improves the performance of `flappy-remove -R` (recursively remove a pkg
+   and its dependencies) and `flappy-remove -o` (remove orphaned pkgs) marginally.
 
- * xbps-query(1): only compile the ERE (Extended Regular Expression) once in
+ * flappy-query(1): only compile the ERE (Extended Regular Expression) once in
    the ownedby and search modes. A performance improvement suggested by Christian Neukirchen.
 
- * libxbps: performance improvement for xbps_repo_get_pkg_revdeps(): when finding
+ * libflappy: performance improvement for flappy_repo_get_pkg_revdeps(): when finding
    the matching pkg, search for it in the current repository, not in the repository
    pool.
 
-xbps-0.43.1 (2015-01-05):
+flappy-0.43.1 (2015-01-05):
 
- * Fixed a regression in virtual packages defined via xbps.d(5) introduced in 0.43.
+ * Fixed a regression in virtual packages defined via flappy.d(5) introduced in 0.43.
 
-xbps-0.43 (2014-12-31):
+flappy-0.43 (2014-12-31):
 
  * pcc >= 1.1.0 is now a supported compiler.
 
- * xbps.d(5): the "virtualpkg" keyword now accepts pkgnames in the first component,
+ * flappy.d(5): the "virtualpkg" keyword now accepts pkgnames in the first component,
    to match any virtual package version. Example:
 
 	`virtualpkg=foo:bar`
 
    would match any version of the virtual package `foo' to be resolved as `bar'.
 
- * libxbps: when resolving virtual packages in repositories, make sure to initialize
+ * libflappy: when resolving virtual packages in repositories, make sure to initialize
    pkgdb to match any virtualpkg declared there. Regression introduced in 0.42.
 
  * configure: build with -fstack-protector-strong if supported by the compiler,
    and fallback to -fstack-protector otherwise.
 
- * xbps-pkgdb(1): the `packaged-with` string obj is removed from pkgdb.
+ * flappy-pkgdb(1): the `packaged-with` string obj is removed from pkgdb.
    Since 0.42 that object is unnecessary and is being obsoleted.
 
  * libfetch: fix races in the cache connection code.
 
-xbps-0.42 (2014-12-22):
+flappy-0.42 (2014-12-22):
 
- * xbps-reconfigure(1): new option -i, --ignore to ignore packages
+ * flappy-reconfigure(1): new option -i, --ignore to ignore packages
    while performing configuration of all packages with -a, --all.
-   Fix #67 (https://github.com/voidlinux/xbps/issues/67)
+   Fix #67 (https://github.com/void-linux/xbps/issues/67)
 
- * xbps-{install,query}: fix alignment in the column output mode
-   when pkgname is shorter than 4 chars. Fix #71 (https://github.com/voidlinux/xbps/issues/71)
+ * flappy-{install,query}: fix alignment in the column output mode
+   when pkgname is shorter than 4 chars. Fix #71 (https://github.com/void-linux/xbps/issues/71)
 
- * xbps.d(5): new manual page detailing the configuration settings.
+ * flappy.d(5): new manual page detailing the configuration settings.
 
- * xbps-dgraph(1): added support to generate dependency graphs, repository
+ * flappy-dgraph(1): added support to generate dependency graphs, repository
    mode, prints results to stdout, supports most of the options available
    in other utils, etc. This is now a first class utility.
 
- * xbps-{install,query}: added new option (-M, --memory-sync) to fetch and
+ * flappy-{install,query}: added new option (-M, --memory-sync) to fetch and
    store remote repository data in memory. That means that synchronizing
-   the repository archives with `xbps-install -S` is now completely optional.
-   This also means that `xbps-query(1)` may be used by any user without the
+   the repository archives with `flappy-install -S` is now completely optional.
+   This also means that `flappy-query(1)` may be used by any user without the
    need to be the `superuser` to synchronize the repository archives.
 
- * xbps-{install,query}: added new option (-i, --ignore-conf-repos) to ignore
-   repositories defined in configuration files (xbps.d). Only repos specified
+ * flappy-{install,query}: added new option (-i, --ignore-conf-repos) to ignore
+   repositories defined in configuration files (flappy.d). Only repos specified
    by the command line will be used (--repository).
 
  * Implemented issue #69 (No way to set globally a custom architecture)
    A new configuration keyword "architecture" has been added to override
    the native machine architecture (uname -m).
 
- * Fixed issue #68 "xbps_binpkg_arch() asserts if arch contains a dash"
-   https://github.com/voidlinux/xbps/issues/68
+ * Fixed issue #68 "flappy_binpkg_arch() asserts if arch contains a dash"
+   https://github.com/void-linux/xbps/issues/68
 
- * xbps-query(1): added --cat=FILE mode to print FILE stored in a binary package
+ * flappy-query(1): added --cat=FILE mode to print FILE stored in a binary package
    to stdout. This works exactly as the --files mode: if the matching binary package
-   is not available in the cachedir, xbps will establish a network connection
+   is not available in the cachedir, flappy will establish a network connection
    to the target repository to get the contents of FILE on the fly.
 
  * Get rid of repodata index-files, that contained all pkg files of a repository
    in the archive. That file was so huge that incresed the repository archive
-   size by 8x. That means that `xbps-query -Ro` will now make N parallel connections
+   size by 8x. That means that `flappy-query -Ro` will now make N parallel connections
    to the remote server to inspect the binary packages remotely; if the binary
    package is in cachedir, no network connection to the remote server will be
    established. This reduces the size of the main x86_64 repository (4000 packages)
    to 700KB, compared to 4.5MB previously.
 
- * xbps-create(1): fixed issue #64 "xbps-create(1) incorrect installed-size with hardlinks".
-   https://github.com/voidlinux/xbps/issues/64
+ * flappy-create(1): fixed issue #64 "flappy-create(1) incorrect installed-size with hardlinks".
+   https://github.com/void-linux/xbps/issues/64
 
  * Added a new configuration keyword "bestmatching", which expects "true" or "false"
    and disabled by default. If enabled the pkg with the greatest version available
    in all registered repositories will be choosen, rather than the first package
    matching the expression. This keyword can be set in a configuration file.
 
- * xbps-rindex(1): added -d/--debug option.
+ * flappy-rindex(1): added -d/--debug option.
 
  * utils: the -C/--config option now expects a path to a directory storing
    configuration files; if first character is not '/' it will be treated as
    relative to rootdir.
 
- * <sysconfdir>/xbps/xbps.conf is not longer installed, in fact there are no files
-   installed anymore to sysconfdir. The xbps.conf file with everything commented out
-   is now installed to <sharedir>/xbps.d/xbps.conf just as example.
+ * <sysconfdir>/flappy/flappy.conf is not longer installed, in fact there are no files
+   installed anymore to sysconfdir. The flappy.conf file with everything commented out
+   is now installed to <sharedir>/flappy.d/flappy.conf just as example.
 
  * Replaced config/system {preserve,repo,virtualpkg}.d directories with a single
-   xbps.d directory that may contain configuration files of all kinds:
+   flappy.d directory that may contain configuration files of all kinds:
    general options, repositories, virtual packages, and preserved files.
-   By default set to <sysconfdir>/xbps.d and <sharedir>/xbps.d:
+   By default set to <sysconfdir>/flappy.d and <sharedir>/flappy.d:
 
-	- /usr/local/etc/xbps.d 	<- configuration directory
-	- /usr/local/share/xbps.d	<- system configuration directory
+	- /usr/local/etc/flappy.d 	<- configuration directory
+	- /usr/local/share/flappy.d	<- system configuration directory
 
    Files bearing the same filename in the configuration directory override
    those available in the system configuration directory.
@@ -1090,20 +1097,20 @@ xbps-0.42 (2014-12-22):
    that installed packages do not need to have a virtualpkg configuration
    file in the system virtualpkg.d directory.
 
- * xbps-{install,remove}: implemented a column/wide output mode
-   as requested in #63 (https://github.com/voidlinux/xbps/issues/63).
+ * flappy-{install,remove}: implemented a column/wide output mode
+   as requested in #63 (https://github.com/void-linux/xbps/issues/63).
    If the terminal has enough columns it will use this and falling back
    to the previous mode otherwise.
 
- * libxbps: replaces the internal redundant dependency sorting step
-   that was made in xbps_transaction_prepare() with a simple implementation
-   that fixes 2 bugs and makes xbps 2x faster to resolve dependencies.
+ * libflappy: replaces the internal redundant dependency sorting step
+   that was made in flappy_transaction_prepare() with a simple implementation
+   that fixes 2 bugs and makes flappy 2x faster to resolve dependencies.
 
    Packages that don't have "provides" obj but were declared as virtual packages,
    were not detected correctly and lead me to rewrite this code.
 
  * Fixed issue #62 (Dup replaced pkgs in transaction); see
-   https://github.com/voidlinux/xbps/issues/62
+   https://github.com/void-linux/xbps/issues/62
 
  * If removing a package and euid==0 do not check for file owner, being root
    means that all files can be removed properly. This fixes package removal
@@ -1120,49 +1127,49 @@ xbps-0.42 (2014-12-22):
  * Added support to run the testsuite in place, without the need to perform
    installation; use `make check` to run it.
 
-xbps-0.41 (2014-09-29):
+flappy-0.41 (2014-09-29):
 
- * libxbps: another bugfix while checking required shlibs in
+ * libflappy: another bugfix while checking required shlibs in
    reverse dependencies. Written another test case to verify its
    correctness.
 
- * libxbps: rather than checking if user has write permission on
+ * libflappy: rather than checking if user has write permission on
    package files for removal, check if the files are owned by the
    same user ID. This fixes a new issue where files with only the read
    bit set cannot be removed. Added a new test case to verify its
    correctness.
 
- * xbps-create(1): xz compressed packages now use default compression
+ * flappy-create(1): xz compressed packages now use default compression
    level (-6) rather than max level (-9); max compression level uses
    too much memory and it's much slower; by Christian Neukirchen.
 
- * Improvements for xbps bash completions, by Eivind Uggedal.
+ * Improvements for flappy bash completions, by Eivind Uggedal.
 
- * A performance improvement for xbps_file_hash(), by Enno Boland.
+ * A performance improvement for flappy_file_hash(), by Enno Boland.
 
  * Added reverts field to package definitions. If defined, a package will
    replace all versions specified in this field even if the installed version is
    newer. This is helpful when a broken package is released. The maintainer can
    downgrade this package and define a reverts field to the broken version. On
-   the next update xbps-install will automatically replace the broken release by
+   the next update flappy-install will automatically replace the broken release by
    the new downgraded release.
 
- * Replace xbps-packages directory by void-packages in xbps-checkvers(1),
-   xbps-uchroot(1) and others, by Enno Boland.
+ * Replace flappy-packages directory by void-packages in flappy-checkvers(1),
+   flappy-uchroot(1) and others, by Enno Boland.
 
-xbps-0.40 (2014-09-18):
+flappy-0.40 (2014-09-18):
 
- * xbps-install(1): handle xbps_transaction_prepare() returning ENOSPC, to
+ * flappy-install(1): handle flappy_transaction_prepare() returning ENOSPC, to
    abort a transaction when there's insufficient disk space on rootdir.
 
- * xbps-query(1): -S/--show mode no longer prints ANSI escape codes if stdout
+ * flappy-query(1): -S/--show mode no longer prints ANSI escape codes if stdout
    is not a tty; suggested by @chneukirchen.
 
  * Reduced considerably memory requirement when checking SHA256 hashes on
    files. Previous way of allocating heap memory as big as the file being
    processed wasn't a great idea.
 
- * xbps-{install,remove}: the post-install/pre-remove messages are now
+ * flappy-{install,remove}: the post-install/pre-remove messages are now
    printed with some guards, i.e:
 
 	"=================================================================="
@@ -1175,24 +1182,24 @@ xbps-0.40 (2014-09-18):
  * Fixed a heap overflow when printing post-install/pre-remove messages.
    Noticed by Gottox.
 
- * Updated zsh completion with more properties for xbps-query(1). Contributed
+ * Updated zsh completion with more properties for flappy-query(1). Contributed
    by Christian Neukirchen.
 
- * Updated bash completion with more properties for xbps-query(1). Contributed
+ * Updated bash completion with more properties for flappy-query(1). Contributed
    by Eivind Uggedal in #58.
 
-xbps-0.39 (2014-09-15):
+flappy-0.39 (2014-09-15):
 
  * Updated bash/zsh completions for >= 0.38 with new features (Contributed by
    Eivind Uggedal and Christian Neukirchen respectively).
 
- * xbps-rindex: fix -a/--add mode to create repodata archives with 0664 permissions;
+ * flappy-rindex: fix -a/--add mode to create repodata archives with 0664 permissions;
    and do not create a new archive if the file cannot be open/locked, error out
    instead... otherwise the file lock is ignored.
 
  * A minor build fix for the musl C library.
 
-xbps-0.38 (2014-09-14):
+flappy-0.38 (2014-09-14):
 
  * Disabled best pkg matching code for performance reasons. When installing
    or updating a package without any version component, the first repo containing
@@ -1200,11 +1207,11 @@ xbps-0.38 (2014-09-14):
    package expression to match packages in multiple repos, or switch the order
    of the repos instead.
 
- * Added bash completion for xbps-*. Contributed by Eivind Uggedal.
+ * Added bash completion for flappy-*. Contributed by Eivind Uggedal.
 
- * Added zsh completion for xbps-* and xbps-src. Contributed by Christian Neukirchen.
+ * Added zsh completion for flappy-* and flappy-src. Contributed by Christian Neukirchen.
 
- * xbps-query(1): added -s/--search local mode; local pkg queries are now possible.
+ * flappy-query(1): added -s/--search local mode; local pkg queries are now possible.
 
  * pkgdb-0.38 format: the pkgdb plist file now contains all pkg metadata objects
    plus the pkgdb specific ones (automatic-install, install-date, metafile-sha256)
@@ -1214,28 +1221,28 @@ xbps-0.38 (2014-09-14):
    This effectively implements a two phase upgrade, the first time to upgrade the
    pkgdb format and the second one to execute the real operation.
 
-   The pkg metadata files stored in metadir (/var/db/xbps) now just contains its
-   pkg files list objects, everything else is stored in pkgdb. This allows libxbps
+   The pkg metadata files stored in metadir (/var/db/flappy) now just contains its
+   pkg files list objects, everything else is stored in pkgdb. This allows libflappy
    to speed up the process of checking for unmet shared libraries, among other things.
 
- * libxbps: added support to check pkg shlib-{provides,requires} objects for
+ * libflappy: added support to check pkg shlib-{provides,requires} objects for
    all pkgs in the transaction to be updated. This will make impossible to update a
    package to a newer version that contains incompatible shlibs used in its revdeps.
 
- * xbps-rindex(1): -r/--remove-obsoletes is now ~5x faster.
+ * flappy-rindex(1): -r/--remove-obsoletes is now ~5x faster.
 
- * xbps-remove(1): -O/--clean-cache is now ~10% faster.
+ * flappy-remove(1): -O/--clean-cache is now ~10% faster.
 
- * libxbps: xbps_repo_{open,close}() gained an additional argument to acquire/release
+ * libflappy: flappy_repo_{open,close}() gained an additional argument to acquire/release
    a POSIX file lock (see lockf(3)) to serialize write access to the repository
-   archive. This obsoletes the POSIX named semaphores that were used in xbps-rindex(1),
+   archive. This obsoletes the POSIX named semaphores that were used in flappy-rindex(1),
    which only allowed to add/clean a repository per architecture, even if it
    wasn't the same local repository!
 
- * libxbps: the fetch code now is able to connect to HTTPS without the need of
+ * libflappy: the fetch code now is able to connect to HTTPS without the need of
    /etc/services being available; We don't expect those ports to change anytime!
 
- * xbps-uchroot(1) is now only built on linux, because it's not portable to other
+ * flappy-uchroot(1) is now only built on linux, because it's not portable to other
    Operating Systems.
 
  * Added support to replace virtual packages when the package to be installed
@@ -1244,34 +1251,34 @@ xbps-0.38 (2014-09-14):
 	- nvidia is installed and provides the `libGL` virtual pkgname.
 	- libGL matches the virtual pkgname and therefore replaces the `nvidia` pkg.
 
- * xbps-query(1): added --fulldeptree long option to print a full dependency
+ * flappy-query(1): added --fulldeptree long option to print a full dependency
    tree for a package; this supersedes -xx which was broken since 0.37.
 
- * xbps-query(1): fix a segfault with -Rf when there's no network connectivity.
+ * flappy-query(1): fix a segfault with -Rf when there's no network connectivity.
    Reported by Gottox.
 
- * xbps-uchroot(1): do not remount / unnecessarily; just mount it as private
+ * flappy-uchroot(1): do not remount / unnecessarily; just mount it as private
    and nosuid once; this is enough for our use cases.
 
- * xbps-query(1): --show/-S mode now explicitly prints pkg metadata keys
+ * flappy-query(1): --show/-S mode now explicitly prints pkg metadata keys
    with the bold ANSI escape code.
 
- * xbps-query(1): --search --property now works with <integer> objects, i.e:
+ * flappy-query(1): --search --property now works with <integer> objects, i.e:
 
-	$ xbps-query -s '' -p filename-size
+	$ flappy-query -s '' -p filename-size
 
- * xbps-remove(1): -O/--clean-cache no longer triggers an assertion when the
+ * flappy-remove(1): -O/--clean-cache no longer triggers an assertion when the
    cache directory is empty.
 
  * Implemented support to preserve existent on-disk files, by always ignoring
    the pkg content if the file has been matched. Details here:
-   https://github.com/voidlinux/xbps/issues/51
+   https://github.com/void-linux/xbps/issues/51
 
-   The new "preserve" keyword can be used in the xbps configuration file, as well
+   The new "preserve" keyword can be used in the flappy configuration file, as well
    as for the system and configuration directories:
 
-	- <rootdir>/usr/share/xbps/preserve.d
-	- <rootdir>/etc/xbps/preserve.d
+	- <rootdir>/usr/share/flappy/preserve.d
+	- <rootdir>/etc/flappy/preserve.d
 
    Full path to a file or globbing can be used:
 
@@ -1280,38 +1287,38 @@ xbps-0.38 (2014-09-14):
 
  * Always preserve files that exist on disk, but are managed by a package.
    When such condition ocurrs install the pkg configuration file as `file.new-<version>`.
-   This fixes GH issue #50 https://github.com/voidlinux/xbps/issues/50.
+   This fixes GH issue #50 https://github.com/void-linux/xbps/issues/50.
 
  * Implemented support for post-install and pre-remove messages, as explained
-   in issue #44 https://github.com/voidlinux/xbps/issues/44.
+   in issue #44 https://github.com/void-linux/xbps/issues/44.
 
-   xbps-create(1) will read the {INSTALL,REMOVE}.msg files and will add its contents
+   flappy-create(1) will read the {INSTALL,REMOVE}.msg files and will add its contents
    into the `{install,remove}-msg` data objects on its metadata plist file.
 
- * xbps-install(1): added support to list packages that will be downloaded, if those
+ * flappy-install(1): added support to list packages that will be downloaded, if those
    were available in a remote repository and were not in the cache directory.
 
- * Before accepting a transaction, xbps now checks if there's enough free space
+ * Before accepting a transaction, flappy now checks if there's enough free space
    on the target rootdir (on disk) to proceed with the operation. In code terms,
-   xbps_transaction_prepare() now returns ENOSPC if the size of the transaction
+   flappy_transaction_prepare() now returns ENOSPC if the size of the transaction
    exceeds the size of the free space. Close issue #7.
 
  * When installing or updating packages, now proper statistics are generated
    when a binary package from a remote repository exists in the cachedir,
    and when a package has the "preserve" property.
 
- * libxbps: return ENXIO and a meaningful error message if a package that is
+ * libflappy: return ENXIO and a meaningful error message if a package that is
    going to be installed or updated has invalid dependencies, i.e:
 
-	$ xbps-install --repository=$HOME/repo -n foo
+	$ flappy-install --repository=$HOME/repo -n foo
 	ERROR: foo-1.0_1: can't guess pkgname for dependency '>=invalid-spec_1'
 	Package `foo' contains invalid dependencies, exiting.
 	$
 
-   This fixes #43 (xbps-install: unhelpful message for invalid dependency)
+   This fixes #43 (flappy-install: unhelpful message for invalid dependency)
    submitted by Dominik Honnef.
 
- * libxbps: fixed a new issue with packages that provide/replace the
+ * libflappy: fixed a new issue with packages that provide/replace the
    same virtual package that is going to be replaced. The issue could be
    reproduced easily by installing any awk package (gawk, mawk, or nawk),
    which are providing/replacing the "awk" virtual package.
@@ -1319,46 +1326,46 @@ xbps-0.38 (2014-09-14):
  * libfetch: synchronized with NetBSD pkgsrc/libfetch.
 
  * libfetch: add support for TLS SNI (Server Name Identification) from NetBSD, with
-   some minor debug changes. This fixes GH issue #41 (https://github.com/voidlinux/xbps/issues/41).
+   some minor debug changes. This fixes GH issue #41 (https://github.com/void-linux/xbps/issues/41).
 
-xbps-0.37 (2014-06-06):
+flappy-0.37 (2014-06-06):
 
- * Enabled syslog logging by default, may be still disabled via xbps.conf.
+ * Enabled syslog logging by default, may be still disabled via flappy.conf.
 
  * Added support for system and configuration virtualpkg directories.
 
-   The system virtualpkg directory set to <rootdir>/usr/share/xbps/virtualpkg.d contains
+   The system virtualpkg directory set to <rootdir>/usr/share/flappy/virtualpkg.d contains
    virtualpkg configuration files (.conf/.vpkg) that can be overrided by the admin
-   in <rootdir>/etc/xbps/virtualpkg.d bearing the same file name.
+   in <rootdir>/etc/flappy/virtualpkg.d bearing the same file name.
 
-   This obsoletes the "virtualpkgdir" keyword support from the xbps configuration file.
+   This obsoletes the "virtualpkgdir" keyword support from the flappy configuration file.
 
  * Added support for system and configuration repository directories, as
-   explained in GH #39 (https://github.com/voidlinux/xbps/issues/39).
+   explained in GH #39 (https://github.com/void-linux/xbps/issues/39).
 
-   The system repository directory set to <rootdir>/usr/share/xbps/repo.d contains
+   The system repository directory set to <rootdir>/usr/share/flappy/repo.d contains
    repository configuration files (.conf) that can be overrided by the admin
-   in <rootdir>/etc/xbps/repo.d bearing the same file name.
+   in <rootdir>/etc/flappy/repo.d bearing the same file name.
 
- * xbps-create(1): new option `-t, --tags` to specify a list of tags
+ * flappy-create(1): new option `-t, --tags` to specify a list of tags
    (categories) the package should be part of. This is just for metadata
    purposes and querying packages by tags in the future.
 
- * xbps-install(1): it's possible now to update a single package (if it's already
+ * flappy-install(1): it's possible now to update a single package (if it's already
    installed) without using the -u, --update option. This implements
-   GH #35 (https://github.com/voidlinux/xbps/issues/35).
+   GH #35 (https://github.com/void-linux/xbps/issues/35).
 
-	$ xbps-install [-f] -y foo
+	$ flappy-install [-f] -y foo
 
 	- if foo is installed, update it.
 	- if foo not installed, install it.
 	- if -f is set, reinstall or downgrade it.
 
- * xbps-query(1): new option (-S, --show) which shows info of a package
+ * flappy-query(1): new option (-S, --show) which shows info of a package
    installed locally or in a repository with -R. This is the default mode
    if no other mode is set; to preserve compatibility with previous versions.
 
- * xbps-query(1): new long option "--regex" that can be used in the
+ * flappy-query(1): new long option "--regex" that can be used in the
    "ownedby (-o, --ownedby)" and "search (-s, --search)" modes to match
    Extended Regular Expressions against package properties.
 
@@ -1366,7 +1373,7 @@ xbps-0.37 (2014-06-06):
    for example to find out what packages were built between 2014-05-23 and
    2014-05-25:
 
-	$ xbps-query --regex -s 2014-05-2[35] -p build-date
+	$ flappy-query --regex -s 2014-05-2[35] -p build-date
 	...
 	$
 
@@ -1379,64 +1386,64 @@ xbps-0.37 (2014-06-06):
  * A new object is now recorded in the pkgdb to see the origin repository of
    which a package was installed from, i.e:
 
-	$ xbps-query --property=repository-origin pkg
+	$ flappy-query --property=repository-origin pkg
 	...
 	$
 
- * xbps-remove(1): the -n,--dry-run option does not acquire the pkgdb file lock
+ * flappy-remove(1): the -n,--dry-run option does not acquire the pkgdb file lock
    anymore, so that any user can use this mode even without write permission to
    the target pkgdb.
 
- * xbps-remove(1) -O, --clean-cache is now multithreaded. Gives a performance
+ * flappy-remove(1) -O, --clean-cache is now multithreaded. Gives a performance
    boost as the number of threads increases.
 
- * xbps.conf: the keyword "include" now supports file globbing, so that multiple
+ * flappy.conf: the keyword "include" now supports file globbing, so that multiple
    small configuration files can be included directly, i.e:
 
-	include=/etc/xbps/repo.d/*.conf
+	include=/etc/flappy/repo.d/*.conf
 
    Contributed by Enno Boland.
 
- * xbps-query(1): fixed a segfault with '-Rf' if pkg is in the repository data
+ * flappy-query(1): fixed a segfault with '-Rf' if pkg is in the repository data
    and its binary package does not exist.
 
-xbps-0.36 (2014-04-21):
+flappy-0.36 (2014-04-21):
 
- * libxbps: the dependency solver is now able to detect and ignore invalid
+ * libflappy: the dependency solver is now able to detect and ignore invalid
    dependencies of a package that are depending on itself, either as real
    or virtual packages.
 
- * xbps-uchroot(1): a manual page has been created.
+ * flappy-uchroot(1): a manual page has been created.
 
- * xbps-install(1): the -n,--dry-run option does not acquire the pkgdb file lock
+ * flappy-install(1): the -n,--dry-run option does not acquire the pkgdb file lock
    anymore, so that any user can use this mode even without write permission to
    the target pkgdb.
 
- * xbps-query(1): fix a segfault with '-vL' for local unsigned repositories.
+ * flappy-query(1): fix a segfault with '-vL' for local unsigned repositories.
 
- * xbps-create(1): new option --compression to specify a compression format;
+ * flappy-create(1): new option --compression to specify a compression format;
    defaults to xz.
 
- * xbps-checkvers(1): new utility merged from https://github.com/xdave/xbps-src-utils
-   that is able to check which packages are outdated in the XBPS repositories or
-   a rootdir by comparing them against a xbps-packages repository.
+ * flappy-checkvers(1): new utility merged from https://github.com/xdave/flappy-src-utils
+   that is able to check which packages are outdated in the FLAPPY repositories or
+   a rootdir by comparing them against a flappy-packages repository.
    Written by xdave and improved by myself.
 
-xbps-0.35 (2014-04-01):
+flappy-0.35 (2014-04-01):
 
- * xbps-uchroot: new utility merged from xbps-packages/xbps-src that
+ * flappy-uchroot: new utility merged from flappy-packages/flappy-src that
    bind mounts and chroots to a target directory. This is a setgid binary
    that must have correct owner/group to work correctly.
 
- * xbps-rindex(1): fixed a bug while signing repositories in that sometimes
+ * flappy-rindex(1): fixed a bug while signing repositories in that sometimes
    the PEM RSA public key buffer contained unwanted garbage.
 
  * Make sure that required root symlinks in void are never removed or detected
    as obsoletes; added new test cases to stress the code works as expected.
 
-xbps-0.34 (2014-03-26):
+flappy-0.34 (2014-03-26):
 
- * xbps-query(1): search mode now accepts -p/--property argument to match patterns
+ * flappy-query(1): search mode now accepts -p/--property argument to match patterns
    against the stored package object in repositories. Any object stored in the repository
    index can be used to be matched against to; the posibilities are countless:
 
@@ -1445,10 +1452,10 @@ xbps-0.34 (2014-03-26):
 	- find out what packages are linked to a specific shared library
 	- etc etc etc
 
- * xbps-query(1): in local mode now prints all objects stored on its pkgdb entry
+ * flappy-query(1): in local mode now prints all objects stored on its pkgdb entry
    and its metaplist.
 
- * Fix #34 (xbps-uhelper fetch fails to download files from https://alioth.debian.org).
+ * Fix #34 (flappy-uhelper fetch fails to download files from https://alioth.debian.org).
    The issue is that this HTTP server returns 406 (Not Acceptable) when the HTTP
    header does not contain the "Accept" field (see
    https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=712261 for more info).
@@ -1461,17 +1468,17 @@ xbps-0.34 (2014-03-26):
    name to perform the configuration rather than using package name/version tuple.
 
  * Pass another argument to package scripts with the native machine architecture
-   (uname -m), which can be overrided via XBPS_ARCH environment variable too.
+   (uname -m), which can be overrided via FLAPPY_ARCH environment variable too.
 
-xbps-0.33 (2014-03-11):
+flappy-0.33 (2014-03-11):
 
- * xbps-dgraph: fixed a segfault if rootdir wasn't set:
-   issue #33: https://github.com/voidlinux/xbps/issues/33
+ * flappy-dgraph: fixed a segfault if rootdir wasn't set:
+   issue #33: https://github.com/void-linux/xbps/issues/33
 
- * xbps-uhelper now supports downloading files with a defined destination.
+ * flappy-uhelper now supports downloading files with a defined destination.
    The syntax of fetch is "URI>FILENAME". So if you call
 
-	$ xbps-uhelper fetch "http://foobar.com/foo.tar.gz>bar.tar.gz"
+	$ flappy-uhelper fetch "http://foobar.com/foo.tar.gz>bar.tar.gz"
 
    the output file will be named "bar.tar.gz". Contributed by
    Enno Boland (Gottox).
@@ -1483,7 +1490,7 @@ xbps-0.33 (2014-03-11):
    to not dereference symbolic links, because a symlink might point to
    a file in the rootfs, which won't have the same uid/gid.
 
- * Fixed issue #31: https://github.com/voidlinux/xbps/issues/31
+ * Fixed issue #31: https://github.com/void-linux/xbps/issues/31
 
  * New configuration file format with a custom C parser, simpler
    and does not need any additional external dependency. confuse is
@@ -1496,27 +1503,27 @@ xbps-0.33 (2014-03-11):
  * Do not continue the transaction if downloading a binpkg/signature file
    has failed for some reason, stop and return error immediately.
 
-xbps-0.32 (2014-02-21):
+flappy-0.32 (2014-02-21):
 
- * Fixed a bug in xbps_pkgpattern_name() where a string with some special
+ * Fixed a bug in flappy_pkgpattern_name() where a string with some special
    chars would result in a crash (reported by Gottox).
 
  * Do the package removal in two phases: the first phase checks the
    user has write permission to the entries being removed, if this
    succeeds then the package removal is performed.
 
- * xbps-remove(1): -O now also remove obsolete pkg signatures from
+ * flappy-remove(1): -O now also remove obsolete pkg signatures from
    cachedir, and ignores pkgs of other architectures.
 
- * xbps-rindex(1): set correct permissions to the POSIX semaphore
+ * flappy-rindex(1): set correct permissions to the POSIX semaphore
    by clearing file permission bits before its creation.
 
-xbps-0.31 (2014-02-01):
+flappy-0.31 (2014-02-01):
 
- * xbps-rindex(1): use a POSIX named semaphore in modes that can modify
+ * flappy-rindex(1): use a POSIX named semaphore in modes that can modify
    repository data archive, to avoid concurrency issues.
 
- * libxbps: fixed an issue with errno(3) propagation that lead to
+ * libflappy: fixed an issue with errno(3) propagation that lead to
    ENOMEM errors when resolving dependencies.
 
  * Removed 0.27 compat from repodata.
@@ -1525,26 +1532,26 @@ xbps-0.31 (2014-02-01):
    in repodata (unless there were new changes). This allows us to
    accomplish the following:
 
-	$ xbps-rindex repo/*.xbps
-	$ xbps-rindex --sign ... repo
-	$ xbps-rindex repo/new-pkg.xbps
+	$ flappy-rindex repo/*.flappy
+	$ flappy-rindex --sign ... repo
+	$ flappy-rindex repo/new-pkg.flappy
 
    ... and repository is still signed after updating repodata.
 
    API/ABI incompatible changes, you've been warned :-)
 
- * xbps-rindex(1): -c [clean] mode now is fully multithread safe.
+ * flappy-rindex(1): -c [clean] mode now is fully multithread safe.
 
  * Fixed a double free while downloading binpkgs from remote repositories
    (reported by Hanspolo).
 
-xbps-0.30 (2014-01-28):
+flappy-0.30 (2014-01-28):
 
- * Fixed issue #30: https://github.com/voidlinux/xbps/issues/30
+ * Fixed issue #30: https://github.com/void-linux/xbps/issues/30
 
- * Fixed issue #29: https://github.com/voidlinux/xbps/issues/29
+ * Fixed issue #29: https://github.com/void-linux/xbps/issues/29
 
- * Fixed issue #28: https://github.com/voidlinux/xbps/issues/28
+ * Fixed issue #28: https://github.com/void-linux/xbps/issues/28
 
  * When reinstalling a package (or downgrading) also check for obsolete
    files and remove them if it's needed.
@@ -1555,94 +1562,94 @@ xbps-0.30 (2014-01-28):
  * Fixed a bug where in some cases valid symlinks in a package were not removed
    (just dangling symlinks were removed).
 
-xbps-0.29 (2014-01-09):
+flappy-0.29 (2014-01-09):
 
- * Added XBPS_ARCH environment variable to override tha native architecture
+ * Added FLAPPY_ARCH environment variable to override tha native architecture
    (uname(2) machine). This allows us to use "fake" architectures, for example
    to use packages built for a different C library.
 
- * Miscellaneous fixes to make XBPS work with the musl C library.
+ * Miscellaneous fixes to make FLAPPY work with the musl C library.
 
- * Fixed issue #27: https://github.com/voidlinux/xbps/issues/27
+ * Fixed issue #27: https://github.com/void-linux/xbps/issues/27
 
-xbps-0.28 (2014-01-03):
+flappy-0.28 (2014-01-03):
 
  * Implemented Per package RSA signatures, replacing the repository index
    signature from 0.27. There's now a `<binpkg>.sig` file with the RSA signature
-   for any pkg in a repository; the signature files are generated by `xbps-rindex(1)`.
+   for any pkg in a repository; the signature files are generated by `flappy-rindex(1)`.
 
  * Implemented on-demand repository access: repositories are registered into
    a private queue only on first access and not unconditionally.
 
- * Fixed issue #26: https://github.com/voidlinux/xbps/issues/26
+ * Fixed issue #26: https://github.com/void-linux/xbps/issues/26
 
- * xbps-query(1): -o (local ownedby mode) does not print directories;
-   it's unnecessary anyway because xbps never extracts empty directories.
+ * flappy-query(1): -o (local ownedby mode) does not print directories;
+   it's unnecessary anyway because flappy never extracts empty directories.
 
- * The `--repository` option in xbps-install(1) and xbps-query(1) now adds
+ * The `--repository` option in flappy-install(1) and flappy-query(1) now adds
    the repositories at the top of the list, rather than overriding the list
    specified in a configuration file.
 
- * Fixed issue #25: https://github.com/voidlinux/xbps/issues/25
+ * Fixed issue #25: https://github.com/void-linux/xbps/issues/25
 
- * Fixed issue #24: https://github.com/voidlinux/xbps/issues/24
+ * Fixed issue #24: https://github.com/void-linux/xbps/issues/24
 
-xbps-0.27 (2013-11-29):
+flappy-0.27 (2013-11-29):
 
- * libxbps: make sure that base symlinks in the root directory are never removed,
+ * libflappy: make sure that base symlinks in the root directory are never removed,
    due to /usr switch in Void. This will also be harmless in other systems.
 
  * The testsuite now contains more tests than ever and will be extended as new
    issues appear.
 
- * Fixed issue #20: https://github.com/xtraeme/xbps/issues/20
+ * Fixed issue #20: https://github.com/xtraeme/flappy/issues/20
 
- * Fixed issue #19: https://github.com/xtraeme/xbps/issues/19
+ * Fixed issue #19: https://github.com/xtraeme/flappy/issues/19
 
- * Fixed issue #18: https://github.com/xtraeme/xbps/issues/18
+ * Fixed issue #18: https://github.com/xtraeme/flappy/issues/18
 
- * Fixed issue #6: https://github.com/xtraeme/xbps/issues/6
+ * Fixed issue #6: https://github.com/xtraeme/flappy/issues/6
 
- * xbps-rindex(1): also understands the XBPS_PASSPHRASE environmental variable to
+ * flappy-rindex(1): also understands the FLAPPY_PASSPHRASE environmental variable to
    supply the passphrase when signing repositories.
 
- * xbps-rindex(1): added -v --verbose option.
+ * flappy-rindex(1): added -v --verbose option.
 
  * Support for RSA signed repositories. A repository can be signed with your
    preferred RSA key (any ssh key works) as follows:
 
-	$ xbps-rindex --sign --signedby "foobar <foo@bar>" --privkey /priv/key /path/to/repo
+	$ flappy-rindex --sign --signedby "foobar <foo@bar>" --privkey /priv/key /path/to/repo
 
    Public keys must be imported before using a remote signed repository thru
-   the xbps-install(1) utility:
+   the flappy-install(1) utility:
 
-	$ xbps-install -S
+	$ flappy-install -S
 
    Starting from now on all remote repositories must be signed and verified.
    Local repos do not need to be signed and they will work as before.
 
-xbps-0.26.2 (2013-10-30):
+flappy-0.26.2 (2013-10-30):
 
  * unpack: apply correctly permissions and mode to existent files if the those files
    in the archive are modified compared to what it's currently on disk.
 
-xbps-0.26.1 (2013-10-25):
+flappy-0.26.1 (2013-10-25):
 
- * xbps-uhelper: added new action "real-version" that only prints the version
+ * flappy-uhelper: added new action "real-version" that only prints the version
    of an installed real package in a rootdir, not virtual.
 
-xbps-0.26 (2013-09-25):
+flappy-0.26 (2013-09-25):
 
- * xbps-query(1): the `-D --defrepo' argument has been superseded by
+ * flappy-query(1): the `-D --defrepo' argument has been superseded by
    `-R --repository=<url>' argument. (issue #17).
 
- * xbps-install(1): added support to specify multiple repositories with
-   `--repository=<url>`. For consistency with `xbps-query(1)' use the same
+ * flappy-install(1): added support to specify multiple repositories with
+   `--repository=<url>`. For consistency with `flappy-query(1)' use the same
    syntax as it were an optional argument. (issue #17).
 
    This overrides the repository list in a configuration file.
 
- * xbps-query(1): added support to specify multiple repositories with
+ * flappy-query(1): added support to specify multiple repositories with
    `--repository=<url>`. This also enables repository mode; the argument is
    optional and can be used to specify desired repositories. (issue #17).
 
@@ -1650,155 +1657,155 @@ xbps-0.26 (2013-09-25):
 
  * Re-added all metadata package objects to the repository index, this avoids
    remote connections when querying packages from remote repositories. This also
-   speeds up 'xbps-src' when using remote repositories as well.
+   speeds up 'flappy-src' when using remote repositories as well.
 
  * A C99 compiler is now required due to the use of for loop initializers.
 
  * Fixed #14 from github: "Removing recursively does not respect manual installation
-   mode for dependencies". See https://github.com/xtraeme/xbps/issues/14
+   mode for dependencies". See https://github.com/xtraeme/flappy/issues/14
    for more information.
 
- * Removed "PackagesOnHold" from xbps.conf. This has been replaced by a new mode
-   in xbps-pkgdb(1):
+ * Removed "PackagesOnHold" from flappy.conf. This has been replaced by a new mode
+   in flappy-pkgdb(1):
 
-	$ xbps-pkgdb -m <hold|unhold> <pkgname>
+	$ flappy-pkgdb -m <hold|unhold> <pkgname>
 
-   To list packages that are currently on hold mode use xbps-query(1):
+   To list packages that are currently on hold mode use flappy-query(1):
 
-	$ xbps-query -H
+	$ flappy-query -H
 
  * On terminals with 0 columns, assume 80. Xen's PV guest running Linux and its
    hvc console does report 0 columns/rows.
 
- * libxbps: introduce xbps_{array,pkgdb}_foreach_cb_multi() which are
+ * libflappy: introduce flappy_{array,pkgdb}_foreach_cb_multi() which are
    multithreaded implementations  to process N items of an array spawning
-   1 thread per core. This makes XBPS use threads when possible on
+   1 thread per core. This makes FLAPPY use threads when possible on
    multi-core CPUs.
 
- * libxbps: removed the following unused API functions:
+ * libflappy: removed the following unused API functions:
 
-	- xbps_pkgdb_foreach_reverse_cb()
-	- xbps_callback_array_iter_reverse()
-	- xbps_callback_array_iter_reverse_in_dict()
-	- xbps_callback_array_iter()
-	- xbps_callback_array_iter_in_dict()
+	- flappy_pkgdb_foreach_reverse_cb()
+	- flappy_callback_array_iter_reverse()
+	- flappy_callback_array_iter_reverse_in_dict()
+	- flappy_callback_array_iter()
+	- flappy_callback_array_iter_in_dict()
 
- * xbps-query(1): make -L list all repositories in the configuration file, even
+ * flappy-query(1): make -L list all repositories in the configuration file, even
    the non working ones and print -1 in them. Closes issue #11 from github.
 
-	$ xbps-query -L
+	$ flappy-query -L
            -1 /mnt/foo
            -1 /blah/foo
-         2619 /mnt/xbps_builder/host/binpkgs
-           16 /mnt/xbps_builder/host/binpkgs/nonfree
+         2619 /mnt/flappy_builder/host/binpkgs
+           16 /mnt/flappy_builder/host/binpkgs/nonfree
 	$
 
- * xbps-query(1): fixed some memleaks in local and repository owned mode.
+ * flappy-query(1): fixed some memleaks in local and repository owned mode.
 
- * xbps-query(1): fix regression in -R, also print repository string object.
+ * flappy-query(1): fix regression in -R, also print repository string object.
 
  * Do not abort transaction if updates for conflicting packages are in
    the transaction due to checks of reverse dependencies in virtual packages.
 
-xbps-0.25 (2013-07-05):
+flappy-0.25 (2013-07-05):
 
  * Added support to validate reverse dependencies when updating packages.
    Such example would be updating pkg X to 2.0 when an installed package
    depends on pkg X < 2.0; abort transaction when such condition is
    detected; this also works with virtual packages.
 
- * Dropped requirement of confuse when using the libxbps API.
+ * Dropped requirement of confuse when using the libflappy API.
 
  * Dropped support for external libfetch and proplib; the included copies
-   are always used unconditionally. libxbps now provides a wrapper for
-   proplib prefixing all symbols with xbps_ rather than prop_.
+   are always used unconditionally. libflappy now provides a wrapper for
+   proplib prefixing all symbols with flappy_ rather than prop_.
 
- * libxbps: only read virtual pkg config files when looking for a virtual
-   package, not unconditionally and at xbps_init() time.
+ * libflappy: only read virtual pkg config files when looking for a virtual
+   package, not unconditionally and at flappy_init() time.
 
- * libxbps: optimize repo/rpool code by reusing existing data returned by previous calls.
+ * libflappy: optimize repo/rpool code by reusing existing data returned by previous calls.
 
- * libxbps: fixed two memleaks.
+ * libflappy: fixed two memleaks.
 
- * libxbps: reduced memory usage on 64bit platforms by using 32bit types, which
+ * libflappy: reduced memory usage on 64bit platforms by using 32bit types, which
    is really enough to be used in loop indexes (deps, revdeps, etc).
 
- * xbps-dgraph: completely updated to the new pkgdb format/API.
+ * flappy-dgraph: completely updated to the new pkgdb format/API.
 
- * xbps-query(1): added support to find reverse dependencies in repository mode
+ * flappy-query(1): added support to find reverse dependencies in repository mode
    for virtual packages, i.e:
 
-	$ xbps-query -RX xserver-abi-input
+	$ flappy-query -RX xserver-abi-input
 	xf86-input-evdev-2.8.0_1
 	...
 
  * Use a single zlib compressed file to store repository data `<arch>-repodata`.
    This will allow us to extend repositories with more metadata if needed, and
    simplifies the API. This is just the starting point to add PGP signatures.
-   The struct xbps_rindex has been replaced by xbps_repo, thus, the major
-   libxbps SONAME has been bumped to 2.
+   The struct flappy_rindex has been replaced by flappy_repo, thus, the major
+   libflappy SONAME has been bumped to 2.
  
- * xbps-create(1): correctly calculate target file for relative symlinks.
+ * flappy-create(1): correctly calculate target file for relative symlinks.
 
- * xbps-pkgdb(1): removed old code that isn't needed anymore in the 'check' mode.
-   This fixes issue #9 (https://github.com/xtraeme/xbps/issues/9).
+ * flappy-pkgdb(1): removed old code that isn't needed anymore in the 'check' mode.
+   This fixes issue #9 (https://github.com/xtraeme/flappy/issues/9).
 
-xbps-0.24 (2013-05-02):
+flappy-0.24 (2013-05-02):
 
- * xbps-rindex(1): added -f, --force flag to forcefully register a package even
+ * flappy-rindex(1): added -f, --force flag to forcefully register a package even
    if an entry of the same package already exists on the index.
 
-xbps-0.23 (2013-04-19):
+flappy-0.23 (2013-04-19):
 
- * xbps-install(1): the default repository (-R) now overrides any repository
+ * flappy-install(1): the default repository (-R) now overrides any repository
    set in a configuration file.
 
- * xbps-rindex(1): in clean mode (-c) also remove obsolete entries from index-files,
+ * flappy-rindex(1): in clean mode (-c) also remove obsolete entries from index-files,
    which were not matched due to different tests.
 
  * Fixed a bug in the transaction dictionary that reported wrong sizes
    in total-removed-size and total-installed-size objects or even empty values
    in some cases.
 
- * xbps-create(1): initialize setlocale so that utf8 files can be archived.
+ * flappy-create(1): initialize setlocale so that utf8 files can be archived.
    The locale must be utf8 capable for this to work. Fixes issue #5 from github.
 
- * libxbps: fix a use-after-free in state cb when a binpkg doesn't match its
+ * libflappy: fix a use-after-free in state cb when a binpkg doesn't match its
    hash with the hash stored in repo index.
 
- * xbps-uhelper: the 'version' target now also matches virtual packages, which
-   is a requirement for xbps-src.
+ * flappy-uhelper: the 'version' target now also matches virtual packages, which
+   is a requirement for flappy-src.
 
-xbps-0.22 (2013-03-23):
+flappy-0.22 (2013-03-23):
 
- * xbps-create(1): a new option --build-options has been added to add a string
+ * flappy-create(1): a new option --build-options has been added to add a string
    with the build options that were used in package. It's expected to be filled
-   by xbps-src automatically.
+   by flappy-src automatically.
 
- * xbps-query(1): make -o (ownedby) follow symlinks. Fix issue #4 from github.
+ * flappy-query(1): make -o (ownedby) follow symlinks. Fix issue #4 from github.
    This works in local and repository mode.
 
- * xbps-create(1): if effective user/group is the same than files being
+ * flappy-create(1): if effective user/group is the same than files being
    packaged in a package, set user/group to root:root. This way we don't
    have to depend in an external tool to assume proper permissions (fakeroot).
 
- * xbps-query(1): fix segfault when showing unexistent package files.
+ * flappy-query(1): fix segfault when showing unexistent package files.
 
  * When checking for obsolete files in upgrades, ignore unexistent files in
    current package; this was hitting an assertion due to this.
 
-xbps-0.21 (2013-03-11):
+flappy-0.21 (2013-03-11):
 
- * libxbps: improved code to find obsolete pkg files in upgrades. Now the code
+ * libflappy: improved code to find obsolete pkg files in upgrades. Now the code
    compares the whole file list between current and new package. A test has been
    added to the kyua testsuite to test its correctness.
 
  * Imported Portable proplib 0.6.3 from http://code.google.com/p/portableproplib.
 
- * xbps-query(1): a full dependency tree can now be shown in the
+ * flappy-query(1): a full dependency tree can now be shown in the
    show-deps mode, by specifying -x twice (--show-deps), e.g:
 
-	$ xbps-query -xx perl
+	$ flappy-query -xx perl
 	glibc>=2.8_1
 	gdbm>=1.10_1_1
 	 glibc>=2.8_1
@@ -1808,12 +1815,12 @@ xbps-0.21 (2013-03-11):
 
  * New repository index format (1.7): unnecessary and redundant objects
    have been removed that are already stored in package metadata files.
-   This means that xbps-query(1) in repository mode will now fetch package
+   This means that flappy-query(1) in repository mode will now fetch package
    metadata from the binary package and not from index. Only necessary objects
    for the transaction and searching are kept.
 
- * xbps-pkgdb(1): new option -u --update to update the pkgdb format to
-   the latest available. Do not forget to run it after updating xbps to 0.21.
+ * flappy-pkgdb(1): new option -u --update to update the pkgdb format to
+   the latest available. Do not forget to run it after updating flappy to 0.21.
 
  * New pkgdb format: redundant objects have been removed (empty run_depends,
    pkgname, version) and it is now a dictionary. The pkgdb file has been
@@ -1822,71 +1829,71 @@ xbps-0.21 (2013-03-11):
 
  * configure: misc tweaks to allow building with the musl C library.
 
- * xbps-query(1): packages can be matched by using virtual package
+ * flappy-query(1): packages can be matched by using virtual package
    names in repository mode, i.e:
 
-	$ xbps-query -Rp pkgver ntp-daemon
+	$ flappy-query -Rp pkgver ntp-daemon
 	ntp-4.2.6p5_7
 	$	
   
- * xbps-pkgdb(1): new option -m --mode to change package installation
+ * flappy-pkgdb(1): new option -m --mode to change package installation
    mode to auto (might be detected as orphan) or manual
    (explicitly installed).
 
- * xbps-query(1): the search mode (-s, --search) now is able to find
+ * flappy-query(1): the search mode (-s, --search) now is able to find
    packages by matching virtual package strings, i.e:
 
-	$ xbps-query -s cron-daemon
+	$ flappy-query -s cron-daemon
 	[-] cronie-1.4.9_1 Runs specified programs at scheduled times
 	[-] dcron-4.5_18   Dillon's lightweight cron daemon
 	$
 
- * xbps-query(1): changed short option -M (--list-orphans) to -O; which
+ * flappy-query(1): changed short option -M (--list-orphans) to -O; which
    seems more appropiate to use.
 
- * libxbps: when resolving deps in transaction, ignore incorrect ones;
+ * libflappy: when resolving deps in transaction, ignore incorrect ones;
    for example a package might be depending on itself thru virtual packages.
 
- * libxbps: workaround a bug (found by pancake) when updating a package
+ * libflappy: workaround a bug (found by pancake) when updating a package
    that is being replaced by a virtual package.
 
- * libxbps: fully remove packages with broken symlinks; previously if a
+ * libflappy: fully remove packages with broken symlinks; previously if a
    broken symlink was there (readlink returning ELOOP), package wasn't
    removed.
 
- * libxbps: ignore packages conflicting themselves, which can happen with
+ * libflappy: ignore packages conflicting themselves, which can happen with
    virtual packages.
 
- * xbps-query(1): fix issue #3 from github
-   "xbps-query -o only works for installed packages".
+ * flappy-query(1): fix issue #3 from github
+   "flappy-query -o only works for installed packages".
 
    The behaviour has been changed for all modes and to explicitly get
    info from repositories the -R flag must be used; otherwise it will
    use local packages.
 
- * xbps-install(1): the -f, --force flag will now preserve configuration
+ * flappy-install(1): the -f, --force flag will now preserve configuration
    files if they were modified, and only unpack files that have been
    modified when re-installing packages. If -f is specified twice (-ff)
    all package files will be overwritten from new package.
 
- * Fix regression in xbps_fetch_file() when fetching files from HTTP
+ * Fix regression in flappy_fetch_file() when fetching files from HTTP
    servers that don't provide us enough details (file length, mtime, etc).
 
  * Fix regression introduced in b9136c61c95698a5dafbc69ee9cd873110c68e45,
    breaking package conflicts detection.
 
- * xbps-install(1): removed the -s,--skip-sync option; the new -S,--sync
+ * flappy-install(1): removed the -s,--skip-sync option; the new -S,--sync
    option makes this redundant and useless.
 
- * xbps-install(1): added -S,--sync option to synchronize remote repository index
+ * flappy-install(1): added -S,--sync option to synchronize remote repository index
    files; can be combined with -u or used exclusively.
 
-xbps-0.20 (2013-01-24):
+flappy-0.20 (2013-01-24):
 
- * xbps-rindex(1): fix crash in -r (remove-obsoletes mode) if pkg cannot
+ * flappy-rindex(1): fix crash in -r (remove-obsoletes mode) if pkg cannot
    be removed (permissions or file disappeared).
 
- * xbps-install(1): don't treat EEXIST as an error when installing
+ * flappy-install(1): don't treat EEXIST as an error when installing
    new packages; technically it's not an error.
 
  * libfetch: added a patch to fix select(2) timing out when fetching
@@ -1901,20 +1908,20 @@ xbps-0.20 (2013-01-24):
 	--enable-debug
 	--enable-tests
 
- * libxbps: fixed a stupid typo that made it to skip executing the
+ * libflappy: fixed a stupid typo that made it to skip executing the
    "pre-remove" action in installed packages.
 
- * xbps-create(1): new long options: --shlib-provides and --shlib-requires,
+ * flappy-create(1): new long options: --shlib-provides and --shlib-requires,
    to add list of required and provided shared libraries in a package.
 
-xbps-0.19.1 (2012-12-22):
+flappy-0.19.1 (2012-12-22):
 
- * libxbps: when a package has not been configured and there's an update
-   in transaction, libxbps incorrectly tried to ignore the update and
+ * libflappy: when a package has not been configured and there's an update
+   in transaction, libflappy incorrectly tried to ignore the update and
    configure this package. Fix this by not ignoring the update even if
    package has any state.
 
- * xbps-query(1): -l, --list-packages option now prints pkg state as follows:
+ * flappy-query(1): -l, --list-packages option now prints pkg state as follows:
 
 	STATE	PKGVER	DESCRIPTION
 
@@ -1925,41 +1932,41 @@ xbps-0.19.1 (2012-12-22):
 	hr = half-removed
 	?? = unknown
 
- * xbps-reconfigure(1): fixed regression introduced in 0.19 when processing
+ * flappy-reconfigure(1): fixed regression introduced in 0.19 when processing
    all packages with '-a, --all'. Found by pancake.
 
-xbps-0.19 (2012-12-15):
+flappy-0.19 (2012-12-15):
 
- * xbps-rindex(1): add mode (-a) does not remove old binary packages
+ * flappy-rindex(1): add mode (-a) does not remove old binary packages
    in repository anymore, only its entry in index is replaced. To remove
    outdated packages use -r/--remove-obsoletes.
 
- * xbps-rindex(1): clean (-c) and remove obsoletes mode (-r) are
+ * flappy-rindex(1): clean (-c) and remove obsoletes mode (-r) are
    now multithreaded and will spawn a thread per core to speed up
    the process considerably.
 
- * xbps-pkgdb(1): -a, --all mode is now multithreaded and will
+ * flappy-pkgdb(1): -a, --all mode is now multithreaded and will
    spawn a thread per core to process a fraction of pkgdb.
 
- * xbps-create(1): hardlinks can be added and archived correctly.
+ * flappy-create(1): hardlinks can be added and archived correctly.
 
- * xbps-rindex(1): in clean mode (-c), entries with unmatched hashes
+ * flappy-rindex(1): in clean mode (-c), entries with unmatched hashes
    are now removed from index.
 
  * Added support for dynamic generation of reverse dependencies for
    installed packages. pkgdb no longer keeps track of them statically.
    A new object must be present in pkgdb for this to work in fast mode,
-   which is available if 'xbps-pkgdb(1) -a' is run; otherwise the
+   which is available if 'flappy-pkgdb(1) -a' is run; otherwise the
    fallback mode will be used which is a bit slower.
 
- * xbps-query(1): added support to specify any of the three supported
+ * flappy-query(1): added support to specify any of the three supported
    methods to match package expressions:
 
 	- by package name (foo)
 	- by exact package version (foo-2.0_1)
 	- by package version comparators (foo>2.1<2.5)
 
- * Multiple API/ABI changes to improve performance; The libxbps SONAME
+ * Multiple API/ABI changes to improve performance; The libflappy SONAME
    major has been bumped to 1. This helped to fix some regressions
    introduced in 0.18 and really simplifies the API.
 
@@ -1968,24 +1975,24 @@ xbps-0.19 (2012-12-15):
    "architecture" dependent and only packages for target arch and
    noarch will be registered on it.
 
-xbps-0.18.1 (2012-11-26):
+flappy-0.18.1 (2012-11-26):
 
  * Fixed execution of pre/post install/remove scripts due to using old
    package version after unpacking a package being updated.
 
- * xbps-query(1): fixed catching reverse dependencies in some packages
+ * flappy-query(1): fixed catching reverse dependencies in some packages
    that used version comparators such as "foo<X" or "foo>X<Y".
 
-xbps-0.18 (2012-11-23):
+flappy-0.18 (2012-11-23):
 
- * xbps-query(1): implemented support to know reverse dependencies
+ * flappy-query(1): implemented support to know reverse dependencies
    in repository mode; that means you can now exactly what packages
    require the target package from all registered repositories.
 
  * The virtual package configuration files are now read dynamically
-   by libxbps at initialization time from default configuration directory:
-   <rootdir>/etc/xbps/virtualpkg.d. Only files that end in ".conf" will
-   be processed by libxbps.
+   by libflappy at initialization time from default configuration directory:
+   <rootdir>/etc/flappy/virtualpkg.d. Only files that end in ".conf" will
+   be processed by libflappy.
 
  * The rootdir (with -r, --rootdir) can now be specified as relative path.
 
@@ -1997,27 +2004,27 @@ xbps-0.18 (2012-11-23):
 	- pkgdb's pkg dictionary now contains a sha256 hash to know if the
 	  plist from metadir has been modified.
 
-	- prop_data(3) objects can be seen with xbps-query(1) --property.
+	- prop_data(3) objects can be seen with flappy-query(1) --property.
 
 	- pkg plists are now kept in <metadir>/.<pkgname>.plist.
 
-	- In a future revision libxbps could make a backup of pkgdb and
+	- In a future revision libflappy could make a backup of pkgdb and
 	  plist files in metadir before a transaction is committed.
   
-   Users must run 'xbps-pkgdb [-r <rootdir>] -a' to upgrade pkg metadata
+   Users must run 'flappy-pkgdb [-r <rootdir>] -a' to upgrade pkg metadata
    to the 0.18 format.
 
  * Shell wildcard patterns (fnmatch(3)) can now be used in the
    PackagesOnHold configuration option.
 
- * New utilities replacing xbps-bin(1) and xbps-repo(1):
+ * New utilities replacing flappy-bin(1) and flappy-repo(1):
 
-	- xbps-install(1): to install and update packages.
-	- xbps-pkgdb(1): to report and fix errors in pkgdb.
-	- xbps-query(1): to query packages and/or repositories.
-	- xbps-reconfigure(1): to (re)configure packages.
-	- xbps-remove(1): to remove packages.
-	- xbps-rindex(1): to handle local repositories.
+	- flappy-install(1): to install and update packages.
+	- flappy-pkgdb(1): to report and fix errors in pkgdb.
+	- flappy-query(1): to query packages and/or repositories.
+	- flappy-reconfigure(1): to (re)configure packages.
+	- flappy-remove(1): to remove packages.
+	- flappy-rindex(1): to handle local repositories.
 
  * While reconfiguring packages do not flush pkgdb unless it's necessary.
 
@@ -2026,7 +2033,7 @@ xbps-0.18 (2012-11-23):
    or uid/gid differs apply new perms and mode from new pkg.
 
  * When registering a pkg to pkgdb make sure to remove unneeded meta objs
-   from its pkg dictionary. Also add a check to xbps-bin(1) to remove those
+   from its pkg dictionary. Also add a check to flappy-bin(1) to remove those
    objects if found.
 
  * Improved finding and removing obsolete files after upgrading a package
@@ -2038,38 +2045,38 @@ xbps-0.18 (2012-11-23):
  * Fixed a bug in the dependency sort code that in some cases and due to
    virtual packages added duplicate matches and broke the dependency order.
 
- * xbps-bin(1): the 'check' target now checks the target file in relative
+ * flappy-bin(1): the 'check' target now checks the target file in relative
    symlinks, or multiple levels of symlinks.
 
- * xbps-create(1): fixed an assertion that happened when resolving the
+ * flappy-create(1): fixed an assertion that happened when resolving the
    target file of a symlink, which was unexistent because the real file was
    provided by another pkg. In this case just keep the target file as is.
 
-xbps-0.17 (2012-10-02):
+flappy-0.17 (2012-10-02):
 
  * Package metadata files and pkgdb plist are now stored uncompressed.
    This improves performance when those files store large chunks of data.
 
  * Fixed "packages on hold". Regression added in 0.16.2.
 
- * xbps-repo(1): fixed crash in the 'search' target when the terminal has
+ * flappy-repo(1): fixed crash in the 'search' target when the terminal has
    been resized, reported by pancake.
 
- * xbps-bin(1), xbps-repo(1): added a new flag -B to set default repository
-   to install packages, in case xbps.conf couldn't be found.
+ * flappy-bin(1), flappy-repo(1): added a new flag -B to set default repository
+   to install packages, in case flappy.conf couldn't be found.
 
- * xbps-create(1): a new utility to create XBPS binary packages; package
+ * flappy-create(1): a new utility to create FLAPPY binary packages; package
    files must be installed to a directory prior to executing this utility.
 
  * configure: if compiler supports PIE and RELRO, enable them by default.
 
- * xbps-repo(1): the 'show-deps' target does not show the repository from
+ * flappy-repo(1): the 'show-deps' target does not show the repository from
    the matching target package, just the list of dependencies.
 
- * xbps-repo(1): the 'search' target now shows which packages are currently
+ * flappy-repo(1): the 'search' target now shows which packages are currently
    installed "[*]" or not installed "[-]".
 
- * xbps-repo(1): a new target has been added: 'remove-obsoletes'. This removes
+ * flappy-repo(1): a new target has been added: 'remove-obsoletes'. This removes
    obsolete packages found in a local repository; obsoletes are packages not
    registered in repository's index.
 
@@ -2079,59 +2086,59 @@ xbps-0.17 (2012-10-02):
  * configure: added "--with-static" and if enabled, the static executables
    will also be built and installed. By default it's disabled.
 
- * xbps-repo(1): the 'genindex' target has been replaced by the 'index-add' and
+ * flappy-repo(1): the 'genindex' target has been replaced by the 'index-add' and
    'index-clean' targets. The 'index-add' expects a list of binary packages to
    be added to repository's index:
 
-	$ xbps-repo index-add /path/to/repo/*.xbps
+	$ flappy-repo index-add /path/to/repo/*.flappy
 
    The 'index-clean' removes obsolete entries in repository's index:
 
-	$ xbps-repo index-clean /path/to/repo
+	$ flappy-repo index-clean /path/to/repo
 
-xbps-0.16.5 (2012-07-14):
+flappy-0.16.5 (2012-07-14):
 
- * xbps.conf: remove obsolete remote repositories.
+ * flappy.conf: remove obsolete remote repositories.
 
- * libxbps: extend the list of ignored symlinks in rootfs if they were found
+ * libflappy: extend the list of ignored symlinks in rootfs if they were found
    as obsoletes at package upgrade time.
 
- * libxbps: at package register time a new string object in pkgdb is added
+ * libflappy: at package register time a new string object in pkgdb is added
    "install-date" that records the package installation date with the following
    strftime(3) format: "%F %R %Z".
 
- * xbps-bin(1): the 'show' target now prints some objects from pkgdb if found:
+ * flappy-bin(1): the 'show' target now prints some objects from pkgdb if found:
    "install-date" and "automatic-install".
 
-xbps-0.16.4 (2012-07-10):
+flappy-0.16.4 (2012-07-10):
 
  * Imported proplib 0.6.1 from http://code.google.com/p/portableproplib.
 
- * libxbps: when finding obsolete files also match against sha256, not
+ * libflappy: when finding obsolete files also match against sha256, not
    just the filename. Also ignore symlinks found in rootfs to make
    the system transition to /usr fully work.
 
-xbps-0.16.3 (2012-07-04):
+flappy-0.16.3 (2012-07-04):
 
- * libxbps: fixed a regression in 0.16.2.
+ * libflappy: fixed a regression in 0.16.2.
 
-xbps-0.16.2 (2012-07-04):
+flappy-0.16.2 (2012-07-04):
 
- * libxbps: fixed 2 bugs while updating packages.
+ * libflappy: fixed 2 bugs while updating packages.
 
- * libxbps: after removing a pkg the state cb was passing dangling pointers in
+ * libflappy: after removing a pkg the state cb was passing dangling pointers in
    its pkgname and version members.
 
-xbps-0.16.1 (2012-06-30):
+flappy-0.16.1 (2012-06-30):
 
- * xbps-repo(1): fixed a regression in the 'genindex' target. It was looking
+ * flappy-repo(1): fixed a regression in the 'genindex' target. It was looking
    at wrong repository subdirectory when removing obsolete files.
    This also fixes issue 24 from googlecode.
 
-xbps-0.16 (2012-06-20):
+flappy-0.16 (2012-06-20):
 
  * Added support for package conflicts. If any conflicting pkg has been found
-   in a transaction, xbps_transaction_prepare() will return EAGAIN and
+   in a transaction, flappy_transaction_prepare() will return EAGAIN and
    the array object "conflicts" in transaction dictionary must be inspected
    to know what conflicts have been found.
 
@@ -2142,35 +2149,35 @@ xbps-0.16 (2012-06-20):
    and as bonus there's no need to make some tricks to perform installation
    of exact package versions.
 
- * xbps-bin(1): the 'install' target now can (re)install an exact package
+ * flappy-bin(1): the 'install' target now can (re)install an exact package
    version as specified on its arguments, i.e:
 
-	$ xbps-bin install foo-1.0_1
+	$ flappy-bin install foo-1.0_1
 
    If that version is not available no other version will be installed.
 
- * xbps-repo(1): 'genindex' target is now able to remove binary packages
+ * flappy-repo(1): 'genindex' target is now able to remove binary packages
    when a greater version exists on the index.
 
- * xbps-repo(1): 'sync' target now is able to sync just a single repository
+ * flappy-repo(1): 'sync' target now is able to sync just a single repository
    by passing the repository URI as argument, i.e:
 
-	$ xbps-repo sync http://xbps.mirror.org/repo
+	$ flappy-repo sync http://flappy.mirror.org/repo
 
- * xbps-repo(1): 'pkg-list' target now expects the repository URI than
+ * flappy-repo(1): 'pkg-list' target now expects the repository URI than
    the index number, i.e:
 
-	$ xbps-repo pkg-list http://xbps.mirror.org/repo
+	$ flappy-repo pkg-list http://flappy.mirror.org/repo
 
- * xbps-bin(1): -n flag (dry-run mode) now also prints the pkg architecture
+ * flappy-bin(1): -n flag (dry-run mode) now also prints the pkg architecture
    as last component and if the transaction reason supports it.
 
  * Repository index format 1.5. The files are now named properly:
-   index.plist for XBPS_PKGINDEX and index-files.plist for XBPS_PKGINDEX_FILES.
-   The difference in XBPS_PKGINDEX is that now a single plist file can store
-   all metadata from any package with any architecture. XBPS_PKGINDEX_FILES
-   has been modified to speed up 'xbps-repo find-files'. That means
-   that in xbps.conf now you'd only have to use the directory where the
+   index.plist for FLAPPY_PKGINDEX and index-files.plist for FLAPPY_PKGINDEX_FILES.
+   The difference in FLAPPY_PKGINDEX is that now a single plist file can store
+   all metadata from any package with any architecture. FLAPPY_PKGINDEX_FILES
+   has been modified to speed up 'flappy-repo find-files'. That means
+   that in flappy.conf now you'd only have to use the directory where the
    index.plist is stored, i.e:
 
 	/path/to/my/repo <- 1st repository
@@ -2190,14 +2197,14 @@ xbps-0.16 (2012-06-20):
    as another different repository, such case is "nonfree" or any other with
    unmatched names.
 
- * xbps-bin(1): new flag: -S which syncs rpool indexes before executing
+ * flappy-bin(1): new flag: -S which syncs rpool indexes before executing
    the "dist-upgrade", "install" or "update" targets.
 
- * libxbps: renamed xbps_repository_pool_xxx to xbps_rpool_xxx
+ * libflappy: renamed flappy_repository_pool_xxx to flappy_rpool_xxx
    (API/ABI incompat changes).
 
- * libxbps: extended rpool with a new function:
-   xbps_repository_pool_find_virtualpkg_conf. This function will match
+ * libflappy: extended rpool with a new function:
+   flappy_repository_pool_find_virtualpkg_conf. This function will match
    a virtual package as was specified in configuration file. That means
    that the find_xxx functions now do exactly what the API documents.
    While resolving packages, the order to look for them is the following:
@@ -2207,13 +2214,13 @@ xbps-0.16 (2012-06-20):
    If no virtual pkg from conf matched, look for a real pkg, otherwise
    use the first virtual package from rpool that matches our pattern.
 
- * libxbps: introduce the concept of "soft replace". When a package
+ * libflappy: introduce the concept of "soft replace". When a package
    contains that boolean object set in pkg's metadata props.plist,
    some steps will be skipped at remove time for the package being
    replaced: its files won't be removed and the post action in REMOVE
    file won't be executed.
 
- * libxbps: change the order in which package files are removed:
+ * libflappy: change the order in which package files are removed:
 
 	current: files, conf_files, links, directories.
 	previous: links, files, conf_files, directories.
@@ -2222,36 +2229,36 @@ xbps-0.16 (2012-06-20):
    owned by another installed package. Now only dangling symlinks are now
    removed.
 
- * libxbps: when removing package files and if metadata files.plist wasn't
+ * libflappy: when removing package files and if metadata files.plist wasn't
    found, do not error out and rather just continue until the package is
    fully removed.
 
- * xbps-bin(1): renamed "autoupdate" target to "dist-upgrade" and
+ * flappy-bin(1): renamed "autoupdate" target to "dist-upgrade" and
    "autoremove" to "remove-orphans". For compatibility with previous
    versions the old targets are still kept, but will be removed in future
    releases.
 
  * Added support to put packages "on hold". Packages on hold
    won't be updated by system upgrades even if there is a newer version.
-   The configuration string list "PackagesOnHold" in xbps.conf expects
+   The configuration string list "PackagesOnHold" in flappy.conf expects
    a list of package names.
 
- * xbps-bin(1): miscellaneous cosmetic improvements while unpacking
+ * flappy-bin(1): miscellaneous cosmetic improvements while unpacking
    package files and add a counter for the 'check all' target.
 
- * xbps-repo(1): new target: 'clean'. This removes obsolete binpkgs
+ * flappy-repo(1): new target: 'clean'. This removes obsolete binpkgs
    from cachedir, either because the binpkg is not available in repository
    pool anymore or because its sha256 hash doesn't match with the
    one matched in repository index file.
 
  * Miscellanous API cleanups (API/ABI incompat changes).
 
-xbps-0.15 (2012-04-06):
+flappy-0.15 (2012-04-06):
 
- * xbps-bin(1): a new test for the 'check' target to find stale entries
+ * flappy-bin(1): a new test for the 'check' target to find stale entries
    in 'requiredby' package metadata object from pkgdb.
 
- * When reinstalling existing packages (xbps-bin -f install), make sure
+ * When reinstalling existing packages (flappy-bin -f install), make sure
    to remove previous entry in the "requiredby" pkgdb's array object.
 
  * When sorting required dependencies make sure that a pkg with
@@ -2261,7 +2268,7 @@ xbps-0.15 (2012-04-06):
  * When resolving required dependencies also find the best pkg
    available in repository pool. Thanks to dave for testing!
 
- * Started a test suite for libxbps. Tests are written for Kyua
+ * Started a test suite for libflappy. Tests are written for Kyua
    (http://code.google.com/p/kyua) and can be built and installed
    with the --with-tests configure option, by default will be installed
    to EPREFIX/tests but can be overriden with --testsdir. ATF 0.15
@@ -2274,9 +2281,9 @@ xbps-0.15 (2012-04-06):
    file not modified". When extracting package files, always set
    permissions from binary package, even if file has not been modified.
 
-xbps-0.14 (2012-02-28):
+flappy-0.14 (2012-02-28):
 
- * Fixed 'xbps-bin reconfigure all' (regression added in 0.13).
+ * Fixed 'flappy-bin reconfigure all' (regression added in 0.13).
 
  * While resolving dependencies check if required dependency is matched
    with any virtual package already added in transaction, on match use it.
@@ -2285,118 +2292,118 @@ xbps-0.14 (2012-02-28):
    Profiling tests showed that libarchive wasted a considerable amount of
    time checking if archive was compressed in zip format.
 
- * xbps-bin(1)/xbps-repo(1): redirect some more warnings/errors to stderr.
+ * flappy-bin(1)/flappy-repo(1): redirect some more warnings/errors to stderr.
 
-xbps-0.13.0 (2012-02-20):
+flappy-0.13.0 (2012-02-20):
 
- * libxbps: skip checking for obsolete files if a package in a transaction
+ * libflappy: skip checking for obsolete files if a package in a transaction
    replaces another one that is going to be updated. In such cases that means
    new package now owns some files previously owned by the package to be
    updated, therefore the updated package must not check for obsolete files.
 
- * xbps-repo(1): the `show', `show-deps' and `show-files' targets now accept
-   package patterns, i.e "xbps-repo show 'foo>=2.0'". If only a `pkgname`
+ * flappy-repo(1): the `show', `show-deps' and `show-files' targets now accept
+   package patterns, i.e "flappy-repo show 'foo>=2.0'". If only a `pkgname`
    has been specified, the newest package available in repositories will be
    shown.
 
- * xbps-repo(1): print meaningful help usage, added -h option.
+ * flappy-repo(1): print meaningful help usage, added -h option.
 
- * xbps-bin(1): print a meaningful help usage, added -h option.
+ * flappy-bin(1): print a meaningful help usage, added -h option.
 
- * libxbps: fixed xbps_transaction_install_pkg return value if package
+ * libflappy: fixed flappy_transaction_install_pkg return value if package
    is already installed: this must be EEXIST not ENODEV.
 
-xbps-0.12.0 (2012-02-06):
+flappy-0.12.0 (2012-02-06):
 
- * xbps-bin: new dry-run mode (-n) to show the actions that would
+ * flappy-bin: new dry-run mode (-n) to show the actions that would
    be executed in a transaction. This mode takes effect in the
    autoremove, autoupdate, install, remove and update targets. Example:
 
-	$ xbps-bin -n install kernel-snapshot
+	$ flappy-bin -n install kernel-snapshot
 	<pkgname> <install|remove|update|configure> <version> <repository> <filename>
 	$
 
    The format is "%s %s %s[ %s %s]\n" for `pkgname', `action', `version',
    `repository' and `filename' (optional).
 
- * xbps-bin: the install target will now install the best package
+ * flappy-bin: the install target will now install the best package
    version available in repository pool if just package name has
    been specified, otherwise the first repository matching the
    specified pattern wins, i.e:
 
-	$ xbps-bin install foo 'blah>=1.2<2.0'
+	$ flappy-bin install foo 'blah>=1.2<2.0'
 
- * Massive pkgdb API rototill. The xbps-uhelper command gained support
+ * Massive pkgdb API rototill. The flappy-uhelper command gained support
    for the 'updatepkgdb' target which will migrate old pkgdb
    format to the new 0.12 format. ALERT: make sure to execute
-   "xbps-uhelper -r <rootdir> updatepkgdb" to update to the new 0.12
+   "flappy-uhelper -r <rootdir> updatepkgdb" to update to the new 0.12
    pkgdb format before installing/removing/updating any package.
 
  * Repository index 1.4: the file is now externalized to a proplib array
    and has been renamed to "rindex.plist" to not break compatibility
-   with previous XBPS versions. This helps in simplifying the API
+   with previous FLAPPY versions. This helps in simplifying the API
    implementation substantially.
 
- * Added a pkg-config file to simplify writing code with libxbps.
+ * Added a pkg-config file to simplify writing code with libflappy.
 
- * libxbps: improved support for finding newest package versions available
+ * libflappy: improved support for finding newest package versions available
    in repository pool.
 
- * libxbps: added support for finding exact package name/version matches
+ * libflappy: added support for finding exact package name/version matches
    in repository pool.
 
  * Fixed registering repositories with trailing '/' chars in
-   configuration file: xbps.conf.
+   configuration file: flappy.conf.
 
- * xbps-repo(1): the 'genindex' target now creates a plist file to cache
+ * flappy-repo(1): the 'genindex' target now creates a plist file to cache
    all files provided by binary packages in a repository. This makes
    the 'find-files' target marginally faster, because this avoids having
    to fetch data from network in remote repositories. The new file
    'index-files.plist' will be downloaded every time the 'sync' target
    is issued but only iff the file has been modified.
-   This fixes Issue 21 "`xbps-repo find-files` is awfully slow".
+   This fixes Issue 21 "`flappy-repo find-files` is awfully slow".
 
- * It's now possible to fetch files thru xbps_fetch_file() from HTTP
+ * It's now possible to fetch files thru flappy_fetch_file() from HTTP
    servers that don't set the Content-Length header. This fixes issue 19:
-   "xbps-src cannot fetch source with unknown Content-Length" reported
+   "flappy-src cannot fetch source with unknown Content-Length" reported
    by ojab.
 
- * Renamed some options in xbps.conf to not have dashes, such as:
+ * Renamed some options in flappy.conf to not have dashes, such as:
 	fetch-timeout-connection -> FetchTimeoutConnection
 	fetch-cache-connections-host -> FetchCacheConnections
 	fetch-cache-connections-per-host -> FetchCacheConnectionsPerHost
 
  * Implemented memory caching for regpkgdb and configurable transaction
-   flushing. Can be changed in xbps.conf with "TransactionFrequencyFlusing".
+   flushing. Can be changed in flappy.conf with "TransactionFrequencyFlusing".
    By default set to 5. That means that every 5 packages processed in
    a transaction there will be a regpkgdb plist flush to disk.
 
    Setting it to 0 enables automatic mode which will only flush in
-   two required points. Setting it to 1 makes the behaviour used in XBPS<=0.11,
+   two required points. Setting it to 1 makes the behaviour used in FLAPPY<=0.11,
    which flushed it on every package.
 
    That feature provides a 25% (and in some cases even more!) of performance
    when executing a transaction.
 
  * Merged purge code into remove. It wasn't necessary to have this splitted,
-   so it now has been merged into xbps_remove_pkg(). That also means that
-   '-p' flag in xbps-bin(1) and xbps-repo(1) doesn't exist anymore.
+   so it now has been merged into flappy_remove_pkg(). That also means that
+   '-p' flag in flappy-bin(1) and flappy-repo(1) doesn't exist anymore.
 
- * xbps-repo(1): the 'find-files' target accepts multiple patterns, such as:
-	$ xbps-repo find-files /bin/cat '/bin/f*' ...
+ * flappy-repo(1): the 'find-files' target accepts multiple patterns, such as:
+	$ flappy-repo find-files /bin/cat '/bin/f*' ...
 
- * xbps-bin(1): the 'find-files' target accepts multiple patterns, such as:
-	$ xbps-bin find-files /bin/cat '/bin/f*' ...
+ * flappy-bin(1): the 'find-files' target accepts multiple patterns, such as:
+	$ flappy-bin find-files /bin/cat '/bin/f*' ...
 
- * xbps-repo(1): the 'search' target accepts multiple patterns, such as:
-	$ xbps-repo search 'foo-[0-9]*' '*blah*' ...
+ * flappy-repo(1): the 'search' target accepts multiple patterns, such as:
+	$ flappy-repo search 'foo-[0-9]*' '*blah*' ...
 
- * libxbps: more paranoid type checking and allocation results, to make
+ * libflappy: more paranoid type checking and allocation results, to make
    sure that out of memory conditions are handled gracefully.
 
-xbps-0.11.0 (2011-12-20):
+flappy-0.11.0 (2011-12-20):
 
- * xbps-bin(1): it is possible now to reinstall a package even if it's
+ * flappy-bin(1): it is possible now to reinstall a package even if it's
    installed with the '-f' option. If reinstalling the same package version,
    only unexistent files or files not matching its hash will be extracted.
 
@@ -2408,7 +2415,7 @@ xbps-0.11.0 (2011-12-20):
    <filename>.old.
 
  * New shared configuration file via libconfuse that replaces the
-   plist configuration files: xbps.conf. That means that libxbps
+   plist configuration files: flappy.conf. That means that libflappy
    now requires confuse >= 2.7 available at
    http://www.nongnu.org/confuse/.
 
@@ -2416,16 +2423,16 @@ xbps-0.11.0 (2011-12-20):
    remove and purge via LOG_NOTICE, and errors with LOG_ERR.
    By default it's always enabled, can be disabled thru the conf file.
 
- * xbps-repo(1): new target: pkg-list [index]. This target will list all
+ * flappy-repo(1): new target: pkg-list [index]. This target will list all
    packages from repository with index [index]. If optional argument
    [index] (decimal) not set, all repositories will be used.
 
- * libxbps: when registering new packages, existing entries in
+ * libflappy: when registering new packages, existing entries in
    requiredby matching the same pkgname/version touple are now
    simply skipped.
 
  * Repositories with missing index file are now simply ignored.
-   It's expected that user executes 'xbps-repo sync' to fetch the
+   It's expected that user executes 'flappy-repo sync' to fetch the
    index for all remote repositories specified in configuration file.
 
  * Faster binary package unpacking. Only files and symlinks are now
@@ -2442,21 +2449,21 @@ xbps-0.11.0 (2011-12-20):
    path to the directory storing the index.plist file. This will allow us
    to use other directories (such as non-free, or alike) for such purpose.
 
- * libxbps: improve xbps_purge_pkg() in case that the process was
+ * libflappy: improve flappy_purge_pkg() in case that the process was
    unexpectedly interrupted, do not error out unless the unregister
    phase returns an error value.
 
- * libxbps: when unpacking a package that replaced another package
+ * libflappy: when unpacking a package that replaced another package
    due to virtual packages, preserve its configuration files if
    they already existed.
 
- * xbps-bin(1)/xbps-repo(1): new flag '-o' (option). This can be used
+ * flappy-bin(1)/flappy-repo(1): new flag '-o' (option). This can be used
    in the 'show' target to print only a set of objects stored in package's
    properties dictionary, example:
 
-	$ xbps-bin -olicense show xbps
+	$ flappy-bin -olicense show flappy
 	Simplified BSD
-	$ xbps-bin -oversion,build_date show xbps
+	$ flappy-bin -oversion,build_date show flappy
 	0.10.1
 	Wednesday 26 October, 2011, 14:37:31 UTC
 	$
@@ -2465,57 +2472,57 @@ xbps-0.11.0 (2011-12-20):
    make sure that it's a plist file and can be internalized; otherwise
    remove downloaded file and return error.
 
- * xbps-bin(1): new test for the 'check' target to fix missing
+ * flappy-bin(1): new test for the 'check' target to fix missing
    entries in requiredby array, i.e reverse dependencies in
    the package database plist.
 
- * xbps-bin(1): the 'check' target now works virtual packages.
+ * flappy-bin(1): the 'check' target now works virtual packages.
 
- * libxbps: failed to properly match installed virtualpkgs that were
+ * libflappy: failed to properly match installed virtualpkgs that were
    dependencies in a transaction, therefore resulting in real packages
    being reinstalled and replacing installed virtual packages.
 
-xbps-0.10.1 (2011-10-26):
+flappy-0.10.1 (2011-10-26):
 
- * libxbps: fixed multiple free(3) calls in error paths (via closedir(3))
+ * libflappy: fixed multiple free(3) calls in error paths (via closedir(3))
    when some virtualpkg plist file couldn't be internalized.
 
- * xbps-bin(1): 'remove' with recursive flag (-R) now removes first
+ * flappy-bin(1): 'remove' with recursive flag (-R) now removes first
    the specified packages and puts its automatic dependencies at the
    tail of the array.
 
- * libxbps: xbps_pkgpattern_{name,version} now return expected
+ * libflappy: flappy_pkgpattern_{name,version} now return expected
    pkgname/version if pattern is a shell wildcard pattern (fnmatch(3)).
 
- * libxbps: removed csh alternate code from the NetBSD's match code.
+ * libflappy: removed csh alternate code from the NetBSD's match code.
    We weren't using this code anyway and this only slowed down
-   xbps_pkgpattern_match().
+   flappy_pkgpattern_match().
 
-xbps-0.10.0 (2011-10-21):
+flappy-0.10.0 (2011-10-21):
 
- * Fixed issue 11 "xbps-bin fails to update properly some pkgs".
-	http://code.google.com/p/xbps/issues/detail?id=11
+ * Fixed issue 11 "flappy-bin fails to update properly some pkgs".
+	http://code.google.com/p/flappy/issues/detail?id=11
 
- * xbps-bin(1): the 'check' target now is able to detect if a package
+ * flappy-bin(1): the 'check' target now is able to detect if a package
    was installed manually and other packages are currently depending
    on it and change its mode to "automatic", i.e as dependency of those
    packages.
 
- * xbps-bin(1), xbps-repo(1): the -C flag now expects a path to a
+ * flappy-bin(1), flappy-repo(1): the -C flag now expects a path to a
    directory where the configuration files (conf.plist and
    repositories.plist) are stored.
 
  * New configuration scheme for virtual packages as defined in
-	http://code.google.com/p/xbps/issues/detail?id=12
+	http://code.google.com/p/flappy/issues/detail?id=12
 
-   XBPS now reads all plist files in PREFIX/etc/xbps/virtualpkg.d.wants
+   FLAPPY now reads all plist files in PREFIX/etc/flappy/virtualpkg.d.wants
    directory with settings for the wanted virtual packages.
 
  * New configuration scheme as defined in
-	http://code.google.com/p/xbps/issues/detail?id=12
+	http://code.google.com/p/flappy/issues/detail?id=12
 
-   A directory to store XBPS configuration files is now used, by default
-   set to PREFIX/etc/xbps. Configuration options are now set via
+   A directory to store FLAPPY configuration files is now used, by default
+   set to PREFIX/etc/flappy. Configuration options are now set via
    conf.plist, and repositories in repositories.plist.
 
  * It is possible now to reinstall packages that provide virtual packages
@@ -2531,58 +2538,58 @@ xbps-0.10.0 (2011-10-21):
 
 	http://yourhost:8080/your/repo
 
- * xbps-bin(1): the 'check' target now detects broken symlinks and marks
+ * flappy-bin(1): the 'check' target now detects broken symlinks and marks
    them as critical errors.
 
- * libxbps: when updating packages, only files that have been modified
+ * libflappy: when updating packages, only files that have been modified
    (compared to current installed file) are now unpacked. This should
    save some writes to storage and make the process a bit smoother as well.
 
- * Moved install transaction code to libxbps. The API has been extended
-   with xbps_transaction_commit() which expects the transaction dictionary
+ * Moved install transaction code to libflappy. The API has been extended
+   with flappy_transaction_commit() which expects the transaction dictionary
    as its argument. This function will execute transaction tasks, like
    removing, updating, installing and configuring packages as defined
    in the transaction dictionary.
 
  * The 'cachedir' option in configuration file now can be changed to
    be relative to the rootdir if the first character is not '/'. The
-   -c flag in xbps-bin(1) still expects a full path and if set, overrides
+   -c flag in flappy-bin(1) still expects a full path and if set, overrides
    the setting in configuration file.
 
- * xbps-bin(1): the 'show', 'show-deps' and 'show-revdeps' targets now
+ * flappy-bin(1): the 'show', 'show-deps' and 'show-revdeps' targets now
    work with virtual packages.
 
- * libxbps: fixed NetBSD's dewey matching code to properly identify
+ * libflappy: fixed NetBSD's dewey matching code to properly identify
    that a version X.Y.Z should be greater than X.Y_Z.
 
- * libxbps: revamped virtual package handling. The public API find
-   functions (xbps_find_pkg_*) don't know anything about virtual packages.
-   To find virtual packages the xbps_find_virtualpkg_* functions must be
+ * libflappy: revamped virtual package handling. The public API find
+   functions (flappy_find_pkg_*) don't know anything about virtual packages.
+   To find virtual packages the flappy_find_virtualpkg_* functions must be
    used instead of the "classic" ones.
 
- * libxbps: the xbps_find_foo_in_array functions have been renamed
-   to xbps_match_foo_in_array because its task is only matching against
+ * libflappy: the flappy_find_foo_in_array functions have been renamed
+   to flappy_match_foo_in_array because its task is only matching against
    the provided package name, package pattern or string.
 
-xbps-0.9.1 (2011-07-15):
+flappy-0.9.1 (2011-07-15):
 
- * libxbps: xbps_repository_pool no longer loops forever if a package
+ * libflappy: flappy_repository_pool no longer loops forever if a package
    index plist file cannot be fetched due to network problems, or
    if the file is not available anymore; the repository will be
    ignored.
 
- * xbps-repo(1): the 'genindex' failed to register in pkg-index
+ * flappy-repo(1): the 'genindex' failed to register in pkg-index
    packages less than on equal than any other package providing the
    same package name. Ignore packages providing virtual packages.
 
- * xbps-repo(1): the 'genindex' target now removes entries in existent
+ * flappy-repo(1): the 'genindex' target now removes entries in existent
    package index files for unexistent packages that were previously
    registered (removed, not enough permissions, etc).
 
- * xbps-repo(1): the 'genindex' target creates required directories
+ * flappy-repo(1): the 'genindex' target creates required directories
    in local repositories if it's necessary.
 
- * xbps-repo(1): the 'search' target now matches patterns in
+ * flappy-repo(1): the 'search' target now matches patterns in
    case insensitive mode.
 
  * A bug has been fixed while updating a package and another package
@@ -2590,7 +2597,7 @@ xbps-0.9.1 (2011-07-15):
    in repositories. Only accept this if the virtual package is explicitly
    enabled in the "virtual-packages" section in the configuration file.
 
-xbps-0.9.0 (2011-07-08):
+flappy-0.9.0 (2011-07-08):
 
  * configure doesn't require a zlib package with a pkg-config file, to
    workaround some distribution that don't provide it (hi Ubuntu!). Rather
@@ -2602,25 +2609,25 @@ xbps-0.9.0 (2011-07-08):
    also defaults to 30 seconds.
 
  * The configuration file now accepts new options to change rootdir
-   (same than -r in xbps-bin(1)), cachedir (same than -c in xbps-bin(1))
+   (same than -r in flappy-bin(1)), cachedir (same than -c in flappy-bin(1))
    and fetching cache connection limits. If settings are specified via
-   the flags -r and -c in xbps-bin(1)/xbps-repo(1), they are prefered
+   the flags -r and -c in flappy-bin(1)/flappy-repo(1), they are prefered
    over the ones in the configuration file.
 
  * Fixed some bugs with virtual packages, to not adding duplicate package
    dictionaries in the transaction dictionary.
 
- * xbps-bin(1)/xbps-repo(1): the 'show-files' target now prints the target
+ * flappy-bin(1)/flappy-repo(1): the 'show-files' target now prints the target
    file on symlinks, i.e: "/sbin/foo -> /sbin/blah".
 
  * Changed the package pattern match code to the one available on NetBSD.
    It's much better and provides more alternative pattern matching options.
 
  * A new configuration file in plist format to specify repositories and
-   virtual packages has been created, defaults to "/etc/xbps-conf.plist".
+   virtual packages has been created, defaults to "/etc/flappy-conf.plist".
    That means that you no longer need to register/unregister repositories;
    just add your favourite local or remote repository and the first time
-   XBPS needs to access the pkg-index file it will be downloaded.
+   FLAPPY needs to access the pkg-index file it will be downloaded.
 
    More options and properties will be added to the configuration file in
    the future. By default we use the official public remote repository,
@@ -2629,18 +2636,18 @@ xbps-0.9.0 (2011-07-08):
    The ABI/API is not compatible anymore with previous versions, you've
    been advised :-)
 
- * xbps-bin(1): the 'check' target now also checks for modified symlinks,
+ * flappy-bin(1): the 'check' target now also checks for modified symlinks,
    and warns if any of them has been modified. For this to work, the package
    metadata files.plist should contain the 'target' object in the 'links'
-   array (created automatically by xbps-src since 20110531).
+   array (created automatically by flappy-src since 20110531).
 
  * Improved repository package index format (v1.2). The index now contains all
    package objects, so that it's not necessary to fetch info from binpkgs.
    The file will also be a bit bigger, but not to worry about.
 
-xbps-0.8.1 (2011-05-27):
+flappy-0.8.1 (2011-05-27):
 
- * xbps-bin(1)/xbps-repo(1): more meaningful messages when a package couldn't
+ * flappy-bin(1)/flappy-repo(1): more meaningful messages when a package couldn't
    be found in the show, show-deps and show-files targets, rather than exiting
    silently with only the error return value.
 
@@ -2649,12 +2656,12 @@ xbps-0.8.1 (2011-05-27):
 
  * Minor improvements to the generation of API documentation.
 
-xbps-0.8.0 (2011-05-24):
+flappy-0.8.0 (2011-05-24):
 
- * xbps-bin(1): added -A and -M options, for setting package install reason
+ * flappy-bin(1): added -A and -M options, for setting package install reason
    to automatic or manual. Obviously both cannot be used togeter.
 
- * xbps-{bin,repo}(1): -c (cachedir) argument now is an absolute path and
+ * flappy-{bin,repo}(1): -c (cachedir) argument now is an absolute path and
    not relative to the root directory.
 
  * Fixed finally when a package should replace an installed package, but
@@ -2673,22 +2680,22 @@ xbps-0.8.0 (2011-05-24):
    but one will be removed and the other one updated.
 
  * Fixed a bug that made all registered repositories to fail when the first
-   one couldn't be internalized in xbps_repository_pool_init().
+   one couldn't be internalized in flappy_repository_pool_init().
 
  * Added the concept of package properties in the API. At this moment
-   only one property is fully working, "virtual". When xbps-bin(1)
+   only one property is fully working, "virtual". When flappy-bin(1)
    sets this property for a package, its virtual package list will be
-   set in the XBPS_REGPKGDB plist in a package dictionary and the matching
+   set in the FLAPPY_REGPKGDB plist in a package dictionary and the matching
    logic will always prefer its virtual packages over the real ones.
    You can do wonderful things with this, like always using development
    package versions, or simply customize what packages you want to
    install rather than the default ones. As a real example, you can now
-   use the 'xbps-devel' package rather than the stable package version
-   'xbps' before installing the system and package dependencies will
+   use the 'flappy-devel' package rather than the stable package version
+   'flappy' before installing the system and package dependencies will
    still be resolved:
 
-   "$ xbps-bin set-prop virtual xbps-devel"
-   "$ xbps-bin install xbps-base-system"
+   "$ flappy-bin set-prop virtual flappy-devel"
+   "$ flappy-bin install flappy-base-system"
 
    Only packages that have the "provides" object are valid for the
    "virtual" property.
@@ -2699,19 +2706,19 @@ xbps-0.8.0 (2011-05-24):
    The frontend is responsible to install, update, configure and remove
    all packages by using the properties set in the transaction dictionary.
 
- * xbps-dgraph: now parses the "provides" object in the package properties
+ * flappy-dgraph: now parses the "provides" object in the package properties
    metadata plist file for packages providing virtual packages.
 
- * xbps-bin(1): added -R option for the "remove" target, to recursively
+ * flappy-bin(1): added -R option for the "remove" target, to recursively
    remove packages that were installed automatically by the package(s)
    that we want to remove, and no other package currently depends on.
    This is much like the remove and autoremove targets together, i.e
-   "xbps-bin -yp remove foo && xbps-bin -yp autoremove".
+   "flappy-bin -yp remove foo && flappy-bin -yp autoremove".
 
- * xbps-bin(1): added -D option to only show the URLs to download the binary
+ * flappy-bin(1): added -D option to only show the URLs to download the binary
    packages required by the "install", "update" and "autoupdate" targets.
 
- * xbps-bin(1): make the list target (without arguments) only show
+ * flappy-bin(1): make the list target (without arguments) only show
    packages that are fully installed. Previously packages in unpacked
    state were also shown.
 
@@ -2724,11 +2731,11 @@ xbps-0.8.0 (2011-05-24):
 
  * Merged the `progress_callback' branch that makes possible to specify a
    function callback to update progress while unpacking binary packages
-   and while fetching files. xbps-bin(1) now lists current extract files
+   and while fetching files. flappy-bin(1) now lists current extract files
    with its size in bytes if -v flag is set.
 
  * Improved package dependency resolution in repositories by using a new
-   function, xbps_repository_pool_find_pkg() that returns a package dictionary
+   function, flappy_repository_pool_find_pkg() that returns a package dictionary
    found in the first repository registered in the pool. It can also be used
    to find the newest version found in all registered repositories.
 
@@ -2739,12 +2746,12 @@ xbps-0.8.0 (2011-05-24):
 
  * Many structural changes in the API. Made some stuff private and changed
    some function arguments in the API, the ABI is not compatible anymore with
-   previous versions... anyway you shouldn't be using libxbps just yet.
+   previous versions... anyway you shouldn't be using libflappy just yet.
    The API documentation has been modified to stay in sync with reality.
 
-xbps-0.7.3 (2011-01-16):
+flappy-0.7.3 (2011-01-16):
 
- * Fixed a bug that made libxbps fail to detect properly configuration files.
+ * Fixed a bug that made libflappy fail to detect properly configuration files.
    This made all updates in configuration files to be lost.
 
  * It is now possible to properly build against an external portable proplib
@@ -2756,43 +2763,43 @@ xbps-0.7.3 (2011-01-16):
  * Added --silent argument to the configure script, hiding compilation
    details in the build process (disabled by default).
 
-xbps-0.7.2 (2010-12-28):
+flappy-0.7.2 (2010-12-28):
 
- * Fixed some memleaks in libxbps and its clients, found by valgrind.
+ * Fixed some memleaks in libflappy and its clients, found by valgrind.
 
-xbps-0.7.1 (2010-12-23):
+flappy-0.7.1 (2010-12-23):
 
- * xbps-dgraph: fixed small build error on x86 shown in buildbot tests.
+ * flappy-dgraph: fixed small build error on x86 shown in buildbot tests.
 
- * libxbps: xbps_repository_pool_init(): don't loop forever if repository
+ * libflappy: flappy_repository_pool_init(): don't loop forever if repository
    pkg-index.plist files cannot be internalized.
 
- * libxbps: xbps_fetch_file(): set a 30 seconds timeout for transfers.
+ * libflappy: flappy_fetch_file(): set a 30 seconds timeout for transfers.
 
- * xbps-repo(1): fixed the 'genindex' target for the API changes in 0.7.0.
+ * flappy-repo(1): fixed the 'genindex' target for the API changes in 0.7.0.
 
- * xbps-uhelper: fixed the 'unregister' target for the API changes in 0.7.0.
+ * flappy-uhelper: fixed the 'unregister' target for the API changes in 0.7.0.
 
-xbps-0.7.0 (2010-12-15):
+flappy-0.7.0 (2010-12-15):
  
- * xbps-repo(1): implemented the 'find-files' target to print which packages
+ * flappy-repo(1): implemented the 'find-files' target to print which packages
    own a file, link, directory, etc. Analogue to the one implemented in
-   xbps-bin(1). Works for local and remote repository, fetching info on-the-fly.
+   flappy-bin(1). Works for local and remote repository, fetching info on-the-fly.
 
  * Fixed a typo in the configure script that broke detection of strlcat(),
    reported and patch provided by Min Sik Kim in issue 2.
 
- * xbps-bin(1): added -F flag for the remove target. Unless it's set,
+ * flappy-bin(1): added -F flag for the remove target. Unless it's set,
    packages that are dependencies of other installed packages won't be removed.
    This flag overrides this behaviour and forces the package removal.
 
- * xbps-{bin,repo}(1): indent uniformly all lines while listing packages
-   in xbps-bin or while searching for packages in xbps-repo.
+ * flappy-{bin,repo}(1): indent uniformly all lines while listing packages
+   in flappy-bin or while searching for packages in flappy-repo.
 
- * xbps-repo(1): while searching for packages also try to find strings
+ * flappy-repo(1): while searching for packages also try to find strings
    in the short description object.
  
- * xbps-{bin,repo}(1): added -d arg to enable debugging output to stderr.
+ * flappy-{bin,repo}(1): added -d arg to enable debugging output to stderr.
 
  * While updating packages, obsolete directories are also removed when
    necessary. This helped to remove some empty dirs for python 2.6 > 2.7
@@ -2801,36 +2808,36 @@ xbps-0.7.0 (2010-12-15):
  * Cleaned up the API. Still not finished and there's a long way to have this
    finished and ready for public consumption.
  
- * xbps-dgraph: new utility to generate graphviz' dot(1) graphs for package
+ * flappy-dgraph: new utility to generate graphviz' dot(1) graphs for package
    metadata properties, such as dependencies, reverse dependencies, etc.
    Extracts the info from installed package metadata plist files.
 
- * Performance improvements in libxbps and all utilities, by avoiding
+ * Performance improvements in libflappy and all utilities, by avoiding
    unnecessary access(2) and chdir(2) calls while executing the
    INSTALL/REMOVE scripts at pre/post (de)install time.
 
- * Fixed some memleaks on libxbps found while working on the xbps-dgraph
+ * Fixed some memleaks on libflappy found while working on the flappy-dgraph
    utility.
 
-xbps-0.6.2 (2010-10-31):
+flappy-0.6.2 (2010-10-31):
 
- * libxbps: xbps_repository_unregister(): in remote repositories, also
+ * libflappy: flappy_repository_unregister(): in remote repositories, also
    remove the pkg index file and its directory.
 
- * libxbps: xbps_get_pkg_index_plist(): fixed a memleak.
+ * libflappy: flappy_get_pkg_index_plist(): fixed a memleak.
 
- * xbps-bin(1): modify the 'list' target to accept an optional argument to
+ * flappy-bin(1): modify the 'list' target to accept an optional argument to
    list packages in the specified state, so that you can list packages that
    need to be purged, configured and broken (will be used in the future).
 
- * xbps-bin(1): added a new target 'find-files' to find which installed
+ * flappy-bin(1): added a new target 'find-files' to find which installed
    package(s) own a file. Exact matches "/bin/mount" or patterns
    "/usr/lib/libb[ao]b\*" can be specified.
 
  * When updating a package and removing obsolete files, don't forget to
    remove those directories if they were empty.
 
-xbps-0.6.1 (2010-10-23):
+flappy-0.6.1 (2010-10-23):
 
  * When replacing a package that is going to be updated in the transaction
    do not remove it, just overwrite its files and continue. The updated
@@ -2840,15 +2847,15 @@ xbps-0.6.1 (2010-10-23):
    For example gtk+-2.20 containing gdk-pixbuf, and gtk+-2.22 requiring
    gdk-pixbuf externally.
 
-xbps-0.6.0 (2010-06-03):
+flappy-0.6.0 (2010-06-03):
 
  * Synced libfetch code with NetBSD pkgsrc, updated to 2.31.
 
- * libxbps: improved xbps_get_file_hash() to mmap(2) rather than read(2)
+ * libflappy: improved flappy_get_file_hash() to mmap(2) rather than read(2)
    the file we have to process. With mmap'ed files the hash can be
    processed 5x faster than before, or even more in some cases.
 
- * libxbps: switch to OpenSSL SHA256 implementation and remove the one
+ * libflappy: switch to OpenSSL SHA256 implementation and remove the one
    previously used. It's faster and OpenSSL is required for libfetch so
    there is not point in using it.
 
@@ -2858,127 +2865,127 @@ xbps-0.6.0 (2010-06-03):
  * Added a configure script that emulates GNU autoconf but simplified, to
    simplify customization for build options, flags, etc.
 
-xbps-0.5.2.2 (2010-05-18):
+flappy-0.5.2.2 (2010-05-18):
 
- * libxbps: do not forget to reset a variable to 0 when removing obsolete files
+ * libflappy: do not forget to reset a variable to 0 when removing obsolete files
    that are unexistent or its hash didn't match.
 
-xbps-0.5.2.1 (2010-05-18):
+flappy-0.5.2.1 (2010-05-18):
 
  * Due to human error, last fix in 0.5.2 was completely wrong and the
    INSTALL/REMOVE scripts were simply empty so ENOENT was returned, clearly
    this is expected and shouldn't be ignored.
 
-xbps-0.5.2 (2010-05-18):
+flappy-0.5.2 (2010-05-18):
 
- * libxbps: while running INSTALL/REMOVE scripts, do not fail if a script
+ * libflappy: while running INSTALL/REMOVE scripts, do not fail if a script
    returns ENOENT but the script exists; that means the script did not match
    the expected action on its switch statement and the fact can be simply
    ignored.
 
- * libxbps: while upgrading packages and searching for obsolete files,
+ * libflappy: while upgrading packages and searching for obsolete files,
    do not remove the files that did not match previous SHA256 hash. Also,
    only remove obsolete dangling symlinks.
 
- * xbps-repo(1): fixed the 'genindex' target to not return error if any
+ * flappy-repo(1): fixed the 'genindex' target to not return error if any
    package is already registered in the index.
 
- * xbps-repo(1): improved the 'search' target to also match substrings in
+ * flappy-repo(1): improved the 'search' target to also match substrings in
    package/version tuples.
 
-xbps-0.5.1 (2010-05-12):
+flappy-0.5.1 (2010-05-12):
 
  * Fixed build issues in RHEL5, Ubuntu and others distributions.
 
- * libxbps: changed the epoch component in version strings to the ':'
+ * libflappy: changed the epoch component in version strings to the ':'
    character to be differentiated from '-' in pkgname, and '_' in revision.
 
- * xbps-bin(1): added a new target 'show-orphans' that list all package
+ * flappy-bin(1): added a new target 'show-orphans' that list all package
    orphans currently installed.
 
  * Removed asciidoc build dependency, simply use the troff manpages.
 
-xbps-0.5.0 (2010-05-01):
+flappy-0.5.0 (2010-05-01):
 
- * xbps-repo(1): fixed the 'search' target to also match patterns against
+ * flappy-repo(1): fixed the 'search' target to also match patterns against
    its description, and not only from the package/version tuple.
 
  * Cleaned up the code by using the LLVM's clang static analyzer, found
    two possible NULL pointer dereferences in error branches and dead code.
 
- * xbps-bin(1): added new flag '-p' for the 'remove' and 'autoremove'
+ * flappy-bin(1): added new flag '-p' for the 'remove' and 'autoremove'
    targets, to also purge the package(s) after successful removal.
 
- * xbps-repo(1): print a warning when registering a repository that has
+ * flappy-repo(1): print a warning when registering a repository that has
    been already added previously.
 
- * Add proplib-0.4.1 source and use it in XBPS. This is to avoid
+ * Add proplib-0.4.1 source and use it in FLAPPY. This is to avoid
    an external dependency, so that we depend on the features of the
    internal library. This also means that proplib is not required anymore.
 
  * Added support to read/write gzip compressed plists by default, thanks
    to proplib-0.4 that gained new functionality.
 
-xbps-0.4.1 (2010-02-28):
+flappy-0.4.1 (2010-02-28):
 
- * xbps-bin(1): fixed the install target to work with package names containing
+ * flappy-bin(1): fixed the install target to work with package names containing
    multiple '-', thus resulting in incorrect package name.
    [ https://bugs.launchpad.net/bugs/528212 ]
 
- * xbps-bin(1): fixed printing of incorrect message for packages containing
+ * flappy-bin(1): fixed printing of incorrect message for packages containing
    the 'preserve' object in its props dictionary.
-   [ https://bugs.launchpad.net/xbps/bugs/528216 ]
+   [ https://bugs.launchpad.net/flappy/bugs/528216 ]
 
-xbps-0.4 (2010-02-01):
+flappy-0.4 (2010-02-01):
  
- * libxbps, xbps-bin(1), xbps-repo(1): redirect all warning and error
+ * libflappy, flappy-bin(1), flappy-repo(1): redirect all warning and error
    messages to stderr.
 
- * libxbps: changes xbps_yesno() and xbps_noyes() to only accept "yes" or "no"
+ * libflappy: changes flappy_yesno() and flappy_noyes() to only accept "yes" or "no"
    (case insensitive) answers rather than 'y' or 'n', to avoid mistaken answers.
 
- * xbps-repo(1): added support to the 'search' target to find exact matches,
-   i.e 'xbps-repo search bash'.
+ * flappy-repo(1): added support to the 'search' target to find exact matches,
+   i.e 'flappy-repo search bash'.
 
- * xbps-bin(1) added support to the 'install', 'remove' and 'update'
+ * flappy-bin(1) added support to the 'install', 'remove' and 'update'
    targets to accept any arbitrary number of package names, i.e
-   "xbps-bin install foo blah baz".
-   See https://blueprints.launchpad.net/xbps/+spec/arbitrary-pkgname-args
+   "flappy-bin install foo blah baz".
+   See https://blueprints.launchpad.net/flappy/+spec/arbitrary-pkgname-args
 
- * xbps-bin(1): added support to the 'install' and 'update' targets to
-   accept package patterns, i.e "xbps-bin install 'foo<=3.0'.
-   See https://blueprints.launchpad.net/xbps/+spec/install-pkg-by-pkgmatch
+ * flappy-bin(1): added support to the 'install' and 'update' targets to
+   accept package patterns, i.e "flappy-bin install 'foo<=3.0'.
+   See https://blueprints.launchpad.net/flappy/+spec/install-pkg-by-pkgmatch
 
- * libxbps: fixed some bugs while upgrading essential packages when new package
+ * libflappy: fixed some bugs while upgrading essential packages when new package
    didn't have an INSTALL or REMOVE script and old package had them.
 
- * libxbps: fixed some memleaks found by cppcheck and valgrind.
+ * libflappy: fixed some memleaks found by cppcheck and valgrind.
 
  * Makefiles reworked to support parallel builds.
 
- * libxbps: many exported functions to the API are now internal and not
+ * libflappy: many exported functions to the API are now internal and not
    exported, because they were only used internally. The API is still not
    finished and may be changed without notice.
 
- * libxbps: be more strict finding required metadata plist files in binary
+ * libflappy: be more strict finding required metadata plist files in binary
    packages. Now the code checks for the two required plist files to be at
    index <= 4 and doesn't write any entry to storage until they aren't found.
 
  * Added doxygen documentation for the API, enabled with BUILD_API_DOCS.
 
- * libxbps: synced libfetch code with NetBSD's pkgsrc, updated to 2.30.
+ * libflappy: synced libfetch code with NetBSD's pkgsrc, updated to 2.30.
 
- * xbps-bin(1): when downloading binary packages, it now sets default
+ * flappy-bin(1): when downloading binary packages, it now sets default
    libfetch cache connection limits, thus reusing connections to the same host.
 
- * xbps-uhelper: the 'fetch' target now accepts an arbitrary number of
+ * flappy-uhelper: the 'fetch' target now accepts an arbitrary number of
    arguments, and sets default libfetch cache connection limits.
 
- * xbps-bin(1): enable -f option for the 'purge' and 'remove' targets.
+ * flappy-bin(1): enable -f option for the 'purge' and 'remove' targets.
    If set, files will be removed even if its hash doesn't match for the
    'remove' target, and configuration files for the 'purge' target.
 
- * libxbps: if updating a package, always overwrite files while unpacking;
+ * libflappy: if updating a package, always overwrite files while unpacking;
    compare old and new files to remove obsoletes if necessary. This makes
    the "essential" object in package dictionary unnecessary, because all
    packages are treated as they were essential.

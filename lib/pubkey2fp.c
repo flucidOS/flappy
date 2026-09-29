@@ -17,7 +17,7 @@
 #include <openssl/pem.h>
 #include <openssl/err.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 static unsigned char pSshHeader[11] = {
 	0x00, 0x00, 0x00, 0x07, 0x73, 0x73, 0x68, 0x2D, 0x72, 0x73, 0x61
@@ -63,7 +63,7 @@ fp2str(unsigned const char *fp, unsigned int len)
 }
 
 char *
-xbps_pubkey2fp(xbps_data_t pubkey)
+flappy_pubkey2fp(flappy_data_t pubkey)
 {
 	EVP_MD_CTX *mdctx = NULL;
 	EVP_PKEY *pPubKey = NULL;
@@ -82,26 +82,26 @@ xbps_pubkey2fp(xbps_data_t pubkey)
 
 	mdctx = EVP_MD_CTX_new();
 	assert(mdctx);
-	pubkeydata = xbps_data_data_nocopy(pubkey);
-	bio = BIO_new_mem_buf(pubkeydata, xbps_data_size(pubkey));
+	pubkeydata = flappy_data_data_nocopy(pubkey);
+	bio = BIO_new_mem_buf(pubkeydata, flappy_data_size(pubkey));
 	assert(bio);
 
 	pPubKey = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
 	if (!pPubKey) {
-		xbps_dbg_printf(
+		flappy_dbg_printf(
 		    "unable to decode public key from the given file: %s\n",
 		    ERR_error_string(ERR_get_error(), NULL));
 		goto out;
 	}
 
 	if (EVP_PKEY_base_id(pPubKey) != EVP_PKEY_RSA) {
-		xbps_dbg_printf("only RSA public keys are currently supported\n");
+		flappy_dbg_printf("only RSA public keys are currently supported\n");
 		goto out;
 	}
 
 	pRsa = EVP_PKEY_get1_RSA(pPubKey);
 	if (!pRsa) {
-		xbps_dbg_printf("failed to get RSA public key : %s\n",
+		flappy_dbg_printf("failed to get RSA public key : %s\n",
 		    ERR_error_string(ERR_get_error(), NULL));
 		goto out;
 	}

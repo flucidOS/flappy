@@ -31,14 +31,14 @@
 #include <archive.h>
 #include <archive_entry.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 static int
-internalize_script(xbps_dictionary_t pkg_repod, const char *script,
+internalize_script(flappy_dictionary_t pkg_repod, const char *script,
 		struct archive *ar, struct archive_entry *entry)
 {
 	char buffer[BUFSIZ];
-	xbps_data_t data = NULL;
+	flappy_data_t data = NULL;
 	char *buf = NULL;
 	int64_t entry_size = archive_entry_size(entry);
 
@@ -58,23 +58,23 @@ internalize_script(xbps_dictionary_t pkg_repod, const char *script,
 		return -errno;
 	}
 
-	data = xbps_data_create_data(buf != NULL ? buf : buffer, entry_size);
+	data = flappy_data_create_data(buf != NULL ? buf : buffer, entry_size);
 	if (data == NULL) {
 		free(buf);
 		return -errno;
 	}
 
 	free(buf);
-	xbps_dictionary_set(pkg_repod, script, data);
-	xbps_object_release(data);
+	flappy_dictionary_set(pkg_repod, script, data);
+	flappy_object_release(data);
 	return 0;
 }
 
 static int
-internalize_binpkg(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
+internalize_binpkg(struct flappy_handle *xhp, flappy_dictionary_t pkg_repod)
 {
 	char pkgfile[PATH_MAX];
-	xbps_dictionary_t filesd = NULL, propsd = NULL;
+	flappy_dictionary_t filesd = NULL, propsd = NULL;
 	struct stat st;
 	struct archive *ar = NULL;
 	struct archive_entry *entry;
@@ -83,12 +83,12 @@ internalize_binpkg(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
 	int pkg_fd = -1;
 	int rv = 0;
 
-	xbps_dictionary_get_cstring_nocopy(pkg_repod, "pkgver", &pkgver);
+	flappy_dictionary_get_cstring_nocopy(pkg_repod, "pkgver", &pkgver);
 	assert(pkgver);
-	xbps_dictionary_get_cstring_nocopy(pkg_repod, "pkgname", &pkgname);
+	flappy_dictionary_get_cstring_nocopy(pkg_repod, "pkgname", &pkgname);
 	assert(pkgname);
 
-	l = xbps_pkg_path(xhp, pkgfile, sizeof(pkgfile), pkg_repod);
+	l = flappy_pkg_path(xhp, pkgfile, sizeof(pkgfile), pkg_repod);
 	if (l < 0)
 		return l;
 
@@ -108,7 +108,7 @@ internalize_binpkg(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
 	pkg_fd = open(pkgfile, O_RDONLY|O_CLOEXEC);
 	if (pkg_fd == -1) {
 		rv = -errno;
-		xbps_set_cb_state(xhp, XBPS_STATE_FILES_FAIL,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_FILES_FAIL,
 		    -rv, pkgver,
 		    "%s: failed to open binary package `%s': %s",
 		    pkgver, pkgfile, strerror(rv));
@@ -116,15 +116,15 @@ internalize_binpkg(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
 	}
 	if (fstat(pkg_fd, &st) == -1) {
 		rv = -errno;
-		xbps_set_cb_state(xhp, XBPS_STATE_FILES_FAIL,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_FILES_FAIL,
 		    -rv, pkgver,
 		    "%s: failed to fstat binary package `%s': %s",
 		    pkgver, pkgfile, strerror(rv));
 		goto out;
 	}
 	if (archive_read_open_fd(ar, pkg_fd, st.st_blksize) == ARCHIVE_FATAL) {
-		rv = xbps_archive_errno(ar);
-		xbps_set_cb_state(xhp, XBPS_STATE_FILES_FAIL,
+		rv = flappy_archive_errno(ar);
+		flappy_set_cb_state(xhp, FLAPPY_STATE_FILES_FAIL,
 		    -rv, pkgver,
 		    "%s: failed to read binary package `%s': %s",
 		    pkgver, pkgfile, strerror(rv));
@@ -141,7 +141,7 @@ internalize_binpkg(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
 
 		entry_pname = archive_entry_pathname(entry);
 		if (!entry_pname)
-			xbps_unreachable();
+			flappy_unreachable();
 
 		if (strcmp("./INSTALL", entry_pname) == 0) {
 			rv = internalize_script(pkg_repod, "install-script", ar, entry);
@@ -152,13 +152,13 @@ internalize_binpkg(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
 			if (rv < 0)
 				goto out;
 		} else if ((strcmp("./files.plist", entry_pname)) == 0) {
-			filesd = xbps_archive_get_dictionary(ar, entry);
+			filesd = flappy_archive_get_dictionary(ar, entry);
 			if (filesd == NULL) {
 				rv = -EINVAL;
 				goto out;
 			}
 		} else if (strcmp("./props.plist", entry_pname) == 0) {
-			propsd = xbps_archive_get_dictionary(ar, entry);
+			propsd = flappy_archive_get_dictionary(ar, entry);
 			if (propsd == NULL) {
 				rv = -EINVAL;
 				goto out;
@@ -173,7 +173,7 @@ internalize_binpkg(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
 	 */
 	if (propsd == NULL || filesd == NULL) {
 		rv = -ENODEV;
-		xbps_set_cb_state(xhp, XBPS_STATE_FILES_FAIL, -rv, pkgver,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_FILES_FAIL, -rv, pkgver,
 		    "%s: [files] invalid binary package `%s'.", pkgver, pkgfile);
 		goto out;
 	}
@@ -182,18 +182,18 @@ internalize_binpkg(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
 	 * Bail out if repo pkgver does not match binpkg pkgver, i.e. downgrade attack
 	 * by advertising a old signed package with a new version.
 	 */
-	xbps_dictionary_get_cstring_nocopy(propsd, "pkgver", &binpkg_pkgver);
+	flappy_dictionary_get_cstring_nocopy(propsd, "pkgver", &binpkg_pkgver);
 	if (strcmp(pkgver, binpkg_pkgver) != 0) {
 		rv = -EINVAL;
-		xbps_set_cb_state(xhp, XBPS_STATE_FILES_FAIL, -rv, pkgver,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_FILES_FAIL, -rv, pkgver,
 		    "%s: [files] pkgver mismatch repodata: `%s' binpkg: `%s'.",
 		    pkgfile, pkgver, binpkg_pkgver);
 		goto out;
 	}
 
 out:
-	xbps_object_release(propsd);
-	xbps_object_release(filesd);
+	flappy_object_release(propsd);
+	flappy_object_release(filesd);
 	if (pkg_fd != -1)
 		close(pkg_fd);
 	if (ar != NULL)
@@ -202,22 +202,22 @@ out:
 }
 
 int
-xbps_transaction_internalize(struct xbps_handle *xhp, xbps_object_iterator_t iter)
+flappy_transaction_internalize(struct flappy_handle *xhp, flappy_object_iterator_t iter)
 {
-	xbps_object_t obj;
+	flappy_object_t obj;
 
 	assert(xhp);
 	assert(iter);
 
-	while ((obj = xbps_object_iterator_next(iter)) != NULL) {
-		xbps_trans_type_t ttype;
+	while ((obj = flappy_object_iterator_next(iter)) != NULL) {
+		flappy_trans_type_t ttype;
 		int rv;
 
-		ttype = xbps_transaction_pkg_type(obj);
+		ttype = flappy_transaction_pkg_type(obj);
 		switch (ttype) {
-		case XBPS_TRANS_INSTALL:
-		case XBPS_TRANS_UPDATE:
-		case XBPS_TRANS_REINSTALL:
+		case FLAPPY_TRANS_INSTALL:
+		case FLAPPY_TRANS_UPDATE:
+		case FLAPPY_TRANS_REINSTALL:
 			break;
 		default:
 			continue;
@@ -226,7 +226,7 @@ xbps_transaction_internalize(struct xbps_handle *xhp, xbps_object_iterator_t ite
 		if (rv < 0)
 			return rv;
 	}
-	xbps_object_iterator_reset(iter);
+	flappy_object_iterator_reset(iter);
 
 	return 0;
 }

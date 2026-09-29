@@ -1,0 +1,22 @@
+pkgname=flucid-demo
+version=1.0
+revision=1
+arch=$(uname -m)
+depends="libflucid-demo>=1.0_1"
+shlib_requires="libflucid-demo.so.1"
+short_desc="Binary linked against libflucid-demo"
+maintainer="FlucidOS <flucidos@localhost>"
+license="BSD-2-Clause"
+homepage="https://github.com/FlucidOS/flappy"
+
+do_build() {
+	printf 'const char *flucid_demo_msg(void);\n#include <stdio.h>\nint main(void){puts(flucid_demo_msg());return 0;}\n' > main.c
+	printf 'const char *flucid_demo_msg(void){return "hello from libflucid-demo";}\n' > stub.c
+	${CC:-cc} -shared -fPIC -Wl,-soname,libflucid-demo.so.1 -o libflucid-demo.so.1 stub.c
+	${CC:-cc} -o flucid-demo main.c ./libflucid-demo.so.1 -Wl,-rpath,/usr/lib
+}
+
+do_install() {
+	mkdir -p "$DESTDIR/usr/bin"
+	install -m755 flucid-demo "$DESTDIR/usr/bin/flucid-demo"
+}

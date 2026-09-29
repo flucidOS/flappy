@@ -1,0 +1,15 @@
+syntax("kyuafile", 1)
+
+test_suite("flappy")
+
+include('libflappy/Kyuafile')
+include('flappy-alternatives/Kyuafile')
+include('flappy-checkvers/Kyuafile')
+include('flappy-create/Kyuafile')
+include('flappy-fetch/Kyuafile')
+include('flappy-install/Kyuafile')
+include('flappy-query/Kyuafile')
+include('flappy-rindex/Kyuafile')
+include('flappy-uhelper/Kyuafile')
+include('flappy-remove/Kyuafile')
+include('flappy-digest/Kyuafile')

@@ -36,10 +36,10 @@
 #include <errno.h>
 #include <sys/stat.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 int
-xbps_mkpath(const char *path, mode_t mode)
+flappy_mkpath(const char *path, mode_t mode)
 {
 	struct stat sb;
 	char *ppath, *slash;

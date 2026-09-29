@@ -23,9 +23,9 @@ install: all
 	@for dir in $(SUBDIRS); do		\
 		$(MAKE) -C $$dir install || exit 1;	\
 	done
-	install -d $(DESTDIR)$(SHAREDIR)/licenses/xbps
-	install -m644 ./LICENSE $(DESTDIR)$(SHAREDIR)/licenses/xbps
-	install -m644 ./LICENSE.3RDPARTY $(DESTDIR)$(SHAREDIR)/licenses/xbps
+	install -d $(DESTDIR)$(SHAREDIR)/licenses/flappy
+	install -m644 ./LICENSE $(DESTDIR)$(SHAREDIR)/licenses/flappy
+	install -m644 ./LICENSE.3RDPARTY $(DESTDIR)$(SHAREDIR)/licenses/flappy
 
 uninstall:
 	@for dir in $(SUBDIRS); do		\
@@ -36,10 +36,13 @@ check: all
 	-rm -f result.db*
 	@./run-tests
 
+e2e: all
+	@./pkgsrc/e2e.sh
+
 clean:
 	@for dir in $(SUBDIRS); do		\
 		$(MAKE) -C $$dir clean || exit 1;	\
 	done
 	-rm -f result* config.mk _ccflag.{,c,err}
 
-.PHONY: all install uninstall check clean
+.PHONY: all install uninstall check e2e clean

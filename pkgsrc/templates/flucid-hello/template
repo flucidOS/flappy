@@ -1,0 +1,17 @@
+pkgname=flucid-hello
+version=1.0
+revision=1
+arch=noarch
+short_desc="Tiny hello-world script for testing flappy"
+maintainer="FlucidOS <flucidos@localhost>"
+license="BSD-2-Clause"
+homepage="https://github.com/FlucidOS/flappy"
+
+do_install() {
+	mkdir -p "$DESTDIR/usr/bin"
+	cat > "$DESTDIR/usr/bin/flucid-hello" <<SH
+#!/bin/sh
+echo "hello from flucid-hello ${version}_${revision}"
+SH
+	chmod 755 "$DESTDIR/usr/bin/flucid-hello"
+}

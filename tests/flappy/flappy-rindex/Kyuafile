@@ -1,0 +1,6 @@
+syntax("kyuafile", 1)
+
+test_suite("flappy-rindex")
+atf_test_program{name="add_test"}
+atf_test_program{name="clean_test"}
+atf_test_program{name="remove_test"}

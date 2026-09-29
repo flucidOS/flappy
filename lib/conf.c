@@ -41,52 +41,52 @@
 #include <string.h>
 #include <strings.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 /**
  * @file lib/conf.c
  * @brief Configuration parsing
  * @defgroup conf Configuration parsing
  *
- * Functions for parsing xbps configuration files.
+ * Functions for parsing flappy configuration files.
  */
 
 static int
-vpkg_map_add(xbps_dictionary_t d, const char *pkgname, const char *vpkgver, const char *provider)
+vpkg_map_add(flappy_dictionary_t d, const char *pkgname, const char *vpkgver, const char *provider)
 {
-	xbps_dictionary_t providers;
+	flappy_dictionary_t providers;
 	bool alloc;
 
-	providers = xbps_dictionary_get(d, pkgname);
+	providers = flappy_dictionary_get(d, pkgname);
 	if (!providers) {
-		providers = xbps_dictionary_create();
+		providers = flappy_dictionary_create();
 		if (!providers)
-			return xbps_error_oom();
+			return flappy_error_oom();
 
-		if (!xbps_dictionary_set(d, pkgname, providers)) {
-			xbps_object_release(providers);
-			return xbps_error_oom();
+		if (!flappy_dictionary_set(d, pkgname, providers)) {
+			flappy_object_release(providers);
+			return flappy_error_oom();
 		}
 		alloc = true;
 	}
 
-	if (!xbps_dictionary_set_cstring(providers, vpkgver, provider)) {
+	if (!flappy_dictionary_set_cstring(providers, vpkgver, provider)) {
 		if (alloc)
-			xbps_object_release(providers);
-		return xbps_error_oom();
+			flappy_object_release(providers);
+		return flappy_error_oom();
 	}
 
 	if (alloc)
-		xbps_object_release(providers);
+		flappy_object_release(providers);
 
 	return 0;
 }
 
 static int
-store_virtualpkg(struct xbps_handle *xhp, const char *path, size_t line, char *val)
+store_virtualpkg(struct flappy_handle *xhp, const char *path, size_t line, char *val)
 {
-	char namebuf[XBPS_NAME_SIZE];
-	char pkgverbuf[XBPS_NAME_SIZE + sizeof("-99999_1")];
+	char namebuf[FLAPPY_NAME_SIZE];
+	char pkgverbuf[FLAPPY_NAME_SIZE + sizeof("-99999_1")];
 	const char *vpkgname, *vpkgver, *provider;
 	char *p;
 	int r;
@@ -98,14 +98,14 @@ store_virtualpkg(struct xbps_handle *xhp, const char *path, size_t line, char *v
 	 */
 	p = strchr(val, ':');
 	if (p == NULL || p[1] == '\0') {
-		xbps_dbg_printf("%s: ignoring invalid "
+		flappy_dbg_printf("%s: ignoring invalid "
 		    "virtualpkg option at line %zu\n", path, line);
 		return 0;
 	}
 	*p++ = '\0';
 	provider = p;
 
-	if (xbps_pkg_name(namebuf, sizeof(namebuf), val)) {
+	if (flappy_pkg_name(namebuf, sizeof(namebuf), val)) {
 		vpkgname = namebuf;
 		vpkgver = val;
 	} else {
@@ -120,12 +120,12 @@ store_virtualpkg(struct xbps_handle *xhp, const char *path, size_t line, char *v
 	r = vpkg_map_add(xhp->vpkgd_conf, vpkgname, vpkgver, provider);
 	if (r < 0)
 		return r;
-	xbps_dbg_printf("%s: added virtualpkg %s for %s\n", path, val, p);
+	flappy_dbg_printf("%s: added virtualpkg %s for %s\n", path, val, p);
 	return 0;
 }
 
 static void
-store_preserved_file(struct xbps_handle *xhp, const char *file)
+store_preserved_file(struct flappy_handle *xhp, const char *file)
 {
 	glob_t globbuf;
 	char *p = NULL, *rfile = NULL;
@@ -133,32 +133,32 @@ store_preserved_file(struct xbps_handle *xhp, const char *file)
 	int rv = 0;
 
 	if (xhp->preserved_files == NULL) {
-		xhp->preserved_files = xbps_array_create();
+		xhp->preserved_files = flappy_array_create();
 		assert(xhp->preserved_files);
 	}
 
-	rfile = xbps_xasprintf("%s%s", xhp->rootdir, file);
+	rfile = flappy_xasprintf("%s%s", xhp->rootdir, file);
 
 	rv = glob(rfile, 0, NULL, &globbuf);
 	if (rv == GLOB_NOMATCH) {
-		if (xbps_match_string_in_array(xhp->preserved_files, file))
+		if (flappy_match_string_in_array(xhp->preserved_files, file))
 			goto out;
-		xbps_array_add_cstring(xhp->preserved_files, file);
-		xbps_dbg_printf("Added preserved file: %s\n", file);
+		flappy_array_add_cstring(xhp->preserved_files, file);
+		flappy_dbg_printf("Added preserved file: %s\n", file);
 		goto out;
 	} else if (rv != 0) {
 		goto out;
 	}
 	for (size_t i = 0; i < globbuf.gl_pathc; i++) {
-		if (xbps_match_string_in_array(xhp->preserved_files, globbuf.gl_pathv[i]))
+		if (flappy_match_string_in_array(xhp->preserved_files, globbuf.gl_pathv[i]))
 			continue;
 
 		len = strlen(globbuf.gl_pathv[i]) - strlen(xhp->rootdir) + 1;
 		p = malloc(len);
 		assert(p);
-		xbps_strlcpy(p, globbuf.gl_pathv[i] + strlen(xhp->rootdir), len);
-		xbps_array_add_cstring(xhp->preserved_files, p);
-		xbps_dbg_printf("Added preserved file: %s (expanded from %s)\n", p, file);
+		flappy_strlcpy(p, globbuf.gl_pathv[i] + strlen(xhp->rootdir), len);
+		flappy_array_add_cstring(xhp->preserved_files, p);
+		flappy_dbg_printf("Added preserved file: %s (expanded from %s)\n", p, file);
 		free(p);
 	}
 out:
@@ -167,36 +167,36 @@ out:
 }
 
 static bool
-store_repo(struct xbps_handle *xhp, const char *repo)
+store_repo(struct flappy_handle *xhp, const char *repo)
 {
-	if (xhp->flags & XBPS_FLAG_IGNORE_CONF_REPOS)
+	if (xhp->flags & FLAPPY_FLAG_IGNORE_CONF_REPOS)
 		return false;
 
-	return xbps_repo_store(xhp, repo);
+	return flappy_repo_store(xhp, repo);
 }
 
 static void
-store_ignored_pkg(struct xbps_handle *xhp, const char *pkgname)
+store_ignored_pkg(struct flappy_handle *xhp, const char *pkgname)
 {
 	if (xhp->ignored_pkgs == NULL) {
-		xhp->ignored_pkgs = xbps_array_create();
+		xhp->ignored_pkgs = flappy_array_create();
 		assert(xhp->ignored_pkgs);
 	}
-	xbps_array_add_cstring(xhp->ignored_pkgs, pkgname);
-	xbps_dbg_printf("Added ignored package: %s\n", pkgname);
+	flappy_array_add_cstring(xhp->ignored_pkgs, pkgname);
+	flappy_dbg_printf("Added ignored package: %s\n", pkgname);
 }
 
 static void
-store_noextract(struct xbps_handle *xhp, const char *value)
+store_noextract(struct flappy_handle *xhp, const char *value)
 {
 	if (*value == '\0')
 		return;
 	if (xhp->noextract == NULL) {
-		xhp->noextract = xbps_array_create();
+		xhp->noextract = flappy_array_create();
 		assert(xhp->noextract);
 	}
-	xbps_array_add_cstring(xhp->noextract, value);
-	xbps_dbg_printf("Added noextract pattern: %s\n", value);
+	flappy_array_add_cstring(xhp->noextract, value);
+	flappy_dbg_printf("Added noextract pattern: %s\n", value);
 }
 
 enum {
@@ -285,10 +285,10 @@ parse_option(char *line, size_t linelen, char **valp, size_t *vallen)
 	return result->key;
 }
 
-static int parse_file(struct xbps_handle *, const char *, bool);
+static int parse_file(struct flappy_handle *, const char *, bool);
 
 static int
-parse_files_glob(struct xbps_handle *xhp, xbps_dictionary_t seen,
+parse_files_glob(struct flappy_handle *xhp, flappy_dictionary_t seen,
     const char *cwd, const char *pat, bool nested)
 {
 	char tmppath[PATH_MAX];
@@ -311,9 +311,9 @@ parse_files_glob(struct xbps_handle *xhp, xbps_dictionary_t seen,
 			const char *fname;
 			bool mask = false;
 			fname = basename(globbuf.gl_pathv[i]);
-			if (xbps_dictionary_get_bool(seen, fname, &mask) && mask)
+			if (flappy_dictionary_get_bool(seen, fname, &mask) && mask)
 				continue;
-			xbps_dictionary_set_bool(seen, fname, true);
+			flappy_dictionary_set_bool(seen, fname, true);
 		}
 		if ((rv2 = parse_file(xhp, globbuf.gl_pathv[i], nested)) != 0)
 			rv = rv2;
@@ -324,7 +324,7 @@ parse_files_glob(struct xbps_handle *xhp, xbps_dictionary_t seen,
 }
 
 static int
-parse_file(struct xbps_handle *xhp, const char *path, bool nested)
+parse_file(struct flappy_handle *xhp, const char *path, bool nested)
 {
 	FILE *fp;
 	size_t len, nlines = 0;
@@ -336,11 +336,11 @@ parse_file(struct xbps_handle *xhp, const char *path, bool nested)
 
 	if ((fp = fopen(path, "r")) == NULL) {
 		rv = errno;
-		xbps_error_printf("cannot read configuration file %s: %s\n", path, strerror(rv));
+		flappy_error_printf("cannot read configuration file %s: %s\n", path, strerror(rv));
 		return rv;
 	}
 
-	xbps_dbg_printf("Parsing configuration file: %s\n", path);
+	flappy_dbg_printf("Parsing configuration file: %s\n", path);
 
 	while ((rd = getline(&linebuf, &len, fp)) != -1) {
 		char *line = linebuf;
@@ -363,7 +363,7 @@ parse_file(struct xbps_handle *xhp, const char *path, bool nested)
 
 		switch (parse_option(line, rd, &val, &vallen)) {
 		case KEY_ERROR:
-			xbps_dbg_printf("%s: ignoring invalid option at "
+			flappy_dbg_printf("%s: ignoring invalid option at "
 			    "line %zu\n", path, nlines);
 			continue;
 		case KEY_ROOTDIR:
@@ -373,7 +373,7 @@ parse_file(struct xbps_handle *xhp, const char *path, bool nested)
 				rv = ENOMEM;
 				break;
 			}
-			xbps_dbg_printf("%s: rootdir set to %s\n", path, val);
+			flappy_dbg_printf("%s: rootdir set to %s\n", path, val);
 			break;
 		case KEY_CACHEDIR:
 			size = sizeof xhp->cachedir;
@@ -382,7 +382,7 @@ parse_file(struct xbps_handle *xhp, const char *path, bool nested)
 				rv = ENOMEM;
 				break;
 			}
-			xbps_dbg_printf("%s: cachedir set to %s\n", path, val);
+			flappy_dbg_printf("%s: cachedir set to %s\n", path, val);
 			break;
 		case KEY_ARCHITECTURE:
 			size = sizeof xhp->native_arch;
@@ -391,30 +391,30 @@ parse_file(struct xbps_handle *xhp, const char *path, bool nested)
 				rv = ENOMEM;
 				break;
 			}
-			xbps_dbg_printf("%s: native architecture set to %s\n", path,
+			flappy_dbg_printf("%s: native architecture set to %s\n", path,
 			    val);
 			break;
 		case KEY_STAGING:
 			if (strcasecmp(val, "true") == 0) {
-				xhp->flags |= XBPS_FLAG_USE_STAGE;
-				xbps_dbg_printf("%s: repository stage enabled\n", path);
+				xhp->flags |= FLAPPY_FLAG_USE_STAGE;
+				flappy_dbg_printf("%s: repository stage enabled\n", path);
 			} else {
-				xhp->flags &= ~XBPS_FLAG_USE_STAGE;
-				xbps_dbg_printf("%s: repository stage disabled\n", path);
+				xhp->flags &= ~FLAPPY_FLAG_USE_STAGE;
+				flappy_dbg_printf("%s: repository stage disabled\n", path);
 			}
 			break;
 		case KEY_SYSLOG:
 			if (strcasecmp(val, "true") == 0) {
-				xhp->flags &= ~XBPS_FLAG_DISABLE_SYSLOG;
-				xbps_dbg_printf("%s: syslog enabled\n", path);
+				xhp->flags &= ~FLAPPY_FLAG_DISABLE_SYSLOG;
+				flappy_dbg_printf("%s: syslog enabled\n", path);
 			} else {
-				xhp->flags |= XBPS_FLAG_DISABLE_SYSLOG;
-				xbps_dbg_printf("%s: syslog disabled\n", path);
+				xhp->flags |= FLAPPY_FLAG_DISABLE_SYSLOG;
+				flappy_dbg_printf("%s: syslog disabled\n", path);
 			}
 			break;
 		case KEY_REPOSITORY:
 			if (store_repo(xhp, val))
-				xbps_dbg_printf("%s: added repository %s\n", path, val);
+				flappy_dbg_printf("%s: added repository %s\n", path, val);
 			break;
 		case KEY_VIRTUALPKG:
 			rv = store_virtualpkg(xhp, path, nlines, val);
@@ -429,20 +429,20 @@ parse_file(struct xbps_handle *xhp, const char *path, bool nested)
 			break;
 		case KEY_KEEPCONF:
 			if (strcasecmp(val, "true") == 0) {
-				xhp->flags |= XBPS_FLAG_KEEP_CONFIG;
-				xbps_dbg_printf("%s: config preservation enabled\n", path);
+				xhp->flags |= FLAPPY_FLAG_KEEP_CONFIG;
+				flappy_dbg_printf("%s: config preservation enabled\n", path);
 			} else {
-				xhp->flags &= ~XBPS_FLAG_KEEP_CONFIG;
-				xbps_dbg_printf("%s: config preservation disabled\n", path);
+				xhp->flags &= ~FLAPPY_FLAG_KEEP_CONFIG;
+				flappy_dbg_printf("%s: config preservation disabled\n", path);
 			}
 			break;
 		case KEY_BESTMATCHING:
 			if (strcasecmp(val, "true") == 0) {
-				xhp->flags |= XBPS_FLAG_BESTMATCH;
-				xbps_dbg_printf("%s: pkg best matching enabled\n", path);
+				xhp->flags |= FLAPPY_FLAG_BESTMATCH;
+				flappy_dbg_printf("%s: pkg best matching enabled\n", path);
 			} else {
-				xhp->flags &= ~XBPS_FLAG_BESTMATCH;
-				xbps_dbg_printf("%s: pkg best matching disabled\n", path);
+				xhp->flags &= ~FLAPPY_FLAG_BESTMATCH;
+				flappy_dbg_printf("%s: pkg best matching disabled\n", path);
 			}
 			break;
 		case KEY_IGNOREPKG:
@@ -454,7 +454,7 @@ parse_file(struct xbps_handle *xhp, const char *path, bool nested)
 		case KEY_INCLUDE:
 			/* Avoid double-nested parsing, only allow it once */
 			if (nested) {
-				xbps_dbg_printf("%s: ignoring nested include\n", path);
+				flappy_dbg_printf("%s: ignoring nested include\n", path);
 				continue;
 			}
 			dir = strdup(path);
@@ -470,27 +470,27 @@ parse_file(struct xbps_handle *xhp, const char *path, bool nested)
 }
 
 int HIDDEN
-xbps_conf_init(struct xbps_handle *xhp)
+flappy_conf_init(struct flappy_handle *xhp)
 {
-	xbps_dictionary_t seen;
+	flappy_dictionary_t seen;
 	int rv = 0;
 
 	assert(xhp);
-	seen = xbps_dictionary_create();
+	seen = flappy_dictionary_create();
 	assert(seen);
 
 	if (*xhp->confdir) {
-		xbps_dbg_printf("Processing configuration directory: %s\n", xhp->confdir);
+		flappy_dbg_printf("Processing configuration directory: %s\n", xhp->confdir);
 		if ((rv = parse_files_glob(xhp, seen, xhp->confdir, "*.conf", false)))
 			goto out;
 	}
 	if (*xhp->sysconfdir) {
-		xbps_dbg_printf("Processing system configuration directory: %s\n", xhp->sysconfdir);
+		flappy_dbg_printf("Processing system configuration directory: %s\n", xhp->sysconfdir);
 		if ((rv = parse_files_glob(xhp, seen, xhp->sysconfdir, "*.conf", false)))
 			goto out;
 	}
 
 out:
-	xbps_object_release(seen);
+	flappy_object_release(seen);
 	return rv;
 }

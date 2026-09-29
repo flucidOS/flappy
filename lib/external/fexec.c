@@ -37,10 +37,10 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 static int
-pfcexec(struct xbps_handle *xhp, const char *file, const char **argv)
+pfcexec(struct flappy_handle *xhp, const char *file, const char **argv)
 {
 	pid_t child;
 	int status;
@@ -55,12 +55,12 @@ pfcexec(struct xbps_handle *xhp, const char *file, const char **argv)
 		if (strcmp(xhp->rootdir, "/")) {
 			if ((geteuid() == 0) && (access("bin/sh", X_OK) == 0)) {
 				if (chroot(xhp->rootdir) == -1) {
-					xbps_dbg_printf("%s: chroot() "
+					flappy_dbg_printf("%s: chroot() "
 					    "failed: %s\n", *argv, strerror(errno));
 					_exit(errno);
 				}
 				if (chdir("/") == -1) {
-					xbps_dbg_printf("%s: chdir() "
+					flappy_dbg_printf("%s: chdir() "
 					    "failed: %s\n", *argv, strerror(errno));
 					_exit(errno);
 				}
@@ -86,7 +86,7 @@ pfcexec(struct xbps_handle *xhp, const char *file, const char **argv)
 }
 
 static int
-vfcexec(struct xbps_handle *xhp, const char *arg, va_list ap)
+vfcexec(struct flappy_handle *xhp, const char *arg, va_list ap)
 {
 	const char **argv;
 	size_t argv_size, argc;
@@ -123,7 +123,7 @@ vfcexec(struct xbps_handle *xhp, const char *arg, va_list ap)
 }
 
 int HIDDEN
-xbps_file_exec(struct xbps_handle *xhp, const char *arg, ...)
+flappy_file_exec(struct flappy_handle *xhp, const char *arg, ...)
 {
 	va_list	ap;
 	int	result;

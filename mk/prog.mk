@@ -46,14 +46,14 @@ endif
 	@printf " [CC]\t\t$@\n"
 	${SILENT}$(CC) $(CPPFLAGS) $(PROG_CFLAGS) $(CFLAGS) $(EXTRA_CFLAGS) -c $<
 
-$(BIN).static: $(OBJS) $(TOPDIR)/lib/libxbps.a
+$(BIN).static: $(OBJS) $(TOPDIR)/lib/libflappy.a
 	@printf " [CCLD]\t\t$@\n"
 	${SILENT}$(CC) -static $(OBJS) $(CPPFLAGS) -L$(TOPDIR)/lib \
 		$(CFLAGS) $(LDFLAGS) $(PROG_LDFLAGS) $(STATIC_LIBS) -o $@
 
-$(BIN): $(OBJS) $(TOPDIR)/lib/libxbps.so
+$(BIN): $(OBJS) $(TOPDIR)/lib/libflappy.so
 	@printf " [CCLD]\t\t$@\n"
 	${SILENT}$(CC) $^ $(CPPFLAGS) -L$(TOPDIR)/lib \
 		$(CFLAGS) $(PROG_CFLAGS) $(LDFLAGS) $(PROG_LDFLAGS) \
-		-lxbps -o $@
+		-lflappy -o $@
 

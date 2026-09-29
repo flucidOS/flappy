@@ -1,0 +1,19 @@
+pkgname=ripgrep
+version=14.1.1
+revision=1
+arch=x86_64
+short_desc="Fast recursive grep (static musl build)"
+maintainer="FlucidOS <flucidos@localhost>"
+license="MIT OR Unlicense"
+homepage="https://github.com/BurntSushi/ripgrep"
+distfile="https://github.com/BurntSushi/ripgrep/releases/download/${version}/ripgrep-${version}-x86_64-unknown-linux-musl.tar.gz"
+checksum="4cf9f2741e6c465ffdb7c26f38056a59e2a2544b51f7cc128ef28337eeae4d8e"
+
+do_install() {
+	tar xzf "$DISTFILE"
+	d=ripgrep-${version}-x86_64-unknown-linux-musl
+	install -Dm755 $d/rg "$DESTDIR/usr/bin/rg"
+	install -Dm644 $d/doc/rg.1 "$DESTDIR/usr/share/man/man1/rg.1"
+	install -Dm644 $d/LICENSE-MIT "$DESTDIR/usr/share/licenses/ripgrep/LICENSE-MIT"
+	install -Dm644 $d/UNLICENSE "$DESTDIR/usr/share/licenses/ripgrep/UNLICENSE"
+}

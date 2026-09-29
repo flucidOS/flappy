@@ -1,0 +1,5 @@
+syntax("kyuafile", 1)
+
+test_suite("libflappy")
+
+atf_test_program{name="cmpver_test"}

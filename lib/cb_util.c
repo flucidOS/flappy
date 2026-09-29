@@ -29,10 +29,10 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 void HIDDEN
-xbps_set_cb_fetch(struct xbps_handle *xhp,
+flappy_set_cb_fetch(struct flappy_handle *xhp,
 		  off_t file_size,
 		  off_t file_offset,
 		  off_t file_dloaded,
@@ -41,7 +41,7 @@ xbps_set_cb_fetch(struct xbps_handle *xhp,
 		  bool cb_update,
 		  bool cb_end)
 {
-	struct xbps_fetch_cb_data xfcd;
+	struct flappy_fetch_cb_data xfcd;
 
 	if (xhp->fetch_cb == NULL)
 		return;
@@ -58,14 +58,14 @@ xbps_set_cb_fetch(struct xbps_handle *xhp,
 }
 
 int HIDDEN PRINTF_LIKE(5, 6)
-xbps_set_cb_state(struct xbps_handle *xhp,
-		  xbps_state_t state,
+flappy_set_cb_state(struct flappy_handle *xhp,
+		  flappy_state_t state,
 		  int err,
 		  const char *arg,
 		  const char *fmt,
 		  ...)
 {
-	struct xbps_state_cb_data xscd;
+	struct flappy_state_cb_data xscd;
 	char *buf = NULL;
 	va_list va;
 	int retval;

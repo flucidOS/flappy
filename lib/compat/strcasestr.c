@@ -32,7 +32,7 @@
  * SUCH DAMAGE.
  */
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>

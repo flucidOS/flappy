@@ -40,7 +40,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 static bool
 is_revision(const char *str)
@@ -59,7 +59,7 @@ is_revision(const char *str)
  * @defgroup util Utility functions
  */
 bool
-xbps_repository_is_remote(const char *uri)
+flappy_repository_is_remote(const char *uri)
 {
 	assert(uri != NULL);
 
@@ -72,33 +72,33 @@ xbps_repository_is_remote(const char *uri)
 }
 
 int
-xbps_pkg_is_installed(struct xbps_handle *xhp, const char *pkg)
+flappy_pkg_is_installed(struct flappy_handle *xhp, const char *pkg)
 {
-	xbps_dictionary_t dict;
+	flappy_dictionary_t dict;
 	pkg_state_t state;
 
 	assert(xhp);
 	assert(pkg);
 
-	if (((dict = xbps_pkgdb_get_virtualpkg(xhp, pkg)) == NULL) &&
-	    ((dict = xbps_pkgdb_get_pkg(xhp, pkg)) == NULL))
+	if (((dict = flappy_pkgdb_get_virtualpkg(xhp, pkg)) == NULL) &&
+	    ((dict = flappy_pkgdb_get_pkg(xhp, pkg)) == NULL))
 		return 0; /* not installed */
 	/*
 	 * Check that package state is fully installed, not
 	 * unpacked or something else.
 	 */
-	if (xbps_pkg_state_dictionary(dict, &state) != 0)
+	if (flappy_pkg_state_dictionary(dict, &state) != 0)
 		return -1; /* error */
-	if (state == XBPS_PKG_STATE_INSTALLED || state == XBPS_PKG_STATE_UNPACKED)
+	if (state == FLAPPY_PKG_STATE_INSTALLED || state == FLAPPY_PKG_STATE_UNPACKED)
 		return 1;
 
 	return 0; /* not fully installed */
 }
 
 bool
-xbps_pkg_is_ignored(struct xbps_handle *xhp, const char *pkg)
+flappy_pkg_is_ignored(struct flappy_handle *xhp, const char *pkg)
 {
-	char pkgname[XBPS_NAME_SIZE];
+	char pkgname[FLAPPY_NAME_SIZE];
 	bool rv = false;
 
 	assert(xhp);
@@ -107,17 +107,17 @@ xbps_pkg_is_ignored(struct xbps_handle *xhp, const char *pkg)
 	if (!xhp->ignored_pkgs)
 		return false;
 
-	if (xbps_pkgpattern_name(pkgname, XBPS_NAME_SIZE, pkg) ||
-	    xbps_pkg_name(pkgname, XBPS_NAME_SIZE, pkg)) {
-		rv = xbps_match_string_in_array(xhp->ignored_pkgs, pkgname);
+	if (flappy_pkgpattern_name(pkgname, FLAPPY_NAME_SIZE, pkg) ||
+	    flappy_pkg_name(pkgname, FLAPPY_NAME_SIZE, pkg)) {
+		rv = flappy_match_string_in_array(xhp->ignored_pkgs, pkgname);
 		return rv;
 	}
 
-	return xbps_match_string_in_array(xhp->ignored_pkgs, pkg);
+	return flappy_match_string_in_array(xhp->ignored_pkgs, pkg);
 }
 
 const char *
-xbps_pkg_version(const char *pkg)
+flappy_pkg_version(const char *pkg)
 {
 	const char *p, *r;
 	size_t p_len;
@@ -143,7 +143,7 @@ xbps_pkg_version(const char *pkg)
 }
 
 char *
-xbps_binpkg_pkgver(const char *pkg)
+flappy_binpkg_pkgver(const char *pkg)
 {
 	const char *fname;
 	char *p, *p1, *res;
@@ -157,10 +157,10 @@ xbps_binpkg_pkgver(const char *pkg)
 	else
 		fname = pkg;
 
-	/* 5 == .xbps */
-	if ((len = strlen(fname)) < 5)
+	/* strip the .flappy extension */
+	if ((len = strlen(fname)) < sizeof(".flappy") - 1)
 		return NULL;
-	len -= 5;
+	len -= sizeof(".flappy") - 1;
 
 	p = malloc(len+1);
 	assert(p);
@@ -173,7 +173,7 @@ xbps_binpkg_pkgver(const char *pkg)
 	p[strlen(p)-strlen(p1)] = '\0';
 
 	/* sanity check it's a proper pkgver string */
-	if (xbps_pkg_version(p) == NULL) {
+	if (flappy_pkg_version(p) == NULL) {
 		free(p);
 		return NULL;
 	}
@@ -185,7 +185,7 @@ xbps_binpkg_pkgver(const char *pkg)
 }
 
 char *
-xbps_binpkg_arch(const char *pkg)
+flappy_binpkg_arch(const char *pkg)
 {
 	const char *fname;
 	char *p, *p1, *res;
@@ -199,10 +199,10 @@ xbps_binpkg_arch(const char *pkg)
 	else
 		fname = pkg;
 
-	/* 5 == .xbps */
-	if ((len = strlen(fname)) < 5)
+	/* strip the .flappy extension */
+	if ((len = strlen(fname)) < sizeof(".flappy") - 1)
 		return NULL;
-	len -= 5;
+	len -= sizeof(".flappy") - 1;
 
 	p = malloc(len+1);
 	assert(p);
@@ -220,7 +220,7 @@ xbps_binpkg_arch(const char *pkg)
 }
 
 const char *
-xbps_pkg_revision(const char *pkg)
+flappy_pkg_revision(const char *pkg)
 {
 	const char *p, *r;
 	size_t p_len;
@@ -246,7 +246,7 @@ xbps_pkg_revision(const char *pkg)
 }
 
 bool
-xbps_pkg_name(char *dst, size_t len, const char *pkg)
+flappy_pkg_name(char *dst, size_t len, const char *pkg)
 {
 	const char *p, *r;
 	size_t plen;
@@ -282,7 +282,7 @@ xbps_pkg_name(char *dst, size_t len, const char *pkg)
 }
 
 bool
-xbps_pkgpattern_name(char *dst, size_t len, const char *pkg)
+flappy_pkgpattern_name(char *dst, size_t len, const char *pkg)
 {
 	const char *res;
 	size_t plen;
@@ -310,7 +310,7 @@ xbps_pkgpattern_name(char *dst, size_t len, const char *pkg)
 }
 
 const char *
-xbps_pkgpattern_version(const char *pkg)
+flappy_pkgpattern_version(const char *pkg)
 {
 	assert(pkg != NULL);
 
@@ -318,20 +318,20 @@ xbps_pkgpattern_version(const char *pkg)
 }
 
 ssize_t
-xbps_pkg_path(struct xbps_handle *xhp, char *dst, size_t dstsz, xbps_dictionary_t pkgd)
+flappy_pkg_path(struct flappy_handle *xhp, char *dst, size_t dstsz, flappy_dictionary_t pkgd)
 {
 	const char *pkgver = NULL, *arch = NULL, *repoloc = NULL;
 	int l;
 
-	if (!xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver) ||
-	    !xbps_dictionary_get_cstring_nocopy(pkgd, "architecture", &arch) ||
-	    !xbps_dictionary_get_cstring_nocopy(pkgd, "repository", &repoloc))
+	if (!flappy_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver) ||
+	    !flappy_dictionary_get_cstring_nocopy(pkgd, "architecture", &arch) ||
+	    !flappy_dictionary_get_cstring_nocopy(pkgd, "repository", &repoloc))
 		return -EINVAL;
 
-	if (xbps_repository_is_remote(repoloc))
+	if (flappy_repository_is_remote(repoloc))
 		repoloc = xhp->cachedir;
 
-	l = snprintf(dst, dstsz, "%s/%s.%s.xbps", repoloc, pkgver, arch);
+	l = snprintf(dst, dstsz, "%s/%s.%s.flappy", repoloc, pkgver, arch);
 	if (l < 0 || (size_t)l >= dstsz)
 		return -ENOBUFS;
 
@@ -339,17 +339,17 @@ xbps_pkg_path(struct xbps_handle *xhp, char *dst, size_t dstsz, xbps_dictionary_
 }
 
 ssize_t
-xbps_pkg_url(struct xbps_handle *xhp UNUSED, char *dst, size_t dstsz, xbps_dictionary_t pkgd)
+flappy_pkg_url(struct flappy_handle *xhp UNUSED, char *dst, size_t dstsz, flappy_dictionary_t pkgd)
 {
 	const char *pkgver = NULL, *arch = NULL, *repoloc = NULL;
 	int l;
 
-	if (!xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver) ||
-	    !xbps_dictionary_get_cstring_nocopy(pkgd, "architecture", &arch) ||
-	    !xbps_dictionary_get_cstring_nocopy(pkgd, "repository", &repoloc))
+	if (!flappy_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver) ||
+	    !flappy_dictionary_get_cstring_nocopy(pkgd, "architecture", &arch) ||
+	    !flappy_dictionary_get_cstring_nocopy(pkgd, "repository", &repoloc))
 		return -EINVAL;
 
-	l = snprintf(dst, dstsz, "%s/%s.%s.xbps", repoloc, pkgver, arch);
+	l = snprintf(dst, dstsz, "%s/%s.%s.flappy", repoloc, pkgver, arch);
 	if (l < 0 || (size_t)l >= dstsz)
 		return -ENOBUFS;
 
@@ -357,18 +357,18 @@ xbps_pkg_url(struct xbps_handle *xhp UNUSED, char *dst, size_t dstsz, xbps_dicti
 }
 
 ssize_t
-xbps_pkg_path_or_url(struct xbps_handle *xhp UNUSED, char *dst, size_t dstsz, xbps_dictionary_t pkgd)
+flappy_pkg_path_or_url(struct flappy_handle *xhp UNUSED, char *dst, size_t dstsz, flappy_dictionary_t pkgd)
 {
 	const char *pkgver = NULL, *arch = NULL, *repoloc = NULL;
 	int l;
 
-	if (!xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver) ||
-	    !xbps_dictionary_get_cstring_nocopy(pkgd, "architecture", &arch) ||
-	    !xbps_dictionary_get_cstring_nocopy(pkgd, "repository", &repoloc))
+	if (!flappy_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver) ||
+	    !flappy_dictionary_get_cstring_nocopy(pkgd, "architecture", &arch) ||
+	    !flappy_dictionary_get_cstring_nocopy(pkgd, "repository", &repoloc))
 		return -EINVAL;
 
-	if (xbps_repository_is_remote(repoloc)) {
-		l = snprintf(dst, dstsz, "%s/%s.%s.xbps", xhp->cachedir,
+	if (flappy_repository_is_remote(repoloc)) {
+		l = snprintf(dst, dstsz, "%s/%s.%s.flappy", xhp->cachedir,
 		    pkgver, arch);
 		if (l < 0 || (size_t)l >= dstsz)
 			return -ENOBUFS;
@@ -378,7 +378,7 @@ xbps_pkg_path_or_url(struct xbps_handle *xhp UNUSED, char *dst, size_t dstsz, xb
 			return -errno;
 	}
 
-	l = snprintf(dst, dstsz, "%s/%s.%s.xbps", repoloc, pkgver, arch);
+	l = snprintf(dst, dstsz, "%s/%s.%s.flappy", repoloc, pkgver, arch);
 	if (l < 0 || (size_t)l >= dstsz)
 		return -ENOBUFS;
 
@@ -386,29 +386,29 @@ xbps_pkg_path_or_url(struct xbps_handle *xhp UNUSED, char *dst, size_t dstsz, xb
 }
 
 char *
-xbps_repository_pkg_path(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
+flappy_repository_pkg_path(struct flappy_handle *xhp, flappy_dictionary_t pkg_repod)
 {
 	const char *pkgver, *arch, *repoloc;
 	char *lbinpkg = NULL;
 
 	assert(xhp);
-	assert(xbps_object_type(pkg_repod) == XBPS_TYPE_DICTIONARY);
+	assert(flappy_object_type(pkg_repod) == FLAPPY_TYPE_DICTIONARY);
 
-	if (!xbps_dictionary_get_cstring_nocopy(pkg_repod,
+	if (!flappy_dictionary_get_cstring_nocopy(pkg_repod,
 	    "pkgver", &pkgver))
 		return NULL;
-	if (!xbps_dictionary_get_cstring_nocopy(pkg_repod,
+	if (!flappy_dictionary_get_cstring_nocopy(pkg_repod,
 	    "architecture", &arch))
 		return NULL;
-	if (!xbps_dictionary_get_cstring_nocopy(pkg_repod,
+	if (!flappy_dictionary_get_cstring_nocopy(pkg_repod,
 	    "repository", &repoloc))
 		return NULL;
 
-	if (xbps_repository_is_remote(repoloc)) {
+	if (flappy_repository_is_remote(repoloc)) {
 		/*
 		 * First check if binpkg is available in cachedir.
 		 */
-		lbinpkg = xbps_xasprintf("%s/%s.%s.xbps", xhp->cachedir,
+		lbinpkg = flappy_xasprintf("%s/%s.%s.flappy", xhp->cachedir,
 				pkgver, arch);
 		if (access(lbinpkg, R_OK) == 0)
 			return lbinpkg;
@@ -418,52 +418,52 @@ xbps_repository_pkg_path(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
 	/*
 	 * Local and remote repositories use the same path.
 	 */
-	return xbps_xasprintf("%s/%s.%s.xbps", repoloc, pkgver, arch);
+	return flappy_xasprintf("%s/%s.%s.flappy", repoloc, pkgver, arch);
 }
 
 bool
-xbps_binpkg_exists(struct xbps_handle *xhp, xbps_dictionary_t pkgd)
+flappy_binpkg_exists(struct flappy_handle *xhp, flappy_dictionary_t pkgd)
 {
 	char path[PATH_MAX];
 	const char *pkgver, *arch, *repoloc;
 
 	assert(xhp);
-	assert(xbps_object_type(pkgd) == XBPS_TYPE_DICTIONARY);
+	assert(flappy_object_type(pkgd) == FLAPPY_TYPE_DICTIONARY);
 
-	if (!xbps_dictionary_get_cstring_nocopy(pkgd,
+	if (!flappy_dictionary_get_cstring_nocopy(pkgd,
 	    "pkgver", &pkgver))
 		return NULL;
-	if (!xbps_dictionary_get_cstring_nocopy(pkgd,
+	if (!flappy_dictionary_get_cstring_nocopy(pkgd,
 	    "architecture", &arch))
 		return NULL;
-	if (!xbps_dictionary_get_cstring_nocopy(pkgd,
+	if (!flappy_dictionary_get_cstring_nocopy(pkgd,
 	    "repository", &repoloc))
 		return NULL;
 
-	snprintf(path, sizeof(path), "%s/%s.%s.xbps",
-	    xbps_repository_is_remote(repoloc) ? xhp->cachedir : repoloc,
+	snprintf(path, sizeof(path), "%s/%s.%s.flappy",
+	    flappy_repository_is_remote(repoloc) ? xhp->cachedir : repoloc,
 	    pkgver, arch);
 
 	return access(path, R_OK) == 0;
 }
 
 bool
-xbps_remote_binpkg_exists(struct xbps_handle *xhp, xbps_dictionary_t pkgd)
+flappy_remote_binpkg_exists(struct flappy_handle *xhp, flappy_dictionary_t pkgd)
 {
 	char path[PATH_MAX];
 	const char *pkgver, *arch;
 
 	assert(xhp);
-	assert(xbps_object_type(pkgd) == XBPS_TYPE_DICTIONARY);
+	assert(flappy_object_type(pkgd) == FLAPPY_TYPE_DICTIONARY);
 
-	if (!xbps_dictionary_get_cstring_nocopy(pkgd,
+	if (!flappy_dictionary_get_cstring_nocopy(pkgd,
 	    "pkgver", &pkgver))
 		return NULL;
-	if (!xbps_dictionary_get_cstring_nocopy(pkgd,
+	if (!flappy_dictionary_get_cstring_nocopy(pkgd,
 	    "architecture", &arch))
 		return NULL;
 
-	snprintf(path, sizeof(path), "%s/%s.%s.xbps.sig2", xhp->cachedir,
+	snprintf(path, sizeof(path), "%s/%s.%s.flappy.sig2", xhp->cachedir,
 	    pkgver, arch);
 
 	/* check if the signature file exists */
@@ -477,7 +477,7 @@ xbps_remote_binpkg_exists(struct xbps_handle *xhp, xbps_dictionary_t pkgd)
 }
 
 bool
-xbps_pkg_arch_match(struct xbps_handle *xhp, const char *orig,
+flappy_pkg_arch_match(struct flappy_handle *xhp, const char *orig,
 		const char *target)
 {
 	const char *arch;
@@ -503,7 +503,7 @@ xbps_pkg_arch_match(struct xbps_handle *xhp, const char *orig,
 }
 
 char *
-xbps_xasprintf(const char *fmt, ...)
+flappy_xasprintf(const char *fmt, ...)
 {
 	va_list ap;
 	char *buf = NULL;
@@ -523,7 +523,7 @@ xbps_xasprintf(const char *fmt, ...)
  * Match pkg against pattern, return 1 if matching, 0 otherwise or -1 on error.
  */
 int
-xbps_pkgpattern_match(const char *pkg, const char *pattern)
+flappy_pkgpattern_match(const char *pkg, const char *pattern)
 {
 	assert(pkg);
 	assert(pattern);
@@ -550,7 +550,7 @@ xbps_pkgpattern_match(const char *pkg, const char *pattern)
  * defaults set that we care about.
  */
 int
-xbps_humanize_number(char *buf, int64_t bytes)
+flappy_humanize_number(char *buf, int64_t bytes)
 {
 	assert(buf != NULL);
 
@@ -559,7 +559,7 @@ xbps_humanize_number(char *buf, int64_t bytes)
 }
 
 size_t
-xbps_strlcat(char *dest, const char *src, size_t siz)
+flappy_strlcat(char *dest, const char *src, size_t siz)
 {
 	assert(dest);
 	assert(src);
@@ -568,7 +568,7 @@ xbps_strlcat(char *dest, const char *src, size_t siz)
 }
 
 size_t
-xbps_strlcpy(char *dest, const char *src, size_t siz)
+flappy_strlcpy(char *dest, const char *src, size_t siz)
 {
 	assert(dest);
 	assert(src);
@@ -580,27 +580,27 @@ xbps_strlcpy(char *dest, const char *src, size_t siz)
  * Check if pkg is explicitly marked to replace a specific installed version.
  */
 bool
-xbps_pkg_reverts(xbps_dictionary_t pkg, const char *pkgver)
+flappy_pkg_reverts(flappy_dictionary_t pkg, const char *pkgver)
 {
 	unsigned int i;
-	xbps_array_t reverts;
+	flappy_array_t reverts;
 	const char *version;
 	const char *revertver = NULL;
 
 	assert(pkg);
 	assert(pkgver);
 
-	reverts = xbps_dictionary_get(pkg, "reverts");
-	if (xbps_array_count(reverts) == 0)
+	reverts = flappy_dictionary_get(pkg, "reverts");
+	if (flappy_array_count(reverts) == 0)
 		return false;
 
-	version = xbps_pkg_version(pkgver);
+	version = flappy_pkg_version(pkgver);
 	if (!version)
-		xbps_unreachable();
+		flappy_unreachable();
 
-	for (i = 0; i < xbps_array_count(reverts); i++) {
-		if (!xbps_array_get_cstring_nocopy(reverts, i, &revertver))
-			xbps_unreachable();
+	for (i = 0; i < flappy_array_count(reverts); i++) {
+		if (!flappy_array_get_cstring_nocopy(reverts, i, &revertver))
+			flappy_unreachable();
 		if (strcmp(version, revertver) == 0)
 			return true;
 	}
@@ -609,7 +609,7 @@ xbps_pkg_reverts(xbps_dictionary_t pkg, const char *pkgver)
 }
 
 char *
-xbps_sanitize_path(const char *src)
+flappy_sanitize_path(const char *src)
 {
 	const char *s = src;
 	char *d, *dest;
@@ -636,7 +636,7 @@ xbps_sanitize_path(const char *src)
 }
 
 char *
-xbps_symlink_target(struct xbps_handle *xhp, const char *path, const char *tgt)
+flappy_symlink_target(struct flappy_handle *xhp, const char *path, const char *tgt)
 {
 	struct stat sb;
 	char *res = NULL, *lnk = NULL, *p = NULL, *p1 = NULL, *dname = NULL;
@@ -663,7 +663,7 @@ xbps_symlink_target(struct xbps_handle *xhp, const char *path, const char *tgt)
 	if (tgt[0] != '/') {
 		/*
 		 * target file is relative and wasn't converted to absolute by
-		 * xbps-create(8), just compare it as is.
+		 * flappy-create(8), just compare it as is.
 		 */
 		return lnk;
 	}
@@ -688,7 +688,7 @@ xbps_symlink_target(struct xbps_handle *xhp, const char *path, const char *tgt)
 		} else {
 			p1 = strdup(p + strlen(rootdir));
 			assert(p1);
-			res = xbps_sanitize_path(p1);
+			res = flappy_sanitize_path(p1);
 			free(p1);
 		}
 		free(lnk);
@@ -700,18 +700,18 @@ xbps_symlink_target(struct xbps_handle *xhp, const char *path, const char *tgt)
 		dname = dirname(p);
 		assert(dname);
 		if (strcmp(rootdir, "/") == 0) {
-			p1 = xbps_xasprintf("%s/%s", dname, lnk);
+			p1 = flappy_xasprintf("%s/%s", dname, lnk);
 			assert(p1);
-			res = xbps_sanitize_path(p1);
+			res = flappy_sanitize_path(p1);
 			free(p1);
 			free(p);
 		} else {
 			p1 = strdup(dname + strlen(rootdir));
 			assert(p1);
 			free(p);
-			p = xbps_xasprintf("%s/%s", p1, lnk);
+			p = flappy_xasprintf("%s/%s", p1, lnk);
 			free(p1);
-			res = xbps_sanitize_path(p);
+			res = flappy_sanitize_path(p);
 			free(p);
 		}
 		free(lnk);
@@ -726,7 +726,7 @@ xbps_symlink_target(struct xbps_handle *xhp, const char *path, const char *tgt)
 }
 
 bool
-xbps_patterns_match(xbps_array_t patterns, const char *path)
+flappy_patterns_match(flappy_array_t patterns, const char *path)
 {
 	bool match = false;
 
@@ -735,10 +735,10 @@ xbps_patterns_match(xbps_array_t patterns, const char *path)
 	if (patterns == NULL)
 		return false;
 
-	for (unsigned int i = 0; i < xbps_array_count(patterns); i++) {
+	for (unsigned int i = 0; i < flappy_array_count(patterns); i++) {
 		const char *pattern = NULL;
 		bool negate = false;
-		if (!xbps_array_get_cstring_nocopy(patterns, i, &pattern))
+		if (!flappy_array_get_cstring_nocopy(patterns, i, &pattern))
 			continue;
 		if (pattern == NULL)
 			continue;

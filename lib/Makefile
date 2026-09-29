@@ -2,11 +2,11 @@
 
 RANLIB ?= ranlib
 
-LIBXBPS_MAJOR = 6
-LIBXBPS_MINOR = 0
-LIBXBPS_MICRO = 0
-LIBXBPS_SHLIB = libxbps.so.$(LIBXBPS_MAJOR).$(LIBXBPS_MINOR).$(LIBXBPS_MICRO)
-LDFLAGS += $(LIBXBPS_LDFLAGS) -shared -Wl,-soname,libxbps.so.$(LIBXBPS_MAJOR)
+LIBFLAPPY_MAJOR = 6
+LIBFLAPPY_MINOR = 0
+LIBFLAPPY_MICRO = 0
+LIBFLAPPY_SHLIB = libflappy.so.$(LIBFLAPPY_MAJOR).$(LIBFLAPPY_MINOR).$(LIBFLAPPY_MICRO)
+LDFLAGS += $(LIBFLAPPY_LDFLAGS) -shared -Wl,-soname,libflappy.so.$(LIBFLAPPY_MAJOR)
 
 # portableproplib
 LIBPROP_OBJS += portableproplib/prop_array.o portableproplib/prop_bool.o
@@ -31,10 +31,10 @@ endif
 LIBFETCH_INCS = fetch/common.h
 LIBFETCH_GEN = fetch/ftperr.h fetch/httperr.h
 
-# External code used by libxbps
+# External code used by libflappy
 EXTOBJS = external/dewey.o external/fexec.o external/mkpath.o
 
-# libxbps
+# libflappy
 OBJS = package_configure.o package_config_files.o package_orphans.o
 OBJS += package_remove.o package_state.o
 OBJS += package_unpack.o package_register.o package_script.o verifysig.o
@@ -56,7 +56,7 @@ OBJS += $(EXTOBJS) $(COMPAT_OBJS)
 # unnecessary unless pkgdb format changes
 # OBJS += pkgdb_conversion.o
 .PHONY: all
-all: libxbps.so libxbps.a
+all: libflappy.so libflappy.a
 
 fetch/ftperr.h: fetch/ftp.errors
 	@printf " [GEN]\t\t$@\n"
@@ -80,13 +80,13 @@ $(OBJS): %.o: %.c
 	@printf " [CC]\t\t$@\n"
 	${SILENT}$(CC) $(CPPFLAGS) $(CFLAGS) $(SHAREDLIB_CFLAGS) -c $< -o $@
 
-libxbps.so: $(LIBFETCH_OBJS) $(LIBPROP_OBJS) $(OBJS)
+libflappy.so: $(LIBFETCH_OBJS) $(LIBPROP_OBJS) $(OBJS)
 	@printf " [CCLD]\t\t$@\n"
-	${SILENT}$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $(LIBXBPS_SHLIB)
-	@-ln -sf $(LIBXBPS_SHLIB) libxbps.so.$(LIBXBPS_MAJOR)
-	@-ln -sf $(LIBXBPS_SHLIB) libxbps.so
+	${SILENT}$(CC) $^ $(CFLAGS) $(LDFLAGS) -o $(LIBFLAPPY_SHLIB)
+	@-ln -sf $(LIBFLAPPY_SHLIB) libflappy.so.$(LIBFLAPPY_MAJOR)
+	@-ln -sf $(LIBFLAPPY_SHLIB) libflappy.so
 
-libxbps.a: $(LIBFETCH_OBJS) $(LIBPROP_OBJS) $(OBJS)
+libflappy.a: $(LIBFETCH_OBJS) $(LIBPROP_OBJS) $(OBJS)
 	@printf " [AR]\t\t$@\n"
 	${SILENT}$(AR) rcs $@ $^
 	@printf " [RANLIB]\t$@\n"
@@ -95,16 +95,16 @@ libxbps.a: $(LIBFETCH_OBJS) $(LIBPROP_OBJS) $(OBJS)
 .PHONY: install
 install: all
 	install -d $(DESTDIR)$(LIBDIR)
-	install -m 644 libxbps.a $(DESTDIR)$(LIBDIR)
-	install -m 755 $(LIBXBPS_SHLIB) $(DESTDIR)$(LIBDIR)
-	cp -a libxbps.so $(DESTDIR)$(LIBDIR)
-	cp -a libxbps.so.$(LIBXBPS_MAJOR) $(DESTDIR)$(LIBDIR)
+	install -m 644 libflappy.a $(DESTDIR)$(LIBDIR)
+	install -m 755 $(LIBFLAPPY_SHLIB) $(DESTDIR)$(LIBDIR)
+	cp -a libflappy.so $(DESTDIR)$(LIBDIR)
+	cp -a libflappy.so.$(LIBFLAPPY_MAJOR) $(DESTDIR)$(LIBDIR)
 
 .PHONY: uninstall
 uninstall:
-	-rm -f $(DESTDIR)$(LIBDIR)/libxbps.*
+	-rm -f $(DESTDIR)$(LIBDIR)/libflappy.*
 
 .PHONY: clean
 clean:
-	-rm -f libxbps* $(OBJS) $(LIBFETCH_OBJS) $(LIBPROP_OBJS)
+	-rm -f libflappy* $(OBJS) $(LIBFETCH_OBJS) $(LIBPROP_OBJS)
 	-rm -f $(LIBFETCH_GEN)

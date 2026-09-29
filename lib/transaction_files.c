@@ -34,7 +34,7 @@
 #include <archive.h>
 #include <archive_entry.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 #include "uthash.h"
 
 enum type {
@@ -104,7 +104,7 @@ addItem(const char *file)
 	}
 	items[itemsidx++] = item;
 
-	if ((item->file = xbps_xasprintf(".%s", file)) == NULL) {
+	if ((item->file = flappy_xasprintf(".%s", file)) == NULL) {
 		free(item);
 		return NULL;
 	}
@@ -132,13 +132,13 @@ typestr(enum type typ)
 }
 
 static bool
-match_preserved_file(struct xbps_handle *xhp, const char *file)
+match_preserved_file(struct flappy_handle *xhp, const char *file)
 {
 	if (xhp->preserved_files == NULL)
 		return false;
 
 	assert(file && *file == '.');
-	return xbps_match_string_in_array(xhp->preserved_files, file+1);
+	return flappy_match_string_in_array(xhp->preserved_files, file+1);
 }
 
 static bool
@@ -159,7 +159,7 @@ can_delete_directory(const char *dir, size_t dirlen, size_t max)
 		if (errno == ENOENT) {
 			return true;
 		} else {
-			xbps_dbg_printf("[files] %s: %s: %s\n",
+			flappy_dbg_printf("[files] %s: %s: %s\n",
 			    __func__, dir, strerror(errno));
 			return false;
 		}
@@ -192,7 +192,7 @@ can_delete_directory(const char *dir, size_t dirlen, size_t max)
 	fcount -= 2;
 
 	if (fcount <= rmcount) {
-		xbps_dbg_printf("[files] only removed %zu out of %zu files: %s\n",
+		flappy_dbg_printf("[files] only removed %zu out of %zu files: %s\n",
 		    rmcount, fcount, dir);
 	}
 	closedir(dp);
@@ -201,7 +201,7 @@ can_delete_directory(const char *dir, size_t dirlen, size_t max)
 }
 
 static int
-collect_obsoletes(struct xbps_handle *xhp)
+collect_obsoletes(struct flappy_handle *xhp)
 {
 	/* These are symlinks in Void and must not be removed */
 	const char *basesymlinks[] = {
@@ -215,14 +215,14 @@ collect_obsoletes(struct xbps_handle *xhp)
 		"/usr/lib64",
 		"/var/run",
 	};
-	xbps_dictionary_t obsd;
+	flappy_dictionary_t obsd;
 	struct item *item;
 	int rv = 0;
 
 	if (xhp->transd == NULL)
 		return ENOTSUP;
 
-	if (!xbps_dictionary_get_dict(xhp->transd, "obsolete_files", &obsd))
+	if (!flappy_dictionary_get_dict(xhp->transd, "obsolete_files", &obsd))
 		return ENOENT;
 
 	/*
@@ -235,14 +235,14 @@ collect_obsoletes(struct xbps_handle *xhp)
 	 * - Check if directory needs and can be deleted.
 	 */
 	for (size_t i = 0; i < itemsidx; i++) {
-		xbps_array_t a;
+		flappy_array_t a;
 		const char *pkgname;
 		bool alloc = false, found = false;
 
 		item = items[i];
 
 		if (match_preserved_file(xhp, item->file)) {
-			xbps_dbg_printf("[obsoletes] %s: file exists on disk"
+			flappy_dbg_printf("[obsoletes] %s: file exists on disk"
 			    " and must be preserved: %s\n", item->old.pkgver, item->file);
 			continue;
 		}
@@ -254,7 +254,7 @@ collect_obsoletes(struct xbps_handle *xhp)
 			 * Probably obsolete.
 			 */
 			if (item->old.preserve) {
-				xbps_dbg_printf("[files] %s: skipping `preserve` %s: %s\n",
+				flappy_dbg_printf("[files] %s: skipping `preserve` %s: %s\n",
 				    item->old.pkgver, typestr(item->old.type), item->file);
 				continue;
 			}
@@ -270,7 +270,7 @@ collect_obsoletes(struct xbps_handle *xhp)
 			 * Check if new file (untracked until now) exists.
 			 */
 			if (access(item->file, F_OK) == 0) {
-				xbps_set_cb_state(xhp, XBPS_STATE_FILES_FAIL,
+				flappy_set_cb_state(xhp, FLAPPY_STATE_FILES_FAIL,
 				    EEXIST, item->new.pkgver,
 				    "%s: file `%s' already exists.",
 				    item->new.pkgver, item->file);
@@ -285,10 +285,10 @@ collect_obsoletes(struct xbps_handle *xhp)
 			 * Directory replaced by a file or symlink.
 			 * We MUST be able to delete the directory.
 			 */
-			xbps_dbg_printf("[files] %s: directory changed to %s: %s\n",
+			flappy_dbg_printf("[files] %s: directory changed to %s: %s\n",
 			    item->new.pkgver, typestr(item->new.type), item->file);
 			if (!can_delete_directory(item->file, item->len, i)) {
-				xbps_set_cb_state(xhp, XBPS_STATE_FILES_FAIL,
+				flappy_set_cb_state(xhp, FLAPPY_STATE_FILES_FAIL,
 				    ENOTEMPTY, item->old.pkgver,
 				    "%s: directory `%s' can not be deleted.",
 				    item->old.pkgver, item->file);
@@ -318,7 +318,7 @@ collect_obsoletes(struct xbps_handle *xhp)
 		 * Skip unexisting files and keep files with hash mismatch.
 		 */
 		if (item->old.sha256 != NULL) {
-			rv = xbps_file_sha256_check(item->file, item->old.sha256);
+			rv = flappy_file_sha256_check(item->file, item->old.sha256);
 			switch (rv) {
 			case 0:
 				/* hash matches, we can safely delete and/or overwrite it */
@@ -337,14 +337,14 @@ collect_obsoletes(struct xbps_handle *xhp)
 				 * keep the file.
 				 */
 				if (item->old.removepkg && !item->new.pkgname &&
-				    (xhp->flags & XBPS_FLAG_FORCE_REMOVE_FILES) != 0) {
-					xbps_dbg_printf("[obsoletes] %s: SHA256 mismatch,"
+				    (xhp->flags & FLAPPY_FLAG_FORCE_REMOVE_FILES) != 0) {
+					flappy_dbg_printf("[obsoletes] %s: SHA256 mismatch,"
 					    " force remove %s: %s\n",
 						item->old.pkgname, typestr(item->old.type),
 					    item->file+1);
 					break;
 				}
-				xbps_dbg_printf("[obsoletes] %s: SHA256 mismatch,"
+				flappy_dbg_printf("[obsoletes] %s: SHA256 mismatch,"
 				    " skipping remove %s: %s\n",
 				    item->old.pkgname, typestr(item->old.type),
 				    item->file+1);
@@ -359,7 +359,7 @@ collect_obsoletes(struct xbps_handle *xhp)
 		 */
 		if (item->old.pkgname && item->old.removepkg &&
 		    item->old.type == TYPE_LINK && !item->new.pkgname &&
-		    (xhp->flags & XBPS_FLAG_FORCE_REMOVE_FILES) == 0) {
+		    (xhp->flags & FLAPPY_FLAG_FORCE_REMOVE_FILES) == 0) {
 			char path[PATH_MAX], *lnk;
 			const char *file = item->file+1;
 			if (strcmp(xhp->rootdir, "/") != 0) {
@@ -367,14 +367,14 @@ collect_obsoletes(struct xbps_handle *xhp)
 				    xhp->rootdir, item->file+1);
 				file = path;
 			}
-			lnk = xbps_symlink_target(xhp, file, item->old.target);
+			lnk = flappy_symlink_target(xhp, file, item->old.target);
 			if (lnk == NULL) {
-				xbps_dbg_printf("[obsoletes] %s "
+				flappy_dbg_printf("[obsoletes] %s "
 				    "symlink_target: %s\n", item->file+1, strerror(errno));
 				continue;
 			}
 			if (strcmp(lnk, item->old.target) != 0) {
-				xbps_dbg_printf("[obsoletes] %s: skipping modified"
+				flappy_dbg_printf("[obsoletes] %s: skipping modified"
 				    " symlink (stored `%s' current `%s'): %s\n",
 				    item->old.pkgname, item->old.target, lnk, item->file+1);
 				free(lnk);
@@ -399,7 +399,7 @@ collect_obsoletes(struct xbps_handle *xhp)
 		}
 		assert(pkgname);
 
-		xbps_dbg_printf("[obsoletes] %s: removes %s: %s\n",
+		flappy_dbg_printf("[obsoletes] %s: removes %s: %s\n",
 		    pkgname, typestr(item->old.type), item->file+1);
 
 		/*
@@ -411,26 +411,26 @@ collect_obsoletes(struct xbps_handle *xhp)
 		/*
 		 * Add file to the packages `obsolete_files` dict
 		 */
-		if ((a = xbps_dictionary_get(obsd, pkgname)) == NULL) {
-			if (!(a = xbps_array_create()) ||
-				!(xbps_dictionary_set(obsd, pkgname, a)))
+		if ((a = flappy_dictionary_get(obsd, pkgname)) == NULL) {
+			if (!(a = flappy_array_create()) ||
+				!(flappy_dictionary_set(obsd, pkgname, a)))
 				return ENOMEM;
 			alloc = true;
 		}
-		if (!xbps_array_add_cstring(a, item->file)) {
+		if (!flappy_array_add_cstring(a, item->file)) {
 			if (alloc)
-				xbps_object_release(a);
+				flappy_object_release(a);
 			return ENOMEM;
 		}
 		if (alloc)
-			xbps_object_release(a);
+			flappy_object_release(a);
 	}
 
 	return rv;
 }
 
 static int
-collect_file(struct xbps_handle *xhp, const char *file, size_t size,
+collect_file(struct flappy_handle *xhp, const char *file, size_t size,
 		const char *pkgname, const char *pkgver, unsigned int idx,
 		const char *sha256, enum type type, bool update, bool removepkg,
 		bool preserve, bool removefile, const char *target)
@@ -471,20 +471,20 @@ collect_file(struct xbps_handle *xhp, const char *file, size_t size,
 			 * Multiple packages removing the same file.
 			 * Shouldn't happen, but its not fatal.
 			 */
-			xbps_dbg_printf("[files] %s: file already removed"
+			flappy_dbg_printf("[files] %s: file already removed"
 			    " by package `%s': %s\n", pkgver, item->old.pkgver, file);
 
 			/*
 			 * Check if `preserve` is violated.
 			 */
 			if (item->old.preserve && !preserve) {
-				xbps_set_cb_state(xhp, XBPS_STATE_FILES_FAIL,
+				flappy_set_cb_state(xhp, FLAPPY_STATE_FILES_FAIL,
 				    EPERM, item->old.pkgver,
 				    "%s: preserved file `%s' removed by %s.",
 				    item->old.pkgver, file, pkgver);
 				return EPERM;
 			} else if (preserve && !item->old.preserve) {
-				xbps_set_cb_state(xhp, XBPS_STATE_FILES_FAIL,
+				flappy_set_cb_state(xhp, FLAPPY_STATE_FILES_FAIL,
 				    EPERM, pkgver,
 				    "%s: preserved file `%s' removed by %s.",
 				    pkgver, file, item->old.pkgver);
@@ -511,11 +511,11 @@ collect_file(struct xbps_handle *xhp, const char *file, size_t size,
 			 * Multiple packages creating the same file.
 			 * This should never happen in a transaction.
 			 */
-			xbps_set_cb_state(xhp, XBPS_STATE_FILES_FAIL,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_FILES_FAIL,
 			    EEXIST, pkgver,
 			    "%s: file `%s' already installed by package %s.",
 			    pkgver, file, item->new.pkgver);
-			if (xhp->flags & XBPS_FLAG_IGNORE_FILE_CONFLICTS)
+			if (xhp->flags & FLAPPY_FLAG_IGNORE_FILE_CONFLICTS)
 				return 0;
 
 			return EEXIST;
@@ -555,11 +555,11 @@ add:
 		 */
 		if (strcmp(item->new.pkgname, item->old.pkgname) != 0) {
 			if (removefile) {
-				xbps_dbg_printf("[files] %s: %s moved to"
+				flappy_dbg_printf("[files] %s: %s moved to"
 				    " package `%s': %s\n", pkgver, typestr(item->old.type),
 				    item->new.pkgver, file);
 			} else {
-				xbps_dbg_printf("[files] %s: %s moved from"
+				flappy_dbg_printf("[files] %s: %s moved from"
 				    " package `%s': %s\n", pkgver, typestr(item->new.type),
 				    item->old.pkgver, file);
 			}
@@ -570,26 +570,26 @@ add:
 }
 
 static int
-collect_files(struct xbps_handle *xhp, xbps_dictionary_t d,
+collect_files(struct flappy_handle *xhp, flappy_dictionary_t d,
 			const char *pkgname, const char *pkgver, unsigned int idx,
 			bool update, bool removepkg, bool preserve, bool removefile)
 {
-	xbps_array_t a;
-	xbps_dictionary_t filed;
+	flappy_array_t a;
+	flappy_dictionary_t filed;
 	uint64_t size;
 	unsigned int i;
 	int rv = 0;
 	const char *file, *sha256 = NULL;
 	bool error = false;
 
-	if ((a = xbps_dictionary_get(d, "files"))) {
-		for (i = 0; i < xbps_array_count(a); i++) {
-			filed = xbps_array_get(a, i);
-			xbps_dictionary_get_cstring_nocopy(filed, "file", &file);
+	if ((a = flappy_dictionary_get(d, "files"))) {
+		for (i = 0; i < flappy_array_count(a); i++) {
+			filed = flappy_array_get(a, i);
+			flappy_dictionary_get_cstring_nocopy(filed, "file", &file);
 			if (removefile)
-				xbps_dictionary_get_cstring_nocopy(filed, "sha256", &sha256);
+				flappy_dictionary_get_cstring_nocopy(filed, "sha256", &sha256);
 			size = 0;
-			xbps_dictionary_get_uint64(filed, "size", &size);
+			flappy_dictionary_get_uint64(filed, "size", &size);
 			rv = collect_file(xhp, file, size, pkgname, pkgver, idx, sha256,
 			    TYPE_FILE, update, removepkg, preserve, removefile, NULL);
 			if (rv == EEXIST) {
@@ -600,14 +600,14 @@ collect_files(struct xbps_handle *xhp, xbps_dictionary_t d,
 			}
 		}
 	}
-	if ((a = xbps_dictionary_get(d, "conf_files"))) {
-		for (i = 0; i < xbps_array_count(a); i++) {
-			filed = xbps_array_get(a, i);
-			xbps_dictionary_get_cstring_nocopy(filed, "file", &file);
+	if ((a = flappy_dictionary_get(d, "conf_files"))) {
+		for (i = 0; i < flappy_array_count(a); i++) {
+			filed = flappy_array_get(a, i);
+			flappy_dictionary_get_cstring_nocopy(filed, "file", &file);
 			size = 0;
-			xbps_dictionary_get_uint64(filed, "size", &size);
+			flappy_dictionary_get_uint64(filed, "size", &size);
 			if (removefile)
-				xbps_dictionary_get_cstring_nocopy(filed, "sha256", &sha256);
+				flappy_dictionary_get_cstring_nocopy(filed, "sha256", &sha256);
 #if 0
 			/* XXX: how to handle conf_file size */
 			if (removefile && stat(file, &st) != -1 && size != (uint64_t)st.st_size)
@@ -623,12 +623,12 @@ collect_files(struct xbps_handle *xhp, xbps_dictionary_t d,
 			}
 		}
 	}
-	if ((a = xbps_dictionary_get(d, "links"))) {
-		for (i = 0; i < xbps_array_count(a); i++) {
+	if ((a = flappy_dictionary_get(d, "links"))) {
+		for (i = 0; i < flappy_array_count(a); i++) {
 			const char *target = NULL;
-			filed = xbps_array_get(a, i);
-			xbps_dictionary_get_cstring_nocopy(filed, "file", &file);
-			xbps_dictionary_get_cstring_nocopy(filed, "target", &target);
+			filed = flappy_array_get(a, i);
+			flappy_dictionary_get_cstring_nocopy(filed, "file", &file);
+			flappy_dictionary_get_cstring_nocopy(filed, "target", &target);
 			assert(target);
 			rv = collect_file(xhp, file, 0, pkgname, pkgver, idx, NULL,
 			    TYPE_LINK, update, removepkg, preserve, removefile, target);
@@ -640,10 +640,10 @@ collect_files(struct xbps_handle *xhp, xbps_dictionary_t d,
 			}
 		}
 	}
-	if ((a = xbps_dictionary_get(d, "dirs"))) {
-		for (i = 0; i < xbps_array_count(a); i++) {
-			filed = xbps_array_get(a, i);
-			xbps_dictionary_get_cstring_nocopy(filed, "file", &file);
+	if ((a = flappy_dictionary_get(d, "dirs"))) {
+		for (i = 0; i < flappy_array_count(a); i++) {
+			filed = flappy_array_get(a, i);
+			flappy_dictionary_get_cstring_nocopy(filed, "file", &file);
 			rv = collect_file(xhp, file, 0, pkgname, pkgver, idx, NULL,
 			    TYPE_DIR, update, removepkg, preserve, removefile, NULL);
 			if (rv == EEXIST) {
@@ -663,10 +663,10 @@ out:
 }
 
 static int
-collect_binpkg_files(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod,
+collect_binpkg_files(struct flappy_handle *xhp, flappy_dictionary_t pkg_repod,
 		unsigned int idx, bool update)
 {
-	xbps_dictionary_t filesd;
+	flappy_dictionary_t filesd;
 	struct archive *ar = NULL;
 	struct archive_entry *entry;
 	struct stat st;
@@ -675,12 +675,12 @@ collect_binpkg_files(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod,
 	/* size_t entry_size; */
 	int rv = 0, pkg_fd = -1;
 
-	xbps_dictionary_get_cstring_nocopy(pkg_repod, "pkgver", &pkgver);
+	flappy_dictionary_get_cstring_nocopy(pkg_repod, "pkgver", &pkgver);
 	assert(pkgver);
-	xbps_dictionary_get_cstring_nocopy(pkg_repod, "pkgname", &pkgname);
+	flappy_dictionary_get_cstring_nocopy(pkg_repod, "pkgname", &pkgname);
 	assert(pkgname);
 
-	bpkg = xbps_repository_pkg_path(xhp, pkg_repod);
+	bpkg = flappy_repository_pkg_path(xhp, pkg_repod);
 	if (bpkg == NULL) {
 		rv = errno;
 		goto out;
@@ -704,7 +704,7 @@ collect_binpkg_files(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod,
 	pkg_fd = open(bpkg, O_RDONLY|O_CLOEXEC);
 	if (pkg_fd == -1) {
 		rv = errno;
-		xbps_set_cb_state(xhp, XBPS_STATE_FILES_FAIL,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_FILES_FAIL,
 		    rv, pkgver,
 		    "%s: failed to open binary package `%s': %s",
 		    pkgver, bpkg, strerror(rv));
@@ -712,15 +712,15 @@ collect_binpkg_files(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod,
 	}
 	if (fstat(pkg_fd, &st) == -1) {
 		rv = errno;
-		xbps_set_cb_state(xhp, XBPS_STATE_FILES_FAIL,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_FILES_FAIL,
 		    rv, pkgver,
 		    "%s: failed to fstat binary package `%s': %s",
 		    pkgver, bpkg, strerror(rv));
 		goto out;
 	}
 	if (archive_read_open_fd(ar, pkg_fd, st.st_blksize) == ARCHIVE_FATAL) {
-		rv = xbps_archive_errno(ar);
-		xbps_set_cb_state(xhp, XBPS_STATE_FILES_FAIL,
+		rv = flappy_archive_errno(ar);
+		flappy_set_cb_state(xhp, FLAPPY_STATE_FILES_FAIL,
 		    rv, pkgver,
 		    "%s: failed to read binary package `%s': %s",
 		    pkgver, bpkg, strerror(rv));
@@ -737,16 +737,16 @@ collect_binpkg_files(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod,
 
 		entry_pname = archive_entry_pathname(entry);
 		if (!entry_pname)
-			xbps_unreachable();
+			flappy_unreachable();
 		if ((strcmp("./files.plist", entry_pname)) == 0) {
-			filesd = xbps_archive_get_dictionary(ar, entry);
+			filesd = flappy_archive_get_dictionary(ar, entry);
 			if (filesd == NULL) {
 				rv = EINVAL;
 				goto out;
 			}
 			rv = collect_files(xhp, filesd, pkgname, pkgver, idx,
 			    update, false, false, false);
-			xbps_object_release(filesd);
+			flappy_object_release(filesd);
 			goto out;
 		}
 		archive_read_data_skip(ar);
@@ -785,7 +785,7 @@ cleanup(void)
 }
 
 /*
- * xbps_transaction_files:
+ * flappy_transaction_files:
  *
  * - read files from each installed package in the transaction
  * - read files from each binary package in the transaction
@@ -805,11 +805,11 @@ cleanup(void)
  *     removing the directory.
  */
 int HIDDEN
-xbps_transaction_files(struct xbps_handle *xhp, xbps_object_iterator_t iter)
+flappy_transaction_files(struct flappy_handle *xhp, flappy_object_iterator_t iter)
 {
-	xbps_dictionary_t pkgd, filesd;
-	xbps_object_t obj;
-	xbps_trans_type_t ttype;
+	flappy_dictionary_t pkgd, filesd;
+	flappy_object_t obj;
+	flappy_trans_type_t ttype;
 	const char *pkgver, *pkgname;
 	int rv = 0;
 	unsigned int idx = 0;
@@ -817,29 +817,29 @@ xbps_transaction_files(struct xbps_handle *xhp, xbps_object_iterator_t iter)
 	assert(xhp);
 	assert(iter);
 
-	while ((obj = xbps_object_iterator_next(iter)) != NULL) {
+	while ((obj = flappy_object_iterator_next(iter)) != NULL) {
 		bool update = false;
 
 		/* increment the index of the given package package in the transaction */
 		idx++;
 
 		/* ignore pkgs in hold mode or in unpacked state */
-		ttype = xbps_transaction_pkg_type(obj);
-		if (ttype == XBPS_TRANS_HOLD || ttype == XBPS_TRANS_CONFIGURE) {
+		ttype = flappy_transaction_pkg_type(obj);
+		if (ttype == FLAPPY_TRANS_HOLD || ttype == FLAPPY_TRANS_CONFIGURE) {
 			continue;
 		}
 
-		if (!xbps_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgver)) {
+		if (!flappy_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgver)) {
 			return EINVAL;
 		}
-		if (!xbps_dictionary_get_cstring_nocopy(obj, "pkgname", &pkgname)) {
+		if (!flappy_dictionary_get_cstring_nocopy(obj, "pkgname", &pkgname)) {
 			return EINVAL;
 		}
 
-		update = (ttype == XBPS_TRANS_UPDATE);
+		update = (ttype == FLAPPY_TRANS_UPDATE);
 
-		if (ttype == XBPS_TRANS_INSTALL || ttype == XBPS_TRANS_REINSTALL || ttype == XBPS_TRANS_UPDATE) {
-			xbps_set_cb_state(xhp, XBPS_STATE_FILES, 0, pkgver,
+		if (ttype == FLAPPY_TRANS_INSTALL || ttype == FLAPPY_TRANS_REINSTALL || ttype == FLAPPY_TRANS_UPDATE) {
+			flappy_set_cb_state(xhp, FLAPPY_STATE_FILES, 0, pkgver,
 			    "%s: collecting files...", pkgver);
 			rv = collect_binpkg_files(xhp, obj, idx, update);
 			if (rv != 0)
@@ -854,23 +854,23 @@ xbps_transaction_files(struct xbps_handle *xhp, xbps_object_iterator_t iter)
 		 * a reinstallation, in which case the files list could
 		 * different between old and new "install".
 		 */
-		pkgd = xbps_pkgdb_get_pkg(xhp, pkgname);
+		pkgd = flappy_pkgdb_get_pkg(xhp, pkgname);
 		if (pkgd) {
 			const char *oldpkgver;
 			bool preserve = false;
-			bool removepkg = (ttype == XBPS_TRANS_REMOVE);
+			bool removepkg = (ttype == FLAPPY_TRANS_REMOVE);
 
-			xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &oldpkgver);
-			if (!xbps_dictionary_get_bool(obj, "preserve", &preserve))
+			flappy_dictionary_get_cstring_nocopy(pkgd, "pkgver", &oldpkgver);
+			if (!flappy_dictionary_get_bool(obj, "preserve", &preserve))
 				preserve = false;
 
-			filesd = xbps_pkgdb_get_pkg_files(xhp, pkgname);
+			filesd = flappy_pkgdb_get_pkg_files(xhp, pkgname);
 			if (filesd == NULL) {
 				continue;
 			}
 
 			assert(oldpkgver);
-			xbps_set_cb_state(xhp, XBPS_STATE_FILES, 0, oldpkgver,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_FILES, 0, oldpkgver,
 			    "%s: collecting files...", oldpkgver);
 			rv = collect_files(xhp, filesd, pkgname, pkgver, idx,
 			    update, removepkg, preserve, true);
@@ -878,7 +878,7 @@ xbps_transaction_files(struct xbps_handle *xhp, xbps_object_iterator_t iter)
 				goto out;
 		}
 	}
-	xbps_object_iterator_reset(iter);
+	flappy_object_iterator_reset(iter);
 
 	/*
 	 * Sort items by path length, to make it easier to find files in
@@ -888,7 +888,7 @@ xbps_transaction_files(struct xbps_handle *xhp, xbps_object_iterator_t iter)
 
 	if (chdir(xhp->rootdir) == -1) {
 		rv = errno;
-		xbps_set_cb_state(xhp, XBPS_STATE_FILES_FAIL, rv, xhp->rootdir,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_FILES_FAIL, rv, xhp->rootdir,
 		    "failed to chdir to rootdir `%s': %s",
 		    xhp->rootdir, strerror(errno));
 	}

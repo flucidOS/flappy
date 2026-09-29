@@ -1,6 +1,6 @@
 -include ../config.mk
 
-INCS =	xbps.h
+INCS =	flappy.h
 
 .PHONY: all
 all:
@@ -8,10 +8,10 @@ all:
 
 .PHONY: install
 install:
-	install -d $(DESTDIR)$(INCLUDEDIR)/xbps
+	install -d $(DESTDIR)$(INCLUDEDIR)/flappy
 	install -m 644 $(INCS) $(DESTDIR)$(INCLUDEDIR)
 	for f in array bool data dictionary number object string; do \
-		install -m 644 xbps/xbps_$${f}.h $(DESTDIR)$(INCLUDEDIR)/xbps; \
+		install -m 644 flappy/flappy_$${f}.h $(DESTDIR)$(INCLUDEDIR)/flappy; \
 	done
 
 .PHONY: uninstall

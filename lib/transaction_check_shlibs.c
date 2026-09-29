@@ -30,10 +30,10 @@
 
 #include "uthash.h"
 
-#include "xbps.h"
-#include "xbps/xbps_array.h"
-#include "xbps/xbps_dictionary.h"
-#include "xbps_api_impl.h"
+#include "flappy.h"
+#include "flappy/flappy_array.h"
+#include "flappy/flappy_dictionary.h"
+#include "flappy_api_impl.h"
 
 /*
  * Verify shlib-{provides,requires} for packages in transaction.
@@ -54,10 +54,10 @@ struct shlib_entry {
 };
 
 struct shlib_ctx {
-	struct xbps_handle *xhp;
+	struct flappy_handle *xhp;
 	struct shlib_entry *entries;
-	xbps_dictionary_t seen;
-	xbps_array_t missing;
+	flappy_dictionary_t seen;
+	flappy_array_t missing;
 };
 
 static struct shlib_entry *
@@ -76,7 +76,7 @@ shlib_entry_get(struct shlib_ctx *ctx, const char *name)
 		return res;
 	res = calloc(1, sizeof(*res));
 	if (!res) {
-		xbps_error_oom();
+		flappy_error_oom();
 		return NULL;
 	}
 	res->name = name;
@@ -85,12 +85,12 @@ shlib_entry_get(struct shlib_ctx *ctx, const char *name)
 }
 
 static int
-collect_shlib_array(struct shlib_ctx *ctx, xbps_array_t array)
+collect_shlib_array(struct shlib_ctx *ctx, flappy_array_t array)
 {
-	for (unsigned int i = 0; i < xbps_array_count(array); i++) {
+	for (unsigned int i = 0; i < flappy_array_count(array); i++) {
 		struct shlib_entry *entry;
 		const char *shlib = NULL;
-		if (!xbps_array_get_cstring_nocopy(array, i, &shlib))
+		if (!flappy_array_get_cstring_nocopy(array, i, &shlib))
 			return -EINVAL;
 		entry = shlib_entry_get(ctx, shlib);
 		if (!entry)
@@ -100,39 +100,39 @@ collect_shlib_array(struct shlib_ctx *ctx, xbps_array_t array)
 }
 
 static int
-collect_shlibs(struct shlib_ctx *ctx, xbps_array_t pkgs)
+collect_shlibs(struct shlib_ctx *ctx, flappy_array_t pkgs)
 {
-	xbps_object_t obj;
-	xbps_object_iterator_t iter;
-	xbps_bool_t placeholder;
+	flappy_object_t obj;
+	flappy_object_iterator_t iter;
+	flappy_bool_t placeholder;
 
-	// can't set null values to xbps_dictionary so just use one boolean
-	placeholder = xbps_bool_create(true);
+	// can't set null values to flappy_dictionary so just use one boolean
+	placeholder = flappy_bool_create(true);
 	if (!placeholder)
-		return xbps_error_oom();
+		return flappy_error_oom();
 
-	ctx->seen = xbps_dictionary_create();
+	ctx->seen = flappy_dictionary_create();
 	if (!ctx->seen)
-		return xbps_error_oom();
+		return flappy_error_oom();
 
-	for (unsigned int i = 0; i < xbps_array_count(pkgs); i++) {
+	for (unsigned int i = 0; i < flappy_array_count(pkgs); i++) {
 		const char *pkgname;
-		xbps_dictionary_t pkgd = xbps_array_get(pkgs, i);
-		xbps_array_t array;
+		flappy_dictionary_t pkgd = flappy_array_get(pkgs, i);
+		flappy_array_t array;
 
-		if (xbps_transaction_pkg_type(pkgd) == XBPS_TRANS_HOLD)
+		if (flappy_transaction_pkg_type(pkgd) == FLAPPY_TRANS_HOLD)
 			continue;
-		if (!xbps_dictionary_get_cstring_nocopy(pkgd, "pkgname", &pkgname)) {
-			xbps_error_printf("invalid package: missing `pkgname` property\n");
+		if (!flappy_dictionary_get_cstring_nocopy(pkgd, "pkgname", &pkgname)) {
+			flappy_error_printf("invalid package: missing `pkgname` property\n");
 			return -EINVAL;
 		}
-		if (!xbps_dictionary_set(ctx->seen, pkgname, placeholder))
-			return xbps_error_oom();
+		if (!flappy_dictionary_set(ctx->seen, pkgname, placeholder))
+			return flappy_error_oom();
 
-		if (xbps_transaction_pkg_type(pkgd) == XBPS_TRANS_REMOVE)
+		if (flappy_transaction_pkg_type(pkgd) == FLAPPY_TRANS_REMOVE)
 			continue;
 
-		array = xbps_dictionary_get(pkgd, "shlib-provides");
+		array = flappy_dictionary_get(pkgd, "shlib-provides");
 		if (array) {
 			int r = collect_shlib_array(ctx, array);
 			if (r < 0)
@@ -140,26 +140,26 @@ collect_shlibs(struct shlib_ctx *ctx, xbps_array_t pkgs)
 		}
 	}
 
-	iter = xbps_dictionary_iterator(ctx->xhp->pkgdb);
+	iter = flappy_dictionary_iterator(ctx->xhp->pkgdb);
 	if (!iter)
-		return xbps_error_oom();
+		return flappy_error_oom();
 
-	while ((obj = xbps_object_iterator_next(iter))) {
-		xbps_array_t array;
-		xbps_dictionary_t pkgd;
+	while ((obj = flappy_object_iterator_next(iter))) {
+		flappy_array_t array;
+		flappy_dictionary_t pkgd;
 		const char *pkgname = NULL;
 
-		pkgname = xbps_dictionary_keysym_cstring_nocopy(obj);
+		pkgname = flappy_dictionary_keysym_cstring_nocopy(obj);
 		/* ignore internal objs */
-		if (strncmp(pkgname, "_XBPS_", 6) == 0)
+		if (strncmp(pkgname, "_FLAPPY_", 6) == 0)
 			continue;
 
-		pkgd = xbps_dictionary_get_keysym(ctx->xhp->pkgdb, obj);
+		pkgd = flappy_dictionary_get_keysym(ctx->xhp->pkgdb, obj);
 
-		if (xbps_dictionary_get(ctx->seen, pkgname))
+		if (flappy_dictionary_get(ctx->seen, pkgname))
 			continue;
 
-		array = xbps_dictionary_get(pkgd, "shlib-provides");
+		array = flappy_dictionary_get(pkgd, "shlib-provides");
 		if (array) {
 			int r = collect_shlib_array(ctx, array);
 			if (r < 0)
@@ -167,97 +167,97 @@ collect_shlibs(struct shlib_ctx *ctx, xbps_array_t pkgs)
 		}
 	}
 
-	xbps_object_iterator_release(iter);
+	flappy_object_iterator_release(iter);
 	return 0;
 }
 
 static int
-check_shlibs(struct shlib_ctx *ctx, xbps_array_t pkgs)
+check_shlibs(struct shlib_ctx *ctx, flappy_array_t pkgs)
 {
-	xbps_object_iterator_t iter;
-	xbps_object_t obj;
+	flappy_object_iterator_t iter;
+	flappy_object_t obj;
 
-	for (unsigned int i = 0; i < xbps_array_count(pkgs); i++) {
-		xbps_array_t array;
-		xbps_dictionary_t pkgd = xbps_array_get(pkgs, i);
-		xbps_trans_type_t ttype = xbps_transaction_pkg_type(pkgd);
+	for (unsigned int i = 0; i < flappy_array_count(pkgs); i++) {
+		flappy_array_t array;
+		flappy_dictionary_t pkgd = flappy_array_get(pkgs, i);
+		flappy_trans_type_t ttype = flappy_transaction_pkg_type(pkgd);
 
-		if (ttype == XBPS_TRANS_HOLD || ttype == XBPS_TRANS_REMOVE)
+		if (ttype == FLAPPY_TRANS_HOLD || ttype == FLAPPY_TRANS_REMOVE)
 			continue;
 
-		array = xbps_dictionary_get(pkgd, "shlib-requires");
+		array = flappy_dictionary_get(pkgd, "shlib-requires");
 		if (!array)
 			continue;
-		for (unsigned int j = 0; j < xbps_array_count(array); j++) {
+		for (unsigned int j = 0; j < flappy_array_count(array); j++) {
 			const char *pkgver = NULL;
 			const char *shlib = NULL;
 			char *missing;
-			if (!xbps_array_get_cstring_nocopy(array, j, &shlib))
+			if (!flappy_array_get_cstring_nocopy(array, j, &shlib))
 				return -EINVAL;
 			if (shlib_entry_find(ctx->entries, shlib))
 				continue;
-			if (!xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver))
+			if (!flappy_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver))
 				return -EINVAL;
-			missing = xbps_xasprintf(
+			missing = flappy_xasprintf(
 			    "%s: broken, unresolvable shlib `%s'",
 			    pkgver, shlib);
-			if (!xbps_array_add_cstring_nocopy(ctx->missing, missing))
-				return xbps_error_oom();
+			if (!flappy_array_add_cstring_nocopy(ctx->missing, missing))
+				return flappy_error_oom();
 		}
 	}
 
-	iter = xbps_dictionary_iterator(ctx->xhp->pkgdb);
+	iter = flappy_dictionary_iterator(ctx->xhp->pkgdb);
 	if (!iter)
-		return xbps_error_oom();
+		return flappy_error_oom();
 
-	while ((obj = xbps_object_iterator_next(iter))) {
-		xbps_array_t array;
-		xbps_dictionary_t pkgd;
+	while ((obj = flappy_object_iterator_next(iter))) {
+		flappy_array_t array;
+		flappy_dictionary_t pkgd;
 		const char *pkgname = NULL;
 
-		pkgname = xbps_dictionary_keysym_cstring_nocopy(obj);
+		pkgname = flappy_dictionary_keysym_cstring_nocopy(obj);
 		/* ignore internal objs */
-		if (strncmp(pkgname, "_XBPS_", 6) == 0)
+		if (strncmp(pkgname, "_FLAPPY_", 6) == 0)
 			continue;
 
-		pkgd  = xbps_dictionary_get_keysym(ctx->xhp->pkgdb, obj);
+		pkgd  = flappy_dictionary_get_keysym(ctx->xhp->pkgdb, obj);
 
-		if (xbps_dictionary_get(ctx->seen, pkgname))
+		if (flappy_dictionary_get(ctx->seen, pkgname))
 			continue;
 
-		array = xbps_dictionary_get(pkgd, "shlib-requires");
+		array = flappy_dictionary_get(pkgd, "shlib-requires");
 		if (!array)
 			continue;
-		for (unsigned int i = 0; i < xbps_array_count(array); i++) {
+		for (unsigned int i = 0; i < flappy_array_count(array); i++) {
 			const char *pkgver = NULL;
 			const char *shlib = NULL;
 			char *missing;
-			if (!xbps_array_get_cstring_nocopy(array, i, &shlib))
+			if (!flappy_array_get_cstring_nocopy(array, i, &shlib))
 				return -EINVAL;
 			if (shlib_entry_find(ctx->entries, shlib))
 				continue;
-			if (!xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver))
+			if (!flappy_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver))
 				return -EINVAL;
-			missing = xbps_xasprintf(
+			missing = flappy_xasprintf(
 			    "%s: broken, unresolvable shlib `%s'", pkgver,
 			    shlib);
-			if (!xbps_array_add_cstring_nocopy(ctx->missing, missing))
-				return xbps_error_oom();
+			if (!flappy_array_add_cstring_nocopy(ctx->missing, missing))
+				return flappy_error_oom();
 		}
 	}
 
-	xbps_object_iterator_release(iter);
+	flappy_object_iterator_release(iter);
 	return 0;
 }
 
 bool HIDDEN
-xbps_transaction_check_shlibs(struct xbps_handle *xhp, xbps_array_t pkgs)
+flappy_transaction_check_shlibs(struct flappy_handle *xhp, flappy_array_t pkgs)
 {
 	struct shlib_entry *entry, *tmp;
 	struct shlib_ctx ctx = { .xhp = xhp };
 	int r;
 
-	ctx.missing = xbps_dictionary_get(xhp->transd, "missing_shlibs");
+	ctx.missing = flappy_dictionary_get(xhp->transd, "missing_shlibs");
 
 	r = collect_shlibs(&ctx, pkgs);
 	if (r < 0)
@@ -267,8 +267,8 @@ xbps_transaction_check_shlibs(struct xbps_handle *xhp, xbps_array_t pkgs)
 	if (r < 0)
 		goto err;
 
-	if (xbps_array_count(ctx.missing) == 0)
-		xbps_dictionary_remove(xhp->transd, "missing_shlibs");
+	if (flappy_array_count(ctx.missing) == 0)
+		flappy_dictionary_remove(xhp->transd, "missing_shlibs");
 
 	r = 0;
 err:
@@ -277,6 +277,6 @@ err:
 		free(entry);
 	}
 	if (ctx.seen)
-		xbps_object_release(ctx.seen);
+		flappy_object_release(ctx.seen);
 	return r == 0;
 }

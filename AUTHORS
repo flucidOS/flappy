@@ -1,3 +1,7 @@
+FLAPPY is a fork of XBPS (https://github.com/void-linux/xbps), originally
+written by the authors listed below and released under the 2-clause BSD
+license. The FlucidOS project maintains the fork.
+
 Juan Romero Pardines <xtraeme@gmail.com>
 Enno Boland <gottox@voidlinux.org>
 Duncan Overbruck <mail@duncano.de>

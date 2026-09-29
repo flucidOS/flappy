@@ -2,22 +2,23 @@ syntax: glob
 
 config.h
 config.mk
-bin/xbps-alternatives/xbps-alternatives
-bin/xbps-create/xbps-create
-bin/xbps-dgraph/xbps-dgraph
-bin/xbps-fbulk/xbps-fbulk
-bin/xbps-install/xbps-install
-bin/xbps-pkgdb/xbps-pkgdb
-bin/xbps-query/xbps-query
-bin/xbps-reconfigure/xbps-reconfigure
-bin/xbps-remove/xbps-remove
-bin/xbps-rindex/xbps-rindex
-bin/xbps-uhelper/xbps-uhelper
-bin/xbps-uchroot/xbps-uchroot
-bin/xbps-checkvers/xbps-checkvers
-bin/xbps-uunshare/xbps-uunshare
-bin/xbps-digest/xbps-digest
-bin/xbps-fetch/xbps-fetch
+bin/flappy/flappy
+bin/flappy-alternatives/flappy-alternatives
+bin/flappy-create/flappy-create
+bin/flappy-dgraph/flappy-dgraph
+bin/flappy-fbulk/flappy-fbulk
+bin/flappy-install/flappy-install
+bin/flappy-pkgdb/flappy-pkgdb
+bin/flappy-query/flappy-query
+bin/flappy-reconfigure/flappy-reconfigure
+bin/flappy-remove/flappy-remove
+bin/flappy-rindex/flappy-rindex
+bin/flappy-uhelper/flappy-uhelper
+bin/flappy-uchroot/flappy-uchroot
+bin/flappy-checkvers/flappy-checkvers
+bin/flappy-uunshare/flappy-uunshare
+bin/flappy-digest/flappy-digest
+bin/flappy-fetch/flappy-fetch
 *.static
 *.so*
 *.o
@@ -26,15 +27,20 @@ bin/xbps-fetch/xbps-fetch
 *.png
 *.pc
 api/
-doc/xbps_api_doxyfile
+doc/flappy_api_doxyfile
 ftperr.h
 httperr.h
 tests/*/*/*/*_test
 tests/*/*/*/*_tests
 tests/*/*/*_test
 tests/*/*/*_tests
-include/xbps.h
+include/flappy.h
 
 # vim backup files
 .*.swp
 *~
+
+# package repo build output (never commit signing keys)
+repo/
+.distfiles/
+*.pem

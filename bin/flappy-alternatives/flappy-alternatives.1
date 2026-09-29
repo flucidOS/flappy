@@ -1,0 +1,129 @@
+.Dd Aug 31, 2023
+.Dt FLAPPY-ALTERNATIVES 1
+.Os
+.Sh NAME
+.Nm flappy-alternatives
+.Nd FLAPPY utility to handle alternatives
+.Sh SYNOPSIS
+.Nm
+.Op OPTIONS
+.Ar MODE
+.Sh DESCRIPTION
+The
+.Nm
+utility lists or sets the alternatives provided by installed packages.
+Alternatives are classified by groups, and a group contains a number
+of symbolic links which are applied when the group is set.
+.Pp
+When a package is installed its alternative groups are registered in the package database (pkgdb).
+.Pp
+When a package is removed its alternative groups are unregistered from the package database (pkgdb).
+If there are no more alternative groups, the package database removes the references. If there were
+alternative groups registered previously, the previous package is set as default provider.
+.Sh OPTIONS
+.Bl -tag -width -x
+.It Fl C, Fl -config Ar dir
+Specifies a path to the FLAPPY configuration directory.
+If the first character is not '/' then it's a relative path of
+.Ar rootdir .
+.It Fl d, Fl -debug
+Enables extra debugging shown to stderr.
+.It Fl g, Fl -group
+Alternative group name to match. To be used with the
+.Ar set
+mode.
+.It Fl h, Fl -help
+Show the help message.
+.It Fl i, Fl -ignore-conf-repos
+Ignore repositories defined in configuration files.
+Only repositories specified in the command line via
+.Ar --repository
+will be used.
+.It Fl R
+Enable repository mode when listing alternatives.
+This mode explicitly looks for all alternatives available
+in repositories rather than looking for installed alternatives.
+.It Fl -repository Ar url
+Appends the specified repository to the top of the list.
+The
+.Ar url
+argument expects a URL to the repository for remote repositories or
+a path for local repositories.
+.It Fl r, Fl -rootdir Ar dir
+Specifies a full path for the target root directory.
+.It Fl v, Fl -verbose
+Enables verbose messages.
+.It Fl V, Fl -version
+Show the version information.
+.El
+.Sh MODE
+Only one of the following modes can be used at a time.
+.Bl -tag -width -x
+.It Fl l, Fl -list Op PKG Op -g Ar group
+Lists all current alternative groups or only from
+.Ar PKG ,
+or just a specific group, if the
+.Fl g Fl -group
+option is set.
+.It Fl s, Fl -set Ar PKG Op -g Ar group
+Set alternative groups specified by
+.Ar PKG
+or just a specific group, if the
+.Fl g Fl -group
+option is set.
+.El
+.Sh FILES
+.Bl -tag -width /var/db/flappy/.<pkgname>-files.plist
+.It Ar /etc/flappy.d
+Default configuration directory.
+.It Ar /usr/share/flappy.d
+Default system configuration directory.
+.It Ar /var/db/flappy/.<pkgname>-files.plist
+Package files metadata.
+.It Ar /var/db/flappy/pkgdb-0.38.plist
+Default package database (0.38 format). Keeps track of installed packages and properties.
+.It Ar /var/cache/flappy
+Default cache directory to store downloaded binary packages.
+.El
+.Sh ENVIRONMENT
+.Bl -tag -width FLAPPY_TARGET_ARCH
+.It Sy FLAPPY_ARCH
+Overrides
+.Xr uname 2
+machine result with this value.
+.It Sy FLAPPY_TARGET_ARCH
+Sets the target architecture to this value.
+.It Sy FLAPPY_SYSLOG
+Overrides the
+.Xr flappy.d 5
+.Sy syslog=true|false
+configuration option.
+.El
+.Sh EXIT STATUS
+.Ex
+A descriptive error message will be printed to stderr.
+.Sh SEE ALSO
+.Xr flappy-checkvers 1 ,
+.Xr flappy-create 1 ,
+.Xr flappy-dgraph 1 ,
+.Xr flappy-digest 1 ,
+.Xr flappy-fbulk 1 ,
+.Xr flappy-fetch 1 ,
+.Xr flappy-install 1 ,
+.Xr flappy-pkgdb 1 ,
+.Xr flappy-query 1 ,
+.Xr flappy-reconfigure 1 ,
+.Xr flappy-remove 1 ,
+.Xr flappy-rindex 1 ,
+.Xr flappy-uchroot 1 ,
+.Xr flappy-uunshare 1 ,
+.Xr flappy.d 5
+.Sh AUTHORS
+.An Juan Romero Pardines Aq Mt xtraeme@gmail.com
+.An Duncan Overbruck Aq Mt mail@duncano.de
+.Sh BUGS
+Probably, but I try to make this not happen. Use it under your own
+responsibility and enjoy your life.
+.Pp
+Report bugs at
+.Lk https://github.com/void-linux/flappy/issues

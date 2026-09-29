@@ -34,7 +34,7 @@
 #include <strings.h>
 #include <ctype.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 #define PKG_PATTERN_MAX 1024
 
@@ -124,7 +124,7 @@ dewey_mktest(int *op, const char *test)
  * 'alpha' encodes as 'alpha version', or Alpha, which is -3.
  * 'beta' encodes as 'beta version', or Beta, which is -2.
  * 'rc' encodes as 'release candidate', or RC, which is -1.
- * '_' encodes as 'xbps revision', which is used after all other tests
+ * '_' encodes as 'flappy revision', which is used after all other tests
  */
 static int
 mkcomponent(arr_t *ap, const char *num)
@@ -270,7 +270,7 @@ dewey_cmp(const char *lhs, int op, const char *rhs)
  * comparison of the basenames is done.
  */
 int
-xbps_cmpver(const char *pkg1, const char *pkg2)
+flappy_cmpver(const char *pkg1, const char *pkg2)
 {
 	if (dewey_cmp(pkg1, DEWEY_LT, pkg2))
 		return -1;
@@ -328,7 +328,7 @@ dewey_match(const char *pattern, const char *pkg)
 	if (sep2) {
 		char ver[PKG_PATTERN_MAX];
 
-		xbps_strlcpy(ver, sep, MIN((ssize_t)sizeof(ver), sep2-sep+1));
+		flappy_strlcpy(ver, sep, MIN((ssize_t)sizeof(ver), sep2-sep+1));
 		if (dewey_cmp(version, op, ver))
 			return 1;
 	} else {

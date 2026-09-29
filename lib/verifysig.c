@@ -39,10 +39,10 @@
 #include <openssl/ssl.h>
 #include <openssl/pem.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 static bool
-rsa_verify_hash(struct xbps_repo *repo, xbps_data_t pubkey,
+rsa_verify_hash(struct flappy_repo *repo, flappy_data_t pubkey,
 		unsigned char *sig, unsigned int siglen,
 		unsigned char *sha256)
 {
@@ -53,13 +53,13 @@ rsa_verify_hash(struct xbps_repo *repo, xbps_data_t pubkey,
 	ERR_load_crypto_strings();
 	SSL_load_error_strings();
 
-	bio = BIO_new_mem_buf(xbps_data_data_nocopy(pubkey),
-			xbps_data_size(pubkey));
+	bio = BIO_new_mem_buf(flappy_data_data_nocopy(pubkey),
+			flappy_data_size(pubkey));
 	assert(bio);
 
 	rsa = PEM_read_bio_RSA_PUBKEY(bio, NULL, NULL, NULL);
 	if (rsa == NULL) {
-		xbps_dbg_printf("`%s' error reading public key: %s\n",
+		flappy_dbg_printf("`%s' error reading public key: %s\n",
 		    repo->uri, ERR_error_string(ERR_get_error(), NULL));
 		return false;
 	}
@@ -73,44 +73,44 @@ rsa_verify_hash(struct xbps_repo *repo, xbps_data_t pubkey,
 }
 
 bool
-xbps_verify_signature(struct xbps_repo *repo, const char *sigfile,
+flappy_verify_signature(struct flappy_repo *repo, const char *sigfile,
 		unsigned char *digest)
 {
-	xbps_dictionary_t repokeyd = NULL;
-	xbps_data_t pubkey;
+	flappy_dictionary_t repokeyd = NULL;
+	flappy_data_t pubkey;
 	char *hexfp = NULL;
 	unsigned char *sig_buf = NULL;
 	size_t sigbuflen, sigfilelen;
 	char *rkeyfile = NULL;
 	bool val = false;
 
-	if (!xbps_dictionary_count(repo->idxmeta)) {
-		xbps_dbg_printf("%s: unsigned repository\n", repo->uri);
+	if (!flappy_dictionary_count(repo->idxmeta)) {
+		flappy_dbg_printf("%s: unsigned repository\n", repo->uri);
 		return false;
 	}
-	hexfp = xbps_pubkey2fp(xbps_dictionary_get(repo->idxmeta, "public-key"));
+	hexfp = flappy_pubkey2fp(flappy_dictionary_get(repo->idxmeta, "public-key"));
 	if (hexfp == NULL) {
-		xbps_dbg_printf("%s: incomplete signed repo, missing hexfp obj\n", repo->uri);
+		flappy_dbg_printf("%s: incomplete signed repo, missing hexfp obj\n", repo->uri);
 		return false;
 	}
 
 	/*
 	 * Prepare repository RSA public key to verify fname signature.
 	 */
-	rkeyfile = xbps_xasprintf("%s/keys/%s.plist", repo->xhp->metadir, hexfp);
-	repokeyd = xbps_plist_dictionary_from_file(rkeyfile);
-	if (xbps_object_type(repokeyd) != XBPS_TYPE_DICTIONARY) {
-		xbps_dbg_printf("cannot read rkey data at %s: %s\n",
+	rkeyfile = flappy_xasprintf("%s/keys/%s.plist", repo->xhp->metadir, hexfp);
+	repokeyd = flappy_plist_dictionary_from_file(rkeyfile);
+	if (flappy_object_type(repokeyd) != FLAPPY_TYPE_DICTIONARY) {
+		flappy_dbg_printf("cannot read rkey data at %s: %s\n",
 		    rkeyfile, strerror(errno));
 		goto out;
 	}
 
-	pubkey = xbps_dictionary_get(repokeyd, "public-key");
-	if (xbps_object_type(pubkey) != XBPS_TYPE_DATA)
+	pubkey = flappy_dictionary_get(repokeyd, "public-key");
+	if (flappy_object_type(pubkey) != FLAPPY_TYPE_DATA)
 		goto out;
 
-	if (!xbps_mmap_file(sigfile, (void *)&sig_buf, &sigbuflen, &sigfilelen)) {
-		xbps_dbg_printf("can't open signature file %s: %s\n",
+	if (!flappy_mmap_file(sigfile, (void *)&sig_buf, &sigbuflen, &sigfilelen)) {
+		flappy_dbg_printf("can't open signature file %s: %s\n",
 		    sigfile, strerror(errno));
 		goto out;
 	}
@@ -128,25 +128,25 @@ out:
 	if (sig_buf)
 		(void)munmap(sig_buf, sigbuflen);
 	if (repokeyd)
-		xbps_object_release(repokeyd);
+		flappy_object_release(repokeyd);
 
 	return val;
 }
 
 bool
-xbps_verify_file_signature(struct xbps_repo *repo, const char *fname)
+flappy_verify_file_signature(struct flappy_repo *repo, const char *fname)
 {
 	char sig[PATH_MAX];
-	unsigned char digest[XBPS_SHA256_DIGEST_SIZE];
+	unsigned char digest[FLAPPY_SHA256_DIGEST_SIZE];
 	bool val = false;
 
-	if (!xbps_file_sha256_raw(digest, sizeof digest, fname)) {
-		xbps_dbg_printf("can't open file %s: %s\n", fname, strerror(errno));
+	if (!flappy_file_sha256_raw(digest, sizeof digest, fname)) {
+		flappy_dbg_printf("can't open file %s: %s\n", fname, strerror(errno));
 		return false;
 	}
 
 	snprintf(sig, sizeof sig, "%s.sig2", fname);
-	val = xbps_verify_signature(repo, sig, digest);
+	val = flappy_verify_signature(repo, sig, digest);
 
 	return val;
 }

@@ -31,7 +31,7 @@
 #include <unistd.h>
 #include <libgen.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 /*
  * Processes the array of pkg dictionaries in "pkgs" to
@@ -41,41 +41,41 @@
  * the transaction dictionary.
  */
 bool HIDDEN
-xbps_transaction_check_replaces(struct xbps_handle *xhp, xbps_array_t pkgs)
+flappy_transaction_check_replaces(struct flappy_handle *xhp, flappy_array_t pkgs)
 {
 	assert(xhp);
 	assert(pkgs);
 
-	for (unsigned int i = 0; i < xbps_array_count(pkgs); i++) {
-		xbps_array_t replaces;
-		xbps_object_t obj;
-		xbps_object_iterator_t iter;
-		xbps_dictionary_t instd, reppkgd;
+	for (unsigned int i = 0; i < flappy_array_count(pkgs); i++) {
+		flappy_array_t replaces;
+		flappy_object_t obj;
+		flappy_object_iterator_t iter;
+		flappy_dictionary_t instd, reppkgd;
 		const char *pkgver = NULL;
-		char pkgname[XBPS_NAME_SIZE] = {0};
+		char pkgname[FLAPPY_NAME_SIZE] = {0};
 
-		obj = xbps_array_get(pkgs, i);
-		replaces = xbps_dictionary_get(obj, "replaces");
-		if (replaces == NULL || xbps_array_count(replaces) == 0)
+		obj = flappy_array_get(pkgs, i);
+		replaces = flappy_dictionary_get(obj, "replaces");
+		if (replaces == NULL || flappy_array_count(replaces) == 0)
 			continue;
 
-		if (!xbps_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgver)) {
+		if (!flappy_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgver)) {
 			return false;
 		}
-		if (!xbps_pkg_name(pkgname, XBPS_NAME_SIZE, pkgver)) {
+		if (!flappy_pkg_name(pkgname, FLAPPY_NAME_SIZE, pkgver)) {
 			return false;
 		}
 
-		iter = xbps_array_iterator(replaces);
+		iter = flappy_array_iterator(replaces);
 		assert(iter);
 
-		for (unsigned int j = 0; j < xbps_array_count(replaces); j++) {
+		for (unsigned int j = 0; j < flappy_array_count(replaces); j++) {
 			const char *curpkgver = NULL, *pattern = NULL;
-			char curpkgname[XBPS_NAME_SIZE] = {0};
+			char curpkgname[FLAPPY_NAME_SIZE] = {0};
 			bool instd_auto = false, hold = false;
-			xbps_trans_type_t ttype;
+			flappy_trans_type_t ttype;
 
-			if(!xbps_array_get_cstring_nocopy(replaces, j, &pattern))
+			if(!flappy_array_get_cstring_nocopy(replaces, j, &pattern))
 				abort();
 
 			/*
@@ -83,21 +83,21 @@ xbps_transaction_check_replaces(struct xbps_handle *xhp, xbps_array_t pkgs)
 			 * to be replaced. Also check if the package would be
 			 * installed in the transaction.
 			 */
-			if (((instd = xbps_pkgdb_get_pkg(xhp, pattern)) == NULL) &&
-			    ((instd = xbps_pkgdb_get_virtualpkg(xhp, pattern)) == NULL) &&
-			    ((instd = xbps_find_pkg_in_array(pkgs, pattern, XBPS_TRANS_INSTALL)) == NULL))
+			if (((instd = flappy_pkgdb_get_pkg(xhp, pattern)) == NULL) &&
+			    ((instd = flappy_pkgdb_get_virtualpkg(xhp, pattern)) == NULL) &&
+			    ((instd = flappy_find_pkg_in_array(pkgs, pattern, FLAPPY_TRANS_INSTALL)) == NULL))
 				continue;
 
-			if (!xbps_dictionary_get_cstring_nocopy(instd, "pkgver", &curpkgver)) {
-				xbps_object_iterator_release(iter);
+			if (!flappy_dictionary_get_cstring_nocopy(instd, "pkgver", &curpkgver)) {
+				flappy_object_iterator_release(iter);
 				return false;
 			}
 			/* ignore pkgs on hold mode */
-			if (xbps_dictionary_get_bool(instd, "hold", &hold) && hold)
+			if (flappy_dictionary_get_bool(instd, "hold", &hold) && hold)
 				continue;
 
-			if (!xbps_pkg_name(curpkgname, XBPS_NAME_SIZE, curpkgver)) {
-				xbps_object_iterator_release(iter);
+			if (!flappy_pkg_name(curpkgname, FLAPPY_NAME_SIZE, curpkgver)) {
+				flappy_object_iterator_release(iter);
 				return false;
 			}
 			/*
@@ -110,19 +110,19 @@ xbps_transaction_check_replaces(struct xbps_handle *xhp, xbps_array_t pkgs)
 			/*
 			 * Make sure to not add duplicates.
 			 */
-			xbps_dictionary_get_bool(instd, "automatic-install", &instd_auto);
-			reppkgd = xbps_find_pkg_in_array(pkgs, curpkgname, 0);
+			flappy_dictionary_get_bool(instd, "automatic-install", &instd_auto);
+			reppkgd = flappy_find_pkg_in_array(pkgs, curpkgname, 0);
 			if (reppkgd) {
-				ttype = xbps_transaction_pkg_type(reppkgd);
-				if (ttype == XBPS_TRANS_REMOVE || ttype == XBPS_TRANS_HOLD)
+				ttype = flappy_transaction_pkg_type(reppkgd);
+				if (ttype == FLAPPY_TRANS_REMOVE || ttype == FLAPPY_TRANS_HOLD)
 					continue;
-				if (!xbps_dictionary_get_cstring_nocopy(reppkgd,
+				if (!flappy_dictionary_get_cstring_nocopy(reppkgd,
 				    "pkgver", &curpkgver)) {
-					xbps_object_iterator_release(iter);
+					flappy_object_iterator_release(iter);
 					return false;
 				}
-				if (!xbps_match_virtual_pkg_in_dict(reppkgd, pattern) &&
-				    !xbps_pkgpattern_match(curpkgver, pattern))
+				if (!flappy_match_virtual_pkg_in_dict(reppkgd, pattern) &&
+				    !flappy_pkgpattern_match(curpkgver, pattern))
 					continue;
 				/*
 				 * Package contains replaces="pkgpattern", but the
@@ -130,22 +130,22 @@ xbps_transaction_check_replaces(struct xbps_handle *xhp, xbps_array_t pkgs)
 				 * transaction and it's going to be updated.
 				 */
 				if (!instd_auto) {
-					xbps_dictionary_remove(obj, "automatic-install");
+					flappy_dictionary_remove(obj, "automatic-install");
 				}
-				if (!xbps_dictionary_set_bool(reppkgd, "replaced", true)) {
-					xbps_object_iterator_release(iter);
+				if (!flappy_dictionary_set_bool(reppkgd, "replaced", true)) {
+					flappy_object_iterator_release(iter);
 					return false;
 				}
-				if (!xbps_transaction_pkg_type_set(reppkgd, XBPS_TRANS_REMOVE)) {
-					xbps_object_iterator_release(iter);
+				if (!flappy_transaction_pkg_type_set(reppkgd, FLAPPY_TRANS_REMOVE)) {
+					flappy_object_iterator_release(iter);
 					return false;
 				}
-				if (xbps_array_replace_dict_by_name(pkgs, reppkgd, curpkgname) != 0) {
-					xbps_object_iterator_release(iter);
+				if (flappy_array_replace_dict_by_name(pkgs, reppkgd, curpkgname) != 0) {
+					flappy_object_iterator_release(iter);
 					return false;
 				}
-				xbps_verbose_printf("Package `%s' will be replaced by `%s'\n", curpkgver, pkgver);
-				xbps_dbg_printf(
+				flappy_verbose_printf("Package `%s' will be replaced by `%s'\n", curpkgver, pkgver);
+				flappy_dbg_printf(
 				    "Package `%s' in transaction will be "
 				    "replaced by `%s', matched with `%s'\n",
 				    curpkgver, pkgver, pattern);
@@ -156,33 +156,33 @@ xbps_transaction_check_replaces(struct xbps_handle *xhp, xbps_array_t pkgs)
 			 * package that we want to replace we should respect
 			 * the automatic-install object.
 			 */
-			if (xbps_match_virtual_pkg_in_dict(obj, pattern)) {
+			if (flappy_match_virtual_pkg_in_dict(obj, pattern)) {
 				if (!instd_auto) {
-					xbps_dictionary_remove(obj, "automatic-install");
+					flappy_dictionary_remove(obj, "automatic-install");
 				}
 			}
 			/*
 			 * Add package dictionary into the transaction and mark
 			 * it as to be "removed".
 			 */
-			if (!xbps_transaction_pkg_type_set(instd, XBPS_TRANS_REMOVE)) {
-				xbps_object_iterator_release(iter);
+			if (!flappy_transaction_pkg_type_set(instd, FLAPPY_TRANS_REMOVE)) {
+				flappy_object_iterator_release(iter);
 				return false;
 			}
-			if (!xbps_dictionary_set_bool(instd, "replaced", true)) {
-				xbps_object_iterator_release(iter);
+			if (!flappy_dictionary_set_bool(instd, "replaced", true)) {
+				flappy_object_iterator_release(iter);
 				return false;
 			}
-			if (!xbps_array_add_first(pkgs, instd)) {
-				xbps_object_iterator_release(iter);
+			if (!flappy_array_add_first(pkgs, instd)) {
+				flappy_object_iterator_release(iter);
 				return false;
 			}
-			xbps_verbose_printf("Package `%s' will be replaced by `%s'\n", curpkgver, pkgver);
-			xbps_dbg_printf(
+			flappy_verbose_printf("Package `%s' will be replaced by `%s'\n", curpkgver, pkgver);
+			flappy_dbg_printf(
 			    "Package `%s' will be replaced by `%s', "
 			    "matched with `%s'\n", curpkgver, pkgver, pattern);
 		}
-		xbps_object_iterator_release(iter);
+		flappy_object_iterator_release(iter);
 	}
 
 	return true;

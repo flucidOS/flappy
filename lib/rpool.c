@@ -31,12 +31,12 @@
 #include <string.h>
 #include <errno.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 #include "fetch.h"
 
 struct rpool_fpkg {
-	xbps_array_t revdeps;
-	xbps_dictionary_t pkgd;
+	flappy_array_t revdeps;
+	flappy_dictionary_t pkgd;
 	const char *pattern;
 	const char *bestpkgver;
 	bool best;
@@ -49,7 +49,7 @@ typedef enum {
 	REVDEPS_PKG
 } pkg_repo_type_t;
 
-static SIMPLEQ_HEAD(rpool_head, xbps_repo) rpool_queue =
+static SIMPLEQ_HEAD(rpool_head, flappy_repo) rpool_queue =
     SIMPLEQ_HEAD_INITIALIZER(rpool_queue);
 
 /**
@@ -59,46 +59,46 @@ static SIMPLEQ_HEAD(rpool_head, xbps_repo) rpool_queue =
  */
 
 int
-xbps_rpool_sync(struct xbps_handle *xhp, const char *uri)
+flappy_rpool_sync(struct flappy_handle *xhp, const char *uri)
 {
 	const char *repouri = NULL;
 
-	for (unsigned int i = 0; i < xbps_array_count(xhp->repositories); i++) {
-		xbps_array_get_cstring_nocopy(xhp->repositories, i, &repouri);
+	for (unsigned int i = 0; i < flappy_array_count(xhp->repositories); i++) {
+		flappy_array_get_cstring_nocopy(xhp->repositories, i, &repouri);
 		/* If argument was set just process that repository */
 		if (uri && strcmp(repouri, uri))
 			continue;
 
-		if (xbps_repo_sync(xhp, repouri) == -1) {
-			xbps_dbg_printf(
+		if (flappy_repo_sync(xhp, repouri) == -1) {
+			flappy_dbg_printf(
 			    "[rpool] `%s' failed to fetch repository data: %s\n",
 			    repouri, fetchLastErrCode == 0 ? strerror(errno) :
-			    xbps_fetch_error_string());
+			    flappy_fetch_error_string());
 			continue;
 		}
 	}
 	return 0;
 }
 
-struct xbps_repo HIDDEN *
-xbps_regget_repo(struct xbps_handle *xhp, const char *url)
+struct flappy_repo HIDDEN *
+flappy_regget_repo(struct flappy_handle *xhp, const char *url)
 {
-	struct xbps_repo *repo;
+	struct flappy_repo *repo;
 	const char *repouri = NULL;
 
 	if (SIMPLEQ_EMPTY(&rpool_queue)) {
 		/* iterate until we have a match */
-		for (unsigned int i = 0; i < xbps_array_count(xhp->repositories); i++) {
-			xbps_array_get_cstring_nocopy(xhp->repositories, i, &repouri);
+		for (unsigned int i = 0; i < flappy_array_count(xhp->repositories); i++) {
+			flappy_array_get_cstring_nocopy(xhp->repositories, i, &repouri);
 			if (strcmp(repouri, url))
 				continue;
 
-			repo = xbps_repo_open(xhp, repouri);
+			repo = flappy_repo_open(xhp, repouri);
 			if (!repo)
 				return NULL;
 
 			SIMPLEQ_INSERT_TAIL(&rpool_queue, repo, entries);
-			xbps_dbg_printf("[rpool] `%s' registered.\n", repouri);
+			flappy_dbg_printf("[rpool] `%s' registered.\n", repouri);
 		}
 	}
 	SIMPLEQ_FOREACH(repo, &rpool_queue, entries)
@@ -108,10 +108,10 @@ xbps_regget_repo(struct xbps_handle *xhp, const char *url)
 	return NULL;
 }
 
-struct xbps_repo *
-xbps_rpool_get_repo(const char *url)
+struct flappy_repo *
+flappy_rpool_get_repo(const char *url)
 {
-	struct xbps_repo *repo;
+	struct flappy_repo *repo;
 
 	SIMPLEQ_FOREACH(repo, &rpool_queue, entries)
 		if (strcmp(url, repo->uri) == 0)
@@ -121,26 +121,26 @@ xbps_rpool_get_repo(const char *url)
 }
 
 void
-xbps_rpool_release(struct xbps_handle *xhp)
+flappy_rpool_release(struct flappy_handle *xhp)
 {
-	struct xbps_repo *repo;
+	struct flappy_repo *repo;
 
 	while ((repo = SIMPLEQ_FIRST(&rpool_queue))) {
-	       SIMPLEQ_REMOVE(&rpool_queue, repo, xbps_repo, entries);
-	       xbps_repo_release(repo);
+	       SIMPLEQ_REMOVE(&rpool_queue, repo, flappy_repo, entries);
+	       flappy_repo_release(repo);
 	}
 	if (xhp && xhp->repositories) {
-		xbps_object_release(xhp->repositories);
+		flappy_object_release(xhp->repositories);
 		xhp->repositories = NULL;
 	}
 }
 
 int
-xbps_rpool_foreach(struct xbps_handle *xhp,
-	int (*fn)(struct xbps_repo *, void *, bool *),
+flappy_rpool_foreach(struct flappy_handle *xhp,
+	int (*fn)(struct flappy_repo *, void *, bool *),
 	void *arg)
 {
-	struct xbps_repo *repo = NULL;
+	struct flappy_repo *repo = NULL;
 	const char *repouri = NULL;
 	int rv = 0;
 	bool foundrepo = false, done = false;
@@ -149,17 +149,17 @@ xbps_rpool_foreach(struct xbps_handle *xhp,
 	assert(fn != NULL);
 
 again:
-	for (unsigned int i = n; i < xbps_array_count(xhp->repositories); i++, n++) {
-		xbps_array_get_cstring_nocopy(xhp->repositories, i, &repouri);
-		xbps_dbg_printf("[rpool] checking `%s' at index %u\n", repouri, n);
-		if ((repo = xbps_rpool_get_repo(repouri)) == NULL) {
-			repo = xbps_repo_open(xhp, repouri);
+	for (unsigned int i = n; i < flappy_array_count(xhp->repositories); i++, n++) {
+		flappy_array_get_cstring_nocopy(xhp->repositories, i, &repouri);
+		flappy_dbg_printf("[rpool] checking `%s' at index %u\n", repouri, n);
+		if ((repo = flappy_rpool_get_repo(repouri)) == NULL) {
+			repo = flappy_repo_open(xhp, repouri);
 			if (!repo) {
-				xbps_repo_remove(xhp, repouri);
+				flappy_repo_remove(xhp, repouri);
 				goto again;
 			}
 			SIMPLEQ_INSERT_TAIL(&rpool_queue, repo, entries);
-			xbps_dbg_printf("[rpool] `%s' registered.\n", repouri);
+			flappy_dbg_printf("[rpool] `%s' registered.\n", repouri);
 		}
 		foundrepo = true;
 		rv = (*fn)(repo, arg, &done);
@@ -173,11 +173,11 @@ again:
 }
 
 static int
-find_virtualpkg_cb(struct xbps_repo *repo, void *arg, bool *done)
+find_virtualpkg_cb(struct flappy_repo *repo, void *arg, bool *done)
 {
 	struct rpool_fpkg *rpf = arg;
 
-	rpf->pkgd = xbps_repo_get_virtualpkg(repo, rpf->pattern);
+	rpf->pkgd = flappy_repo_get_virtualpkg(repo, rpf->pattern);
 	if (rpf->pkgd) {
 		/* found */
 		*done = true;
@@ -188,11 +188,11 @@ find_virtualpkg_cb(struct xbps_repo *repo, void *arg, bool *done)
 }
 
 static int
-find_pkg_cb(struct xbps_repo *repo, void *arg, bool *done)
+find_pkg_cb(struct flappy_repo *repo, void *arg, bool *done)
 {
 	struct rpool_fpkg *rpf = arg;
 
-	rpf->pkgd = xbps_repo_get_pkg(repo, rpf->pattern);
+	rpf->pkgd = flappy_repo_get_pkg(repo, rpf->pattern);
 	if (rpf->pkgd) {
 		/* found */
 		*done = true;
@@ -203,46 +203,46 @@ find_pkg_cb(struct xbps_repo *repo, void *arg, bool *done)
 }
 
 static int
-find_pkg_revdeps_cb(struct xbps_repo *repo, void *arg, bool *done UNUSED)
+find_pkg_revdeps_cb(struct flappy_repo *repo, void *arg, bool *done UNUSED)
 {
 	struct rpool_fpkg *rpf = arg;
-	xbps_array_t revdeps = NULL;
+	flappy_array_t revdeps = NULL;
 	const char *pkgver = NULL;
 
-	revdeps = xbps_repo_get_pkg_revdeps(repo, rpf->pattern);
-	if (xbps_array_count(revdeps)) {
+	revdeps = flappy_repo_get_pkg_revdeps(repo, rpf->pattern);
+	if (flappy_array_count(revdeps)) {
 		/* found */
 		if (rpf->revdeps == NULL)
-			rpf->revdeps = xbps_array_create();
-		for (unsigned int i = 0; i < xbps_array_count(revdeps); i++) {
-			xbps_array_get_cstring_nocopy(revdeps, i, &pkgver);
-			xbps_array_add_cstring_nocopy(rpf->revdeps, pkgver);
+			rpf->revdeps = flappy_array_create();
+		for (unsigned int i = 0; i < flappy_array_count(revdeps); i++) {
+			flappy_array_get_cstring_nocopy(revdeps, i, &pkgver);
+			flappy_array_add_cstring_nocopy(rpf->revdeps, pkgver);
 		}
-		xbps_object_release(revdeps);
+		flappy_object_release(revdeps);
 	}
 	return 0;
 }
 
 static int
-find_best_pkg_cb(struct xbps_repo *repo, void *arg, bool *done UNUSED)
+find_best_pkg_cb(struct flappy_repo *repo, void *arg, bool *done UNUSED)
 {
 	struct rpool_fpkg *rpf = arg;
-	xbps_dictionary_t pkgd;
+	flappy_dictionary_t pkgd;
 	const char *repopkgver = NULL;
 
-	pkgd = xbps_repo_get_pkg(repo, rpf->pattern);
+	pkgd = flappy_repo_get_pkg(repo, rpf->pattern);
 	if (pkgd == NULL) {
 		if (errno && errno != ENOENT)
 			return errno;
 
-		xbps_dbg_printf("[rpool] Package '%s' not found in repository"
+		flappy_dbg_printf("[rpool] Package '%s' not found in repository"
 		    " '%s'.\n", rpf->pattern, repo->uri);
 		return 0;
 	}
-	xbps_dictionary_get_cstring_nocopy(pkgd,
+	flappy_dictionary_get_cstring_nocopy(pkgd,
 	    "pkgver", &repopkgver);
 	if (rpf->bestpkgver == NULL) {
-		xbps_dbg_printf("[rpool] Found match '%s' (%s).\n",
+		flappy_dbg_printf("[rpool] Found match '%s' (%s).\n",
 		    repopkgver, repo->uri);
 		rpf->pkgd = pkgd;
 		rpf->bestpkgver = repopkgver;
@@ -252,8 +252,8 @@ find_best_pkg_cb(struct xbps_repo *repo, void *arg, bool *done UNUSED)
 	 * Compare current stored version against new
 	 * version from current package in repository.
 	 */
-	if (xbps_cmpver(repopkgver, rpf->bestpkgver) == 1) {
-		xbps_dbg_printf("[rpool] Found best match '%s' (%s).\n",
+	if (flappy_cmpver(repopkgver, rpf->bestpkgver) == 1) {
+		flappy_dbg_printf("[rpool] Found best match '%s' (%s).\n",
 		    repopkgver, repo->uri);
 		rpf->pkgd = pkgd;
 		rpf->bestpkgver = repopkgver;
@@ -261,8 +261,8 @@ find_best_pkg_cb(struct xbps_repo *repo, void *arg, bool *done UNUSED)
 	return 0;
 }
 
-static xbps_object_t
-repo_find_pkg(struct xbps_handle *xhp,
+static flappy_object_t
+repo_find_pkg(struct flappy_handle *xhp,
 	      const char *pkg,
 	      pkg_repo_type_t type)
 {
@@ -282,25 +282,25 @@ repo_find_pkg(struct xbps_handle *xhp,
 		/*
 		 * Find best pkg version.
 		 */
-		rv = xbps_rpool_foreach(xhp, find_best_pkg_cb, &rpf);
+		rv = flappy_rpool_foreach(xhp, find_best_pkg_cb, &rpf);
 		break;
 	case VIRTUAL_PKG:
 		/*
 		 * Find virtual pkg.
 		 */
-		rv = xbps_rpool_foreach(xhp, find_virtualpkg_cb, &rpf);
+		rv = flappy_rpool_foreach(xhp, find_virtualpkg_cb, &rpf);
 		break;
 	case REAL_PKG:
 		/*
 		 * Find real pkg.
 		 */
-		rv = xbps_rpool_foreach(xhp, find_pkg_cb, &rpf);
+		rv = flappy_rpool_foreach(xhp, find_pkg_cb, &rpf);
 		break;
 	case REVDEPS_PKG:
 		/*
 		 * Find revdeps for pkg.
 		 */
-		rv = xbps_rpool_foreach(xhp, find_pkg_revdeps_cb, &rpf);
+		rv = flappy_rpool_foreach(xhp, find_pkg_revdeps_cb, &rpf);
 		break;
 	}
 	if (rv != 0) {
@@ -319,29 +319,29 @@ repo_find_pkg(struct xbps_handle *xhp,
 	return rpf.pkgd;
 }
 
-xbps_dictionary_t
-xbps_rpool_get_virtualpkg(struct xbps_handle *xhp, const char *pkg)
+flappy_dictionary_t
+flappy_rpool_get_virtualpkg(struct flappy_handle *xhp, const char *pkg)
 {
 	return repo_find_pkg(xhp, pkg, VIRTUAL_PKG);
 }
 
-xbps_dictionary_t
-xbps_rpool_get_pkg(struct xbps_handle *xhp, const char *pkg)
+flappy_dictionary_t
+flappy_rpool_get_pkg(struct flappy_handle *xhp, const char *pkg)
 {
-	if (xhp->flags & XBPS_FLAG_BESTMATCH)
+	if (xhp->flags & FLAPPY_FLAG_BESTMATCH)
 		return repo_find_pkg(xhp, pkg, BEST_PKG);
 
 	return repo_find_pkg(xhp, pkg, REAL_PKG);
 }
 
-xbps_array_t
-xbps_rpool_get_pkg_revdeps(struct xbps_handle *xhp, const char *pkg)
+flappy_array_t
+flappy_rpool_get_pkg_revdeps(struct flappy_handle *xhp, const char *pkg)
 {
 	return repo_find_pkg(xhp, pkg, REVDEPS_PKG);
 }
 
-xbps_array_t
-xbps_rpool_get_pkg_fulldeptree(struct xbps_handle *xhp, const char *pkg)
+flappy_array_t
+flappy_rpool_get_pkg_fulldeptree(struct flappy_handle *xhp, const char *pkg)
 {
-	return xbps_get_pkg_fulldeptree(xhp, pkg, true);
+	return flappy_get_pkg_fulldeptree(xhp, pkg, true);
 }

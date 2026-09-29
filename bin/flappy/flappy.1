@@ -1,0 +1,49 @@
+.Dd September 28, 2026
+.Dt FLAPPY 1
+.Os
+.Sh NAME
+.Nm flappy
+.Nd simple front-end for the FLAPPY package manager
+.Sh SYNOPSIS
+.Nm
+.Cm install
+.Op Ar options
+.Ar package ...
+.Nm
+.Cm remove
+.Op Ar options
+.Ar package ...
+.Nm
+.Cm update
+.Nm
+.Cm upgrade
+.Sh DESCRIPTION
+.Nm
+wraps
+.Xr flappy-install 1
+and
+.Xr flappy-remove 1
+behind four commands.
+Any extra options are passed through to the underlying tool.
+.Bl -tag -width Ds
+.It Cm install Ar package ...
+Sync the repository indexes, then install the packages
+.Pq Nm flappy-install Fl S .
+.It Cm remove Ar package ...
+Remove the packages
+.Pq Nm flappy-remove .
+.It Cm update
+Sync the repository indexes
+.Pq Nm flappy-install Fl S .
+.It Cm upgrade
+Sync the repository indexes and upgrade all installed packages
+.Pq Nm flappy-install Fl Su .
+If the
+.Sy flappy
+package itself needs updating it is updated first and the upgrade is retried.
+.El
+.Sh SEE ALSO
+.Xr flappy-install 1 ,
+.Xr flappy-remove 1 ,
+.Xr flappy-query 1 ,
+.Xr flappy.d 5

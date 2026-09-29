@@ -1,23 +1,24 @@
 -include ../config.mk
 
-SUBDIRS +=	xbps-alternatives
-SUBDIRS +=	xbps-create
-SUBDIRS +=	xbps-dgraph
-SUBDIRS +=	xbps-install
-SUBDIRS +=	xbps-pkgdb
-SUBDIRS +=	xbps-query
-SUBDIRS +=	xbps-reconfigure
-SUBDIRS +=	xbps-remove
-SUBDIRS +=	xbps-rindex
-SUBDIRS +=	xbps-uhelper
-SUBDIRS +=	xbps-checkvers
-SUBDIRS +=	xbps-fbulk
-SUBDIRS +=	xbps-digest
-SUBDIRS +=	xbps-fetch
+SUBDIRS +=	flappy
+SUBDIRS +=	flappy-alternatives
+SUBDIRS +=	flappy-create
+SUBDIRS +=	flappy-dgraph
+SUBDIRS +=	flappy-install
+SUBDIRS +=	flappy-pkgdb
+SUBDIRS +=	flappy-query
+SUBDIRS +=	flappy-reconfigure
+SUBDIRS +=	flappy-remove
+SUBDIRS +=	flappy-rindex
+SUBDIRS +=	flappy-uhelper
+SUBDIRS +=	flappy-checkvers
+SUBDIRS +=	flappy-fbulk
+SUBDIRS +=	flappy-digest
+SUBDIRS +=	flappy-fetch
 
-ifeq (${XBPS_OS},linux)
-SUBDIRS +=	xbps-uchroot
-SUBDIRS +=	xbps-uunshare
+ifeq (${FLAPPY_OS},linux)
+SUBDIRS +=	flappy-uchroot
+SUBDIRS +=	flappy-uunshare
 endif
 
 include ../mk/subdir.mk

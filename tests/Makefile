@@ -1,5 +1,5 @@
 -include ../config.mk
 
-SUBDIRS = xbps
+SUBDIRS = flappy
 
 include ../mk/subdir.mk

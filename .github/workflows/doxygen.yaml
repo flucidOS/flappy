@@ -17,13 +17,13 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ghcr.io/void-linux/void-glibc-full:20230830r1
     steps:
-      - name: Prepare container
+      - name: Install dependencies
         run: |
-          xbps-install -Syu xbps; xbps-install -Syu
-          xbps-install -Sy bash git gcc make pkg-config zlib-devel openssl-devel libarchive-devel doxygen graphviz
-      - uses: classabbyamp/treeless-checkout-action@v1
+          sudo apt-get update
+          sudo apt-get install -y gcc make pkgconf zlib1g-dev libssl-dev \
+            libarchive-dev doxygen graphviz
+      - uses: actions/checkout@v4
       - name: Build
         run: |
           ./configure --enable-api-docs

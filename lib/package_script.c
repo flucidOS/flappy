@@ -32,11 +32,11 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 
 int
-xbps_pkg_exec_buffer(struct xbps_handle *xhp,
+flappy_pkg_exec_buffer(struct flappy_handle *xhp,
 		     const void *blob,
 		     const size_t blobsiz,
 		     const char *pkgver,
@@ -52,7 +52,7 @@ xbps_pkg_exec_buffer(struct xbps_handle *xhp,
 		"/bin/bash",
 		NULL
 	};
-	char pkgname[XBPS_NAME_SIZE], *fpath;
+	char pkgname[FLAPPY_NAME_SIZE], *fpath;
 	int fd, rv;
 
 	assert(blob);
@@ -60,7 +60,7 @@ xbps_pkg_exec_buffer(struct xbps_handle *xhp,
 	assert(action);
 
 	if (xhp->target_arch) {
-		xbps_dbg_printf("%s: not executing %s "
+		flappy_dbg_printf("%s: not executing %s "
 		    "install/remove action.\n", pkgver, action);
 		return 0;
 	}
@@ -70,9 +70,9 @@ xbps_pkg_exec_buffer(struct xbps_handle *xhp,
 		if (tmpdir == NULL)
 			tmpdir = P_tmpdir;
 
-		fpath = xbps_xasprintf("%s/.xbps-script-XXXXXX", tmpdir);
+		fpath = flappy_xasprintf("%s/.flappy-script-XXXXXX", tmpdir);
 	} else {
-		fpath = strdup(".xbps-script-XXXXXX");
+		fpath = strdup(".flappy-script-XXXXXX");
 	}
 
 	/* change cwd to rootdir to exec the script */
@@ -84,7 +84,7 @@ xbps_pkg_exec_buffer(struct xbps_handle *xhp,
 	/* Create temp file to run script */
 	if ((fd = mkstemp(fpath)) == -1) {
 		rv = errno;
-		xbps_dbg_printf("%s: mkstemp %s\n",
+		flappy_dbg_printf("%s: mkstemp %s\n",
 		    __func__, strerror(errno));
 		goto out;
 	}
@@ -92,7 +92,7 @@ xbps_pkg_exec_buffer(struct xbps_handle *xhp,
 	ret = write(fd, blob, blobsiz);
 	if (ret == -1) {
 		rv = errno;
-		xbps_dbg_printf("%s: write %s\n",
+		flappy_dbg_printf("%s: write %s\n",
 		    __func__, strerror(errno));
 		close(fd);
 		goto out;
@@ -106,11 +106,11 @@ xbps_pkg_exec_buffer(struct xbps_handle *xhp,
 	close(fd);
 
 	/* exec script */
-	if (!xbps_pkg_name(pkgname, sizeof(pkgname), pkgver))
-		xbps_unreachable();
-	version = xbps_pkg_version(pkgver);
+	if (!flappy_pkg_name(pkgname, sizeof(pkgname), pkgver))
+		flappy_unreachable();
+	version = flappy_pkg_version(pkgver);
 	if (!version)
-		xbps_unreachable();
+		flappy_unreachable();
 
 	// find a shell that can be used to execute the script.
 	for (i = 0; shells[i] != NULL; i++) {
@@ -119,15 +119,15 @@ xbps_pkg_exec_buffer(struct xbps_handle *xhp,
 		}
 	}
 	if (shells[i] != NULL) {
-		rv = xbps_file_exec(xhp, shells[i], fpath, action, pkgname, version,
+		rv = flappy_file_exec(xhp, shells[i], fpath, action, pkgname, version,
 				update ? "yes" : "no",
 				"no", xhp->native_arch, NULL);
 	} else if (access("/bin/busybox", X_OK) == 0) {
-		rv = xbps_file_exec(xhp, "/bin/busybox", "sh", fpath, action, pkgname, version,
+		rv = flappy_file_exec(xhp, "/bin/busybox", "sh", fpath, action, pkgname, version,
 				update ? "yes" : "no",
 				"no", xhp->native_arch, NULL);
 	} else if (access("/bin/busybox.static", X_OK) == 0) {
-		rv = xbps_file_exec(xhp, "/bin/busybox.static", "sh", fpath, action, pkgname, version,
+		rv = flappy_file_exec(xhp, "/bin/busybox.static", "sh", fpath, action, pkgname, version,
 				update ? "yes" : "no",
 				"no", xhp->native_arch, NULL);
 	} else {
@@ -141,13 +141,13 @@ out:
 }
 
 int
-xbps_pkg_exec_script(struct xbps_handle *xhp,
-		     xbps_dictionary_t d,
+flappy_pkg_exec_script(struct flappy_handle *xhp,
+		     flappy_dictionary_t d,
 		     const char *script,
 		     const char *action,
 		     bool update)
 {
-	xbps_data_t data;
+	flappy_data_t data;
 	const void *buf;
 	size_t buflen;
 	const char *pkgver = NULL;
@@ -158,15 +158,15 @@ xbps_pkg_exec_script(struct xbps_handle *xhp,
 	assert(script);
 	assert(action);
 
-	data = xbps_dictionary_get(d, script);
+	data = flappy_dictionary_get(d, script);
 	if (data == NULL)
 		return 0;
 
-	xbps_dictionary_get_cstring_nocopy(d, "pkgver", &pkgver);
+	flappy_dictionary_get_cstring_nocopy(d, "pkgver", &pkgver);
 
-	buf = xbps_data_data_nocopy(data);
-	buflen = xbps_data_size(data);
-	rv = xbps_pkg_exec_buffer(xhp, buf, buflen, pkgver, action, update);
+	buf = flappy_data_data_nocopy(data);
+	buflen = flappy_data_size(data);
+	rv = flappy_pkg_exec_buffer(xhp, buf, buflen, pkgver, action, update);
 
 	return rv;
 }

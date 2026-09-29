@@ -46,7 +46,7 @@
 
 #include <openssl/sha.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 #include "fetch.h"
 #include "compat.h"
 
@@ -55,7 +55,7 @@
  * @brief Download routines
  * @defgroup download Download functions
  *
- * XBPS download related functions, frontend for NetBSD's libfetch.
+ * FLAPPY download related functions, frontend for NetBSD's libfetch.
  */
 static const char *
 print_time(time_t *t)
@@ -69,24 +69,24 @@ print_time(time_t *t)
 }
 
 void HIDDEN
-xbps_fetch_set_cache_connection(int global, int per_host)
+flappy_fetch_set_cache_connection(int global, int per_host)
 {
 	if (global == 0)
-		global = XBPS_FETCH_CACHECONN;
+		global = FLAPPY_FETCH_CACHECONN;
 	if (per_host == 0)
-		per_host = XBPS_FETCH_CACHECONN_HOST;
+		per_host = FLAPPY_FETCH_CACHECONN_HOST;
 
 	fetchConnectionCacheInit(global, per_host);
 }
 
 void HIDDEN
-xbps_fetch_unset_cache_connection(void)
+flappy_fetch_unset_cache_connection(void)
 {
 	fetchConnectionCacheClose();
 }
 
 const char *
-xbps_fetch_error_string(void)
+flappy_fetch_error_string(void)
 {
 	if (fetchLastErrCode == 0 || fetchLastErrCode == FETCH_OK)
 		return NULL;
@@ -95,7 +95,7 @@ xbps_fetch_error_string(void)
 }
 
 int
-xbps_fetch_file_dest_sha256(struct xbps_handle *xhp, const char *uri, const char *filename, const char *flags, unsigned char *digest, size_t digestlen)
+flappy_fetch_file_dest_sha256(struct flappy_handle *xhp, const char *uri, const char *filename, const char *flags, unsigned char *digest, size_t digestlen)
 {
 	struct stat st, st_tmpfile, *stp;
 	struct url *url = NULL;
@@ -114,8 +114,8 @@ xbps_fetch_file_dest_sha256(struct xbps_handle *xhp, const char *uri, const char
 	assert(uri);
 
 	if (digest != NULL) {
-		assert(digestlen >= XBPS_SHA256_DIGEST_SIZE);
-		if (digestlen < XBPS_SHA256_DIGEST_SIZE) {
+		assert(digestlen >= FLAPPY_SHA256_DIGEST_SIZE);
+		if (digestlen < FLAPPY_SHA256_DIGEST_SIZE) {
 			errno = ENOBUFS;
 			return -1;
 		}
@@ -130,9 +130,9 @@ xbps_fetch_file_dest_sha256(struct xbps_handle *xhp, const char *uri, const char
 
 	memset(&fetch_flags, 0, sizeof(fetch_flags));
 	if (flags != NULL)
-		xbps_strlcpy(fetch_flags, flags, 7);
+		flappy_strlcpy(fetch_flags, flags, 7);
 
-	tempfile = xbps_xasprintf("%s.part", filename);
+	tempfile = flappy_xasprintf("%s.part", filename);
 	/*
 	 * Check if we have to resume a transfer.
 	 */
@@ -153,7 +153,7 @@ xbps_fetch_file_dest_sha256(struct xbps_handle *xhp, const char *uri, const char
 	if (stat(filename, &st) == 0) {
 		refetch = true;
 		url->last_modified = st.st_mtime;
-		xbps_strlcat(fetch_flags, "i", sizeof(fetch_flags));
+		flappy_strlcat(fetch_flags, "i", sizeof(fetch_flags));
 	} else {
 		if (errno != ENOENT) {
 			rv = -1;
@@ -174,12 +174,12 @@ xbps_fetch_file_dest_sha256(struct xbps_handle *xhp, const char *uri, const char
 	fio = fetchXGet(url, &url_st, fetch_flags);
 
 	/* debug stuff */
-	xbps_dbg_printf("st.st_size: %zd\n", (ssize_t)stp->st_size);
-	xbps_dbg_printf("st.st_atime: %s\n", print_time(&stp->st_atime));
-	xbps_dbg_printf("st.st_mtime: %s\n", print_time(&stp->st_mtime));
-	xbps_dbg_printf("url_stat.size: %zd\n", (ssize_t)url_st.size);
-	xbps_dbg_printf("url_stat.atime: %s\n", print_time(&url_st.atime));
-	xbps_dbg_printf("url_stat.mtime: %s\n", print_time(&url_st.mtime));
+	flappy_dbg_printf("st.st_size: %zd\n", (ssize_t)stp->st_size);
+	flappy_dbg_printf("st.st_atime: %s\n", print_time(&stp->st_atime));
+	flappy_dbg_printf("st.st_mtime: %s\n", print_time(&stp->st_mtime));
+	flappy_dbg_printf("url_stat.size: %zd\n", (ssize_t)url_st.size);
+	flappy_dbg_printf("url_stat.atime: %s\n", print_time(&url_st.atime));
+	flappy_dbg_printf("url_stat.mtime: %s\n", print_time(&url_st.mtime));
 
 	if (fio == NULL) {
 		if (fetchLastErrCode == FETCH_UNCHANGED) {
@@ -193,7 +193,7 @@ xbps_fetch_file_dest_sha256(struct xbps_handle *xhp, const char *uri, const char
 		goto fetch_file_out;
 	}
 	if (url_st.size == -1) {
-		xbps_dbg_printf("Remote file size is unknown, resume "
+		flappy_dbg_printf("Remote file size is unknown, resume "
 		     "not possible...\n");
 		restart = false;
 	} else if (stp->st_size > url_st.size) {
@@ -201,18 +201,18 @@ xbps_fetch_file_dest_sha256(struct xbps_handle *xhp, const char *uri, const char
 		 * Remove local file if bigger than remote, and refetch the
 		 * whole shit again.
 		 */
-		xbps_dbg_printf("Local file %s is greater than remote, "
+		flappy_dbg_printf("Local file %s is greater than remote, "
 		    "removing local file and refetching...\n", filename);
 		(void)remove(tempfile);
 		restart = false;
 	}
-	xbps_dbg_printf("url->scheme: %s\n", url->scheme);
-	xbps_dbg_printf("url->host: %s\n", url->host);
-	xbps_dbg_printf("url->port: %d\n", url->port);
-	xbps_dbg_printf("url->doc: %s\n", url->doc);
-	xbps_dbg_printf("url->offset: %zd\n", (ssize_t)url->offset);
-	xbps_dbg_printf("url->length: %zu\n", url->length);
-	xbps_dbg_printf("url->last_modified: %s\n",
+	flappy_dbg_printf("url->scheme: %s\n", url->scheme);
+	flappy_dbg_printf("url->host: %s\n", url->host);
+	flappy_dbg_printf("url->port: %d\n", url->port);
+	flappy_dbg_printf("url->doc: %s\n", url->doc);
+	flappy_dbg_printf("url->offset: %zd\n", (ssize_t)url->offset);
+	flappy_dbg_printf("url->length: %zu\n", url->length);
+	flappy_dbg_printf("url->last_modified: %s\n",
 	    print_time(&url->last_modified));
 	/*
 	 * If restarting, open the file for appending otherwise create it.
@@ -237,7 +237,7 @@ xbps_fetch_file_dest_sha256(struct xbps_handle *xhp, const char *uri, const char
 				SHA256_Update(&sha256, buf, bytes_read);
 			}
 			if (bytes_read == -1) {
-				xbps_dbg_printf("IO error while reading %s: %s\n",
+				flappy_dbg_printf("IO error while reading %s: %s\n",
 					tempfile, strerror(errno));
 				errno = EIO;
 				rv = -1;
@@ -252,7 +252,7 @@ xbps_fetch_file_dest_sha256(struct xbps_handle *xhp, const char *uri, const char
 	 * and let the user know that the transfer is going to start
 	 * immediately.
 	 */
-	xbps_set_cb_fetch(xhp, url_st.size, url->offset, url->offset,
+	flappy_set_cb_fetch(xhp, url_st.size, url->offset, url->offset,
 	    filename, true, false, false);
 	/*
 	 * Start fetching requested file.
@@ -262,7 +262,7 @@ xbps_fetch_file_dest_sha256(struct xbps_handle *xhp, const char *uri, const char
 			SHA256_Update(&sha256, buf, bytes_read);
 		bytes_written = write(fd, buf, (size_t)bytes_read);
 		if (bytes_written != bytes_read) {
-			xbps_dbg_printf("Couldn't write to %s!\n", tempfile);
+			flappy_dbg_printf("Couldn't write to %s!\n", tempfile);
 			rv = -1;
 			goto fetch_file_out;
 		}
@@ -271,18 +271,18 @@ xbps_fetch_file_dest_sha256(struct xbps_handle *xhp, const char *uri, const char
 		 * Let the fetch progress callback know that
 		 * we are sucking more bytes from it.
 		 */
-		xbps_set_cb_fetch(xhp, url_st.size, url->offset,
+		flappy_set_cb_fetch(xhp, url_st.size, url->offset,
 		    url->offset + bytes_dload,
 		    filename, false, true, false);
 	}
 	if (bytes_read == -1) {
-		xbps_dbg_printf("IO error while fetching %s: %s\n",
+		flappy_dbg_printf("IO error while fetching %s: %s\n",
 		    filename, fetchLastErrString);
 		errno = EIO;
 		rv = -1;
 		goto fetch_file_out;
 	} else if (url_st.size > 0 && ((bytes_dload + url->offset) != url_st.size)) {
-		xbps_dbg_printf("file %s is truncated\n", filename);
+		flappy_dbg_printf("file %s is truncated\n", filename);
 		errno = EIO;
 		rv = -1;
 		goto fetch_file_out;
@@ -292,7 +292,7 @@ xbps_fetch_file_dest_sha256(struct xbps_handle *xhp, const char *uri, const char
 	 * Let the fetch progress callback know that the file
 	 * has been fetched.
 	 */
-	xbps_set_cb_fetch(xhp, url_st.size, url->offset, bytes_dload,
+	flappy_set_cb_fetch(xhp, url_st.size, url->offset, bytes_dload,
 	    filename, false, false, true);
 
 	/*
@@ -312,7 +312,7 @@ xbps_fetch_file_dest_sha256(struct xbps_handle *xhp, const char *uri, const char
 rename_file:
 	/* File downloaded successfully, rename to destfile */
 	if (rename(tempfile, filename) == -1) {
-		xbps_dbg_printf("failed to rename %s to %s: %s",
+		flappy_dbg_printf("failed to rename %s to %s: %s",
 		    tempfile, filename, strerror(errno));
 		rv = -1;
 		goto fetch_file_out;
@@ -336,14 +336,14 @@ fetch_file_out:
 }
 
 int
-xbps_fetch_file_dest(struct xbps_handle *xhp, const char *uri,
+flappy_fetch_file_dest(struct flappy_handle *xhp, const char *uri,
 		const char *filename, const char *flags)
 {
-	return xbps_fetch_file_dest_sha256(xhp, uri, filename, flags, NULL, 0);
+	return flappy_fetch_file_dest_sha256(xhp, uri, filename, flags, NULL, 0);
 }
 
 int
-xbps_fetch_file_sha256(struct xbps_handle *xhp, const char *uri,
+flappy_fetch_file_sha256(struct flappy_handle *xhp, const char *uri,
 		const char *flags, unsigned char *digest, size_t digestlen)
 {
 	const char *filename;
@@ -354,12 +354,12 @@ xbps_fetch_file_sha256(struct xbps_handle *xhp, const char *uri,
 		return -1;
 
 	filename++;
-	return xbps_fetch_file_dest_sha256(xhp, uri, filename, flags,
+	return flappy_fetch_file_dest_sha256(xhp, uri, filename, flags,
 	    digest, digestlen);
 }
 
 int
-xbps_fetch_file(struct xbps_handle *xhp, const char *uri, const char *flags)
+flappy_fetch_file(struct flappy_handle *xhp, const char *uri, const char *flags)
 {
-	return xbps_fetch_file_sha256(xhp, uri, flags, NULL, 0);
+	return flappy_fetch_file_sha256(xhp, uri, flags, NULL, 0);
 }

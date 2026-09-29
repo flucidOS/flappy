@@ -1,0 +1,58 @@
+.Dd Feb 9, 2023
+.Dt FLAPPY-DIGEST 1
+.Os
+.Sh NAME
+.Nm flappy-digest
+.Nd FLAPPY utility to generate message digests
+.Sh SYNOPSIS
+.Nm
+.Op OPTIONS
+.Op FILE
+.Op FILE+N
+.Sh DESCRIPTION
+The
+.Nm
+utility generates message digests for specified
+.Ar FILE
+or
+.Ar stdin
+if unset.
+.Sh OPTIONS
+.Bl -tag -width -x
+.It Fl m, Fl -mode Ar mode
+Sets the message digest mode. Supported:
+.Ar sha256 .
+If unset, defaults to
+.Ar sha256 .
+.It Fl h, Fl -help
+Show the help message.
+.It Fl V, Fl -version
+Show the version information.
+.El
+.Sh EXIT STATUS
+.Ex
+A descriptive error message will be printed to stderr.
+.Sh SEE ALSO
+.Xr flappy-alternatives 1 ,
+.Xr flappy-checkvers 1 ,
+.Xr flappy-create 1 ,
+.Xr flappy-dgraph 1 ,
+.Xr flappy-fbulk 1 ,
+.Xr flappy-fetch 1 ,
+.Xr flappy-install 1 ,
+.Xr flappy-pkgdb 1 ,
+.Xr flappy-query 1 ,
+.Xr flappy-reconfigure 1 ,
+.Xr flappy-remove 1 ,
+.Xr flappy-rindex 1 ,
+.Xr flappy-uchroot 1 ,
+.Xr flappy-uunshare 1 ,
+.Xr flappy.d 5
+.Sh AUTHORS
+.An Juan Romero Pardines Aq Mt xtraeme@gmail.com
+.Sh BUGS
+Probably, but I try to make this not happen. Use it under your own
+responsibility and enjoy your life.
+.Pp
+Report bugs at
+.Lk https://github.com/void-linux/flappy/issues

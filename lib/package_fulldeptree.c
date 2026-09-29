@@ -29,7 +29,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 #include "uthash.h"
 
 struct item;
@@ -42,13 +42,13 @@ struct depn {
 struct item {
 	char *pkgn;		/* hash key */
 	const char *pkgver;
-	xbps_array_t rdeps;
+	flappy_array_t rdeps;
 	struct depn *dbase;
 	UT_hash_handle hh;
 };
 
 static struct item *items = NULL;
-static xbps_array_t result;
+static flappy_array_t result;
 
 static struct item *
 lookupItem(const char *pkgn)
@@ -62,7 +62,7 @@ lookupItem(const char *pkgn)
 }
 
 static struct item *
-addItem(xbps_array_t rdeps, const char *pkgn, const char *pkgver)
+addItem(flappy_array_t rdeps, const char *pkgn, const char *pkgver)
 {
 	struct item *item = NULL;
 
@@ -107,9 +107,9 @@ static int
 add_deps_recursive(struct item *item, bool first)
 {
 	struct depn *dep;
-	xbps_string_t str;
+	flappy_string_t str;
 
-	if (xbps_match_string_in_array(result, item->pkgver))
+	if (flappy_match_string_in_array(result, item->pkgver))
 		return 0;
 
 	for (dep = item->dbase; dep; dep = dep->dnext) {
@@ -122,13 +122,13 @@ add_deps_recursive(struct item *item, bool first)
 	if (first)
 		return 0;
 
-	str = xbps_string_create_cstring(item->pkgver);
+	str = flappy_string_create_cstring(item->pkgver);
 	if (!str)
-		return xbps_error_oom();
+		return flappy_error_oom();
 
-	if (!xbps_array_add_first(result, str))
-		return xbps_error_oom();
-	xbps_object_release(str);
+	if (!flappy_array_add_first(result, str))
+		return flappy_error_oom();
+	flappy_object_release(str);
 	return 0;
 }
 
@@ -150,20 +150,20 @@ cleanup(void)
  * Recursively calculate all dependencies.
  */
 static struct item *
-ordered_depends(struct xbps_handle *xhp, xbps_dictionary_t pkgd, bool rpool,
+ordered_depends(struct flappy_handle *xhp, flappy_dictionary_t pkgd, bool rpool,
 		size_t depth)
 {
-	xbps_array_t rdeps, provides;
-	xbps_string_t str;
+	flappy_array_t rdeps, provides;
+	flappy_string_t str;
 	struct item *item = NULL, *xitem = NULL;
 	const char *pkgver = NULL, *pkgname = NULL;
 
 	assert(xhp);
 	assert(pkgd);
 
-	rdeps = xbps_dictionary_get(pkgd, "run_depends");
-	provides = xbps_dictionary_get(pkgd, "provides");
-	xbps_dictionary_get_cstring_nocopy(pkgd, "pkgname", &pkgname);
+	rdeps = flappy_dictionary_get(pkgd, "run_depends");
+	provides = flappy_dictionary_get(pkgd, "provides");
+	flappy_dictionary_get_cstring_nocopy(pkgd, "pkgname", &pkgname);
 
 	item = lookupItem(pkgname);
 	if (item) {
@@ -173,41 +173,41 @@ ordered_depends(struct xbps_handle *xhp, xbps_dictionary_t pkgd, bool rpool,
 		return item;
 	}
 
-	if (!xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver))
-		xbps_unreachable();
+	if (!flappy_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver))
+		flappy_unreachable();
 
 	item = addItem(rdeps, pkgname, pkgver);
 	if (!item)
 		return NULL;
 
-	for (unsigned int i = 0; i < xbps_array_count(rdeps); i++) {
-		xbps_dictionary_t curpkgd;
+	for (unsigned int i = 0; i < flappy_array_count(rdeps); i++) {
+		flappy_dictionary_t curpkgd;
 		const char *curdep = NULL;
-		char curdepname[XBPS_NAME_SIZE];
+		char curdepname[FLAPPY_NAME_SIZE];
 
-		xbps_array_get_cstring_nocopy(rdeps, i, &curdep);
+		flappy_array_get_cstring_nocopy(rdeps, i, &curdep);
 		if (rpool) {
-			if ((curpkgd = xbps_rpool_get_pkg(xhp, curdep)) == NULL)
-				curpkgd = xbps_rpool_get_virtualpkg(xhp, curdep);
+			if ((curpkgd = flappy_rpool_get_pkg(xhp, curdep)) == NULL)
+				curpkgd = flappy_rpool_get_virtualpkg(xhp, curdep);
 		} else {
-			if ((curpkgd = xbps_pkgdb_get_pkg(xhp, curdep)) == NULL)
-				curpkgd = xbps_pkgdb_get_virtualpkg(xhp, curdep);
+			if ((curpkgd = flappy_pkgdb_get_pkg(xhp, curdep)) == NULL)
+				curpkgd = flappy_pkgdb_get_virtualpkg(xhp, curdep);
 			/* Ignore missing local runtime dependencies, because ignorepkg */
 			if (curpkgd == NULL)
 				continue;
 		}
 		if (curpkgd == NULL) {
 			/* package depends on missing dependencies */
-			xbps_dbg_printf("%s: missing dependency '%s'\n", pkgver, curdep);
+			flappy_dbg_printf("%s: missing dependency '%s'\n", pkgver, curdep);
 			errno = ENODEV;
 			return NULL;
 		}
-		if (!xbps_pkgpattern_name(curdepname, XBPS_NAME_SIZE, curdep) &&
-		    !xbps_pkg_name(curdepname, XBPS_NAME_SIZE, curdep))
-			xbps_unreachable();
+		if (!flappy_pkgpattern_name(curdepname, FLAPPY_NAME_SIZE, curdep) &&
+		    !flappy_pkg_name(curdepname, FLAPPY_NAME_SIZE, curdep))
+			flappy_unreachable();
 
-		if (provides && xbps_match_pkgname_in_array(provides, curdepname)) {
-			xbps_dbg_printf("%s: ignoring dependency %s "
+		if (provides && flappy_match_pkgname_in_array(provides, curdepname)) {
+			flappy_dbg_printf("%s: ignoring dependency %s "
 			    "already in provides\n", pkgver, curdep);
 			continue;
 		}
@@ -222,36 +222,36 @@ ordered_depends(struct xbps_handle *xhp, xbps_dictionary_t pkgd, bool rpool,
 		addDepn(item, xitem);
 	}
 	/* all deps were processed, add item to head */
-	if (depth > 0 && !xbps_match_string_in_array(result, item->pkgver)) {
-		str = xbps_string_create_cstring(item->pkgver);
+	if (depth > 0 && !flappy_match_string_in_array(result, item->pkgver)) {
+		str = flappy_string_create_cstring(item->pkgver);
 		if (!str) {
-			xbps_error_oom();
+			flappy_error_oom();
 			return NULL;
 		}
-		xbps_array_add_first(result, str);
-		xbps_object_release(str);
+		flappy_array_add_first(result, str);
+		flappy_object_release(str);
 	}
 	return item;
 }
 
-xbps_array_t HIDDEN
-xbps_get_pkg_fulldeptree(struct xbps_handle *xhp, const char *pkg, bool rpool)
+flappy_array_t HIDDEN
+flappy_get_pkg_fulldeptree(struct flappy_handle *xhp, const char *pkg, bool rpool)
 {
-	xbps_dictionary_t pkgd;
+	flappy_dictionary_t pkgd;
 
-	result = xbps_array_create();
+	result = flappy_array_create();
 	if (!result) {
-		xbps_error_oom();
+		flappy_error_oom();
 		return NULL;
 	}
 
 	if (rpool) {
-		if (((pkgd = xbps_rpool_get_pkg(xhp, pkg)) == NULL) &&
-		    ((pkgd = xbps_rpool_get_virtualpkg(xhp, pkg)) == NULL))
+		if (((pkgd = flappy_rpool_get_pkg(xhp, pkg)) == NULL) &&
+		    ((pkgd = flappy_rpool_get_virtualpkg(xhp, pkg)) == NULL))
 			return NULL;
 	} else {
-		if (((pkgd = xbps_pkgdb_get_pkg(xhp, pkg)) == NULL) &&
-		    ((pkgd = xbps_pkgdb_get_virtualpkg(xhp, pkg)) == NULL))
+		if (((pkgd = flappy_pkgdb_get_pkg(xhp, pkg)) == NULL) &&
+		    ((pkgd = flappy_pkgdb_get_virtualpkg(xhp, pkg)) == NULL))
 			return NULL;
 	}
 	if (ordered_depends(xhp, pkgd, rpool, 0) == NULL)

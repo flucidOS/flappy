@@ -20,31 +20,24 @@ jobs:
       actions: read
       contents: read
       security-events: write
-    container:
-      image: ghcr.io/void-linux/void-glibc-full:20260210R1
     steps:
-    - name: Prepare container
+    - name: Install dependencies
       run: |
-        xbps-install -Syu xbps
-        xbps-install -yu
-        # node-based actions require libstdc++.so.6
-        # codeql runs some bash scripts
-        xbps-install -Sy \
-          libstdc++ bash git atf-devel kyua \
-          gcc make pkg-config zlib-devel openssl-devel libarchive-devel
+        sudo apt-get update
+        sudo apt-get install -y gcc make pkgconf zlib1g-dev libssl-dev \
+          libarchive-dev kyua atf-sh libatf-dev
     - name: Checkout repository
-      uses: actions/checkout@v3
-    - run: git config --global --add safe.directory $(pwd)
+      uses: actions/checkout@v4
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
       with:
         languages: c-cpp
         build-mode: manual
         config-file: ./.github/codeql/codeql-config.yaml
-    - name: Build xbps
+    - name: Build flappy
       run: |
-          ./configure --enable-tests
-          make -j
+        ./configure --enable-tests
+        make -j"$(nproc)"
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
       with:

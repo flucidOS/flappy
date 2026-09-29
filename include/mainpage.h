@@ -2,13 +2,13 @@
  * @mainpage The X Binary Package System Library API
  * @section intro_sec Introduction
  *
- * XBPS is a new binary package system designed and implemented from
+ * FLAPPY is a new binary package system designed and implemented from
  * scratch, by <b>Juan Romero Pardines</b>. This document describes
- * the API used by the XBPS Library, that is the base to implement
- * a package manager frontend, such as is implemented in the xbps
+ * the API used by the FLAPPY Library, that is the base to implement
+ * a package manager frontend, such as is implemented in the flappy
  * command line interfaces.
  *
- * XBPS uses extensively NetBSD's proplib, a library that provides an
+ * FLAPPY uses extensively NetBSD's proplib, a library that provides an
  * abstract interface for creating and manipulating property lists.
  * Property lists have object types for boolean values, opaque data, numbers,
  * and strings. Structure is provided by the array and dictionary collection

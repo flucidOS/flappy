@@ -32,48 +32,48 @@
 #include <dirent.h>
 #include <pthread.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
-static xbps_dictionary_t
-get_pkg_in_array(xbps_array_t array, const char *str, xbps_trans_type_t tt, bool virtual)
+static flappy_dictionary_t
+get_pkg_in_array(flappy_array_t array, const char *str, flappy_trans_type_t tt, bool virtual)
 {
-	xbps_object_t obj = NULL;
-	xbps_trans_type_t ttype;
+	flappy_object_t obj = NULL;
+	flappy_trans_type_t ttype;
 	bool found = false;
 
 	assert(array);
 	assert(str);
 
-	for (unsigned int i = 0; i < xbps_array_count(array); i++) {
+	for (unsigned int i = 0; i < flappy_array_count(array); i++) {
 		const char *pkgver = NULL;
-		char pkgname[XBPS_NAME_SIZE] = {0};
+		char pkgname[FLAPPY_NAME_SIZE] = {0};
 
-		obj = xbps_array_get(array, i);
-		if (!xbps_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgver))
+		obj = flappy_array_get(array, i);
+		if (!flappy_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgver))
 			abort();
 		if (virtual) {
 			/*
 			 * Check if package pattern matches
 			 * any virtual package version in dictionary.
 			 */
-			found = xbps_match_virtual_pkg_in_dict(obj, str);
+			found = flappy_match_virtual_pkg_in_dict(obj, str);
 			if (found)
 				break;
-		} else if (xbps_pkgpattern_version(str)) {
+		} else if (flappy_pkgpattern_version(str)) {
 			/* match by pattern against pkgver */
-			if (xbps_pkgpattern_match(pkgver, str)) {
+			if (flappy_pkgpattern_match(pkgver, str)) {
 				found = true;
 				break;
 			}
-		} else if (xbps_pkg_version(str)) {
+		} else if (flappy_pkg_version(str)) {
 			/* match by exact pkgver */
 			if (strcmp(str, pkgver) == 0) {
 				found = true;
 				break;
 			}
 		} else {
-			if (!xbps_pkg_name(pkgname, sizeof(pkgname), pkgver))
-				xbps_unreachable();
+			if (!flappy_pkg_name(pkgname, sizeof(pkgname), pkgver))
+				flappy_unreachable();
 			/* match by pkgname */
 			if (strcmp(pkgname, str) == 0) {
 				found = true;
@@ -82,7 +82,7 @@ get_pkg_in_array(xbps_array_t array, const char *str, xbps_trans_type_t tt, bool
 		}
 	}
 
-	ttype = xbps_transaction_pkg_type(obj);
+	ttype = flappy_transaction_pkg_type(obj);
 	if (found && tt && (ttype != tt)) {
 		found = false;
 	}
@@ -93,26 +93,26 @@ get_pkg_in_array(xbps_array_t array, const char *str, xbps_trans_type_t tt, bool
 	return obj;
 }
 
-xbps_dictionary_t HIDDEN
-xbps_find_pkg_in_array(xbps_array_t a, const char *s, xbps_trans_type_t tt)
+flappy_dictionary_t HIDDEN
+flappy_find_pkg_in_array(flappy_array_t a, const char *s, flappy_trans_type_t tt)
 {
-	assert(xbps_object_type(a) == XBPS_TYPE_ARRAY);
+	assert(flappy_object_type(a) == FLAPPY_TYPE_ARRAY);
 	assert(s);
 
 	return get_pkg_in_array(a, s, tt, false);
 }
 
-xbps_dictionary_t HIDDEN
-xbps_find_virtualpkg_in_array(struct xbps_handle *xhp,
-			      xbps_array_t a,
+flappy_dictionary_t HIDDEN
+flappy_find_virtualpkg_in_array(struct flappy_handle *xhp,
+			      flappy_array_t a,
 			      const char *s,
-			      xbps_trans_type_t tt)
+			      flappy_trans_type_t tt)
 {
-	xbps_dictionary_t pkgd;
+	flappy_dictionary_t pkgd;
 	const char *vpkg;
 
 	assert(xhp);
-	assert(xbps_object_type(a) == XBPS_TYPE_ARRAY);
+	assert(flappy_object_type(a) == FLAPPY_TYPE_ARRAY);
 	assert(s);
 
 	if ((vpkg = vpkg_user_conf(xhp, s))) {
@@ -123,30 +123,30 @@ xbps_find_virtualpkg_in_array(struct xbps_handle *xhp,
 	return get_pkg_in_array(a, s, tt, true);
 }
 
-static xbps_dictionary_t
-match_pkg_by_pkgver(xbps_dictionary_t repod, const char *p)
+static flappy_dictionary_t
+match_pkg_by_pkgver(flappy_dictionary_t repod, const char *p)
 {
-	xbps_dictionary_t d = NULL;
+	flappy_dictionary_t d = NULL;
 	const char *pkgver = NULL;
-	char pkgname[XBPS_NAME_SIZE] = {0};
+	char pkgname[FLAPPY_NAME_SIZE] = {0};
 
 	assert(repod);
 	assert(p);
 
 	/* exact match by pkgver */
-	if (!xbps_pkg_name(pkgname, sizeof(pkgname), p)) {
-		xbps_error_printf("invalid pkgver: %s\n", p);
+	if (!flappy_pkg_name(pkgname, sizeof(pkgname), p)) {
+		flappy_error_printf("invalid pkgver: %s\n", p);
 		errno = EINVAL;
 		return NULL;
 	}
 
-	d = xbps_dictionary_get(repod, pkgname);
+	d = flappy_dictionary_get(repod, pkgname);
 	if (!d) {
 		errno = ENOENT;
 		return NULL;
 	}
-	if (!xbps_dictionary_get_cstring_nocopy(d, "pkgver", &pkgver)) {
-		xbps_error_printf("missing `pkgver` property\n");
+	if (!flappy_dictionary_get_cstring_nocopy(d, "pkgver", &pkgver)) {
+		flappy_error_printf("missing `pkgver` property\n");
 		errno = EINVAL;
 		return NULL;
 	}
@@ -158,37 +158,37 @@ match_pkg_by_pkgver(xbps_dictionary_t repod, const char *p)
 	return d;
 }
 
-static xbps_dictionary_t
-match_pkg_by_pattern(xbps_dictionary_t repod, const char *p)
+static flappy_dictionary_t
+match_pkg_by_pattern(flappy_dictionary_t repod, const char *p)
 {
-	xbps_dictionary_t d = NULL;
+	flappy_dictionary_t d = NULL;
 	const char *pkgver = NULL;
-	char pkgname[XBPS_NAME_SIZE] = {0};
+	char pkgname[FLAPPY_NAME_SIZE] = {0};
 
 	assert(repod);
 	assert(p);
 
 	/* match by pkgpattern in pkgver */
-	if (!xbps_pkgpattern_name(pkgname, sizeof(pkgname), p)) {
-		if (xbps_pkg_name(pkgname, sizeof(pkgname), p)) {
+	if (!flappy_pkgpattern_name(pkgname, sizeof(pkgname), p)) {
+		if (flappy_pkg_name(pkgname, sizeof(pkgname), p)) {
 			return match_pkg_by_pkgver(repod, p);
 		}
-		xbps_error_printf("invalid pkgpattern: %s\n", p);
+		flappy_error_printf("invalid pkgpattern: %s\n", p);
 		errno = EINVAL;
 		return NULL;
 	}
 
-	d = xbps_dictionary_get(repod, pkgname);
+	d = flappy_dictionary_get(repod, pkgname);
 	if (!d) {
 		errno = ENOENT;
 		return NULL;
 	}
-	if (!xbps_dictionary_get_cstring_nocopy(d, "pkgver", &pkgver)) {
-		xbps_error_printf("missing `pkgver` property`\n");
+	if (!flappy_dictionary_get_cstring_nocopy(d, "pkgver", &pkgver)) {
+		flappy_error_printf("missing `pkgver` property`\n");
 		errno = EINVAL;
 		return NULL;
 	}
-	if (!xbps_pkgpattern_match(pkgver, p)) {
+	if (!flappy_pkgpattern_match(pkgver, p)) {
 		errno = ENOENT;
 		return NULL;
 	}
@@ -197,12 +197,12 @@ match_pkg_by_pattern(xbps_dictionary_t repod, const char *p)
 }
 
 const char HIDDEN *
-vpkg_user_conf(struct xbps_handle *xhp, const char *vpkg)
+vpkg_user_conf(struct flappy_handle *xhp, const char *vpkg)
 {
-	char namebuf[XBPS_NAME_SIZE];
-	xbps_dictionary_t providers;
-	xbps_object_t obj;
-	xbps_object_iterator_t iter;
+	char namebuf[FLAPPY_NAME_SIZE];
+	flappy_dictionary_t providers;
+	flappy_object_t obj;
+	flappy_object_iterator_t iter;
 	const char *pkg = NULL;
 	const char *pkgname;
 	bool found = false;
@@ -211,10 +211,10 @@ vpkg_user_conf(struct xbps_handle *xhp, const char *vpkg)
 	assert(vpkg);
 
 
-	if (xbps_pkgpattern_name(namebuf, sizeof(namebuf), vpkg)) {
+	if (flappy_pkgpattern_name(namebuf, sizeof(namebuf), vpkg)) {
 		match = PKGPATTERN;
 		pkgname = namebuf;
-	} else if (xbps_pkg_name(namebuf, sizeof(namebuf), vpkg)) {
+	} else if (flappy_pkg_name(namebuf, sizeof(namebuf), vpkg)) {
 		match = PKGVER;
 		pkgname = namebuf;
 	} else {
@@ -222,25 +222,25 @@ vpkg_user_conf(struct xbps_handle *xhp, const char *vpkg)
 		pkgname = vpkg;
 	}
 
-	providers = xbps_dictionary_get(xhp->vpkgd, pkgname);
+	providers = flappy_dictionary_get(xhp->vpkgd, pkgname);
 	if (!providers)
 		return NULL;
 
-	iter = xbps_dictionary_iterator(providers);
+	iter = flappy_dictionary_iterator(providers);
 	assert(iter);
 
-	while ((obj = xbps_object_iterator_next(iter))) {
-		xbps_string_t rpkg;
-		char buf[XBPS_NAME_SIZE] = {0};
+	while ((obj = flappy_object_iterator_next(iter))) {
+		flappy_string_t rpkg;
+		char buf[FLAPPY_NAME_SIZE] = {0};
 		const char *vpkg_conf = NULL, *vpkgname = NULL;
 
-		vpkg_conf = xbps_dictionary_keysym_cstring_nocopy(obj);
-		rpkg = xbps_dictionary_get_keysym(providers, obj);
-		pkg = xbps_string_cstring_nocopy(rpkg);
+		vpkg_conf = flappy_dictionary_keysym_cstring_nocopy(obj);
+		rpkg = flappy_dictionary_get_keysym(providers, obj);
+		pkg = flappy_string_cstring_nocopy(rpkg);
 
-		if (xbps_pkg_version(vpkg_conf)) {
-			if (!xbps_pkg_name(buf, sizeof(buf), vpkg_conf))
-				xbps_unreachable();
+		if (flappy_pkg_version(vpkg_conf)) {
+			if (!flappy_pkg_name(buf, sizeof(buf), vpkg_conf))
+				flappy_unreachable();
 			vpkgname = buf;
 		} else {
 			vpkgname = vpkg_conf;
@@ -248,12 +248,12 @@ vpkg_user_conf(struct xbps_handle *xhp, const char *vpkg)
 
 		switch (match) {
 		case PKGPATTERN:
-			if (xbps_pkg_version(vpkg_conf)) {
-				if (!xbps_pkgpattern_match(vpkg_conf, vpkg)) {
+			if (flappy_pkg_version(vpkg_conf)) {
+				if (!flappy_pkgpattern_match(vpkg_conf, vpkg)) {
 					continue;
 				}
 			} else {
-				xbps_warn_printf("invalid: %s\n", vpkg_conf);
+				flappy_warn_printf("invalid: %s\n", vpkg_conf);
 			}
 		break;
 		case PKGVER:
@@ -267,71 +267,71 @@ vpkg_user_conf(struct xbps_handle *xhp, const char *vpkg)
 			}
 		break;
 		}
-		xbps_dbg_printf("%s: vpkg_conf %s pkg %s vpkgname %s\n", __func__, vpkg_conf, pkg, vpkgname);
+		flappy_dbg_printf("%s: vpkg_conf %s pkg %s vpkgname %s\n", __func__, vpkg_conf, pkg, vpkgname);
 		found = true;
 		break;
 	}
-	xbps_object_iterator_release(iter);
+	flappy_object_iterator_release(iter);
 
 	return found ? pkg : NULL;
 }
 
-xbps_dictionary_t HIDDEN
-xbps_find_virtualpkg_in_conf(struct xbps_handle *xhp,
-			xbps_dictionary_t d,
+flappy_dictionary_t HIDDEN
+flappy_find_virtualpkg_in_conf(struct flappy_handle *xhp,
+			flappy_dictionary_t d,
 			const char *pkg)
 {
-	xbps_object_iterator_t iter;
-	xbps_object_t obj;
-	xbps_dictionary_t providers;
-	xbps_dictionary_t pkgd = NULL;
+	flappy_object_iterator_t iter;
+	flappy_object_t obj;
+	flappy_dictionary_t providers;
+	flappy_dictionary_t pkgd = NULL;
 	const char *cur;
 
 	if (!xhp->vpkgd_conf)
 		return NULL;
 
-	providers = xbps_dictionary_get(xhp->vpkgd_conf, pkg);
+	providers = flappy_dictionary_get(xhp->vpkgd_conf, pkg);
 	if (!providers)
 		return NULL;
 
-	iter = xbps_dictionary_iterator(providers);
+	iter = flappy_dictionary_iterator(providers);
 	assert(iter);
 
-	while ((obj = xbps_object_iterator_next(iter))) {
-		xbps_string_t rpkg;
-		char buf[XBPS_NAME_SIZE] = {0};
+	while ((obj = flappy_object_iterator_next(iter))) {
+		flappy_string_t rpkg;
+		char buf[FLAPPY_NAME_SIZE] = {0};
 		const char *vpkg_conf = NULL, *vpkgname = NULL;
 
-		vpkg_conf = xbps_dictionary_keysym_cstring_nocopy(obj);
-		rpkg = xbps_dictionary_get_keysym(providers, obj);
-		cur = xbps_string_cstring_nocopy(rpkg);
+		vpkg_conf = flappy_dictionary_keysym_cstring_nocopy(obj);
+		rpkg = flappy_dictionary_get_keysym(providers, obj);
+		cur = flappy_string_cstring_nocopy(rpkg);
 		assert(cur);
-		if (xbps_pkg_version(vpkg_conf)) {
-			if (!xbps_pkg_name(buf, sizeof(buf), vpkg_conf))
-				xbps_unreachable();
+		if (flappy_pkg_version(vpkg_conf)) {
+			if (!flappy_pkg_name(buf, sizeof(buf), vpkg_conf))
+				flappy_unreachable();
 			vpkgname = buf;
 		} else {
 			vpkgname = vpkg_conf;
 		}
 
-		if (xbps_pkgpattern_version(pkg)) {
-			if (xbps_pkg_version(vpkg_conf)) {
-				if (!xbps_pkgpattern_match(vpkg_conf, pkg)) {
+		if (flappy_pkgpattern_version(pkg)) {
+			if (flappy_pkg_version(vpkg_conf)) {
+				if (!flappy_pkgpattern_match(vpkg_conf, pkg)) {
 					continue;
 				}
 			} else {
-				char vpkgver[XBPS_NAME_SIZE + sizeof("-999999_1")];
+				char vpkgver[FLAPPY_NAME_SIZE + sizeof("-999999_1")];
 				snprintf(buf, sizeof(buf), "%s-999999_1", vpkg_conf);
-				if (!xbps_pkgpattern_match(vpkgver, pkg)) {
+				if (!flappy_pkgpattern_match(vpkgver, pkg)) {
 					continue;
 				}
 			}
-		} else if (xbps_pkg_version(pkg)) {
+		} else if (flappy_pkg_version(pkg)) {
 			// XXX: this is the old behaviour of only matching pkgname's,
 			// this is kinda wrong when compared to matching patterns
 			// where all variants are tried.
-			if (!xbps_pkg_name(buf, sizeof(buf), pkg))
-				xbps_unreachable();
+			if (!flappy_pkg_name(buf, sizeof(buf), pkg))
+				flappy_unreachable();
 			if (strcmp(buf, vpkgname)) {
 				continue;
 			}
@@ -340,73 +340,73 @@ xbps_find_virtualpkg_in_conf(struct xbps_handle *xhp,
 				continue;
 			}
 		}
-		xbps_dbg_printf("%s: found: %s %s %s\n", __func__, vpkg_conf, cur, vpkgname);
+		flappy_dbg_printf("%s: found: %s %s %s\n", __func__, vpkg_conf, cur, vpkgname);
 
 		/* Try matching vpkg from configuration files */
-		if (xbps_pkgpattern_version(cur))
+		if (flappy_pkgpattern_version(cur))
 			pkgd = match_pkg_by_pattern(d, cur);
-		else if (xbps_pkg_version(cur))
+		else if (flappy_pkg_version(cur))
 			pkgd = match_pkg_by_pkgver(d, cur);
 		else
-			pkgd = xbps_dictionary_get(d, cur);
+			pkgd = flappy_dictionary_get(d, cur);
 		break;
 	}
-	xbps_object_iterator_release(iter);
+	flappy_object_iterator_release(iter);
 
 	return pkgd;
 }
 
-xbps_dictionary_t HIDDEN
-xbps_find_virtualpkg_in_dict(struct xbps_handle *xhp,
-			     xbps_dictionary_t d,
+flappy_dictionary_t HIDDEN
+flappy_find_virtualpkg_in_dict(struct flappy_handle *xhp,
+			     flappy_dictionary_t d,
 			     const char *pkg)
 {
-	xbps_object_t obj;
-	xbps_object_iterator_t iter;
-	xbps_dictionary_t pkgd = NULL;
+	flappy_object_t obj;
+	flappy_object_iterator_t iter;
+	flappy_dictionary_t pkgd = NULL;
 	const char *vpkg;
 
 	// XXX: this is bad, dict != pkgdb,
 	/* Try matching vpkg via xhp->vpkgd */
 	vpkg = vpkg_user_conf(xhp, pkg);
 	if (vpkg != NULL) {
-		if (xbps_pkgpattern_version(vpkg))
+		if (flappy_pkgpattern_version(vpkg))
 			pkgd = match_pkg_by_pattern(d, vpkg);
-		else if (xbps_pkg_version(vpkg))
+		else if (flappy_pkg_version(vpkg))
 			pkgd = match_pkg_by_pkgver(d, vpkg);
 		else
-			pkgd = xbps_dictionary_get(d, vpkg);
+			pkgd = flappy_dictionary_get(d, vpkg);
 
 		if (pkgd)
 			return pkgd;
 	}
 	/* ... otherwise match the first one in dictionary */
-	iter = xbps_dictionary_iterator(d);
+	iter = flappy_dictionary_iterator(d);
 	assert(iter);
 
-	while ((obj = xbps_object_iterator_next(iter))) {
-		pkgd = xbps_dictionary_get_keysym(d, obj);
-		if (xbps_match_virtual_pkg_in_dict(pkgd, pkg)) {
-			xbps_object_iterator_release(iter);
+	while ((obj = flappy_object_iterator_next(iter))) {
+		pkgd = flappy_dictionary_get_keysym(d, obj);
+		if (flappy_match_virtual_pkg_in_dict(pkgd, pkg)) {
+			flappy_object_iterator_release(iter);
 			return pkgd;
 		}
 	}
-	xbps_object_iterator_release(iter);
+	flappy_object_iterator_release(iter);
 
 	return NULL;
 }
 
-xbps_dictionary_t HIDDEN
-xbps_find_pkg_in_dict(xbps_dictionary_t d, const char *pkg)
+flappy_dictionary_t HIDDEN
+flappy_find_pkg_in_dict(flappy_dictionary_t d, const char *pkg)
 {
-	xbps_dictionary_t pkgd = NULL;
+	flappy_dictionary_t pkgd = NULL;
 
-	if (xbps_pkgpattern_version(pkg))
+	if (flappy_pkgpattern_version(pkg))
 		pkgd = match_pkg_by_pattern(d, pkg);
-	else if (xbps_pkg_version(pkg))
+	else if (flappy_pkg_version(pkg))
 		pkgd = match_pkg_by_pkgver(d, pkg);
 	else
-		pkgd = xbps_dictionary_get(d, pkg);
+		pkgd = flappy_dictionary_get(d, pkg);
 
 	return pkgd;
 }

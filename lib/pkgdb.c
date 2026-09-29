@@ -36,8 +36,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "xbps.h"
-#include "xbps_api_impl.h"
+#include "flappy.h"
+#include "flappy_api_impl.h"
 
 /**
  * @file lib/pkgdb.c
@@ -49,7 +49,7 @@
  * The following image shown below shows the proplib structure used
  * by the main package database plist:
  *
- * @image html images/xbps_pkgdb_dictionary.png
+ * @image html images/flappy_pkgdb_dictionary.png
  *
  * Legend:
  *  - <b>Salmon filled box</b>: \a pkgdb plist internalized.
@@ -64,27 +64,27 @@
  */
 
 int
-xbps_pkgdb_lock(struct xbps_handle *xhp)
+flappy_pkgdb_lock(struct flappy_handle *xhp)
 {
 	char path[PATH_MAX];
 	mode_t prev_umask;
 
-	if (xbps_path_join(path, sizeof(path), xhp->metadir, "lock", (char *)NULL) == -1) {
-		return xbps_error_errno(errno,
+	if (flappy_path_join(path, sizeof(path), xhp->metadir, "lock", (char *)NULL) == -1) {
+		return flappy_error_errno(errno,
 		    "failed to create lockfile path: %s\n", strerror(errno));
 	}
 
 	prev_umask = umask(022);
-	if (xbps_mkpath(xhp->metadir, 0755) == -1 && errno != EEXIST) {
+	if (flappy_mkpath(xhp->metadir, 0755) == -1 && errno != EEXIST) {
 		umask(prev_umask);
-		return xbps_error_errno(errno,
+		return flappy_error_errno(errno,
 		    "failed to create metadir: %s: %s\n",
 		    xhp->metadir, strerror(errno));
 	}
 
 	xhp->lock_fd = open(path, O_CREAT|O_WRONLY|O_CLOEXEC, 0664);
 	if (xhp->lock_fd == -1) {
-		return xbps_error_errno(errno,
+		return flappy_error_errno(errno,
 		    "failed to lock package database: %s\n", strerror(errno));
 	}
 	umask(prev_umask);
@@ -92,14 +92,14 @@ xbps_pkgdb_lock(struct xbps_handle *xhp)
 	if (flock(xhp->lock_fd, LOCK_EX|LOCK_NB) == -1) {
 		if (errno != EWOULDBLOCK)
 			goto err;
-		xbps_warn_printf("package database locked, waiting...\n");
+		flappy_warn_printf("package database locked, waiting...\n");
 	}
 
 	if (flock(xhp->lock_fd, LOCK_EX) == -1) {
 err:
 		close(xhp->lock_fd);
 		xhp->lock_fd = -1;
-		return xbps_error_errno(errno, "failed to lock file: %s: %s\n",
+		return flappy_error_errno(errno, "failed to lock file: %s: %s\n",
 		    path, strerror(errno));
 	}
 
@@ -107,7 +107,7 @@ err:
 }
 
 void
-xbps_pkgdb_unlock(struct xbps_handle *xhp)
+flappy_pkgdb_unlock(struct flappy_handle *xhp)
 {
 	if (xhp->lock_fd == -1)
 		return;
@@ -116,20 +116,20 @@ xbps_pkgdb_unlock(struct xbps_handle *xhp)
 }
 
 static int
-pkgdb_map_vpkgs(struct xbps_handle *xhp)
+pkgdb_map_vpkgs(struct flappy_handle *xhp)
 {
-	xbps_object_iterator_t iter;
-	xbps_object_t obj;
+	flappy_object_iterator_t iter;
+	flappy_object_t obj;
 	int r = 0;
 
-	if (!xbps_dictionary_count(xhp->pkgdb))
+	if (!flappy_dictionary_count(xhp->pkgdb))
 		return 0;
 
 	if (xhp->vpkgd == NULL) {
-		xhp->vpkgd = xbps_dictionary_create();
+		xhp->vpkgd = flappy_dictionary_create();
 		if (!xhp->vpkgd) {
 			r = -errno;
-			xbps_error_printf("failed to create dictionary\n");
+			flappy_error_printf("failed to create dictionary\n");
 			return r;
 		}
 	}
@@ -137,117 +137,117 @@ pkgdb_map_vpkgs(struct xbps_handle *xhp)
 	/*
 	 * This maps all pkgs that have virtualpkgs in pkgdb.
 	 */
-	iter = xbps_dictionary_iterator(xhp->pkgdb);
+	iter = flappy_dictionary_iterator(xhp->pkgdb);
 	if (!iter) {
 		r = -errno;
-		xbps_error_printf("failed to create iterator");
+		flappy_error_printf("failed to create iterator");
 		return r;
 	}
 
-	while ((obj = xbps_object_iterator_next(iter))) {
-		xbps_array_t provides;
-		xbps_dictionary_t pkgd;
+	while ((obj = flappy_object_iterator_next(iter))) {
+		flappy_array_t provides;
+		flappy_dictionary_t pkgd;
 		const char *pkgver = NULL;
 		const char *pkgname = NULL;
 		unsigned int cnt;
 
-		pkgd = xbps_dictionary_get_keysym(xhp->pkgdb, obj);
-		provides = xbps_dictionary_get(pkgd, "provides");
-		cnt = xbps_array_count(provides);
+		pkgd = flappy_dictionary_get_keysym(xhp->pkgdb, obj);
+		provides = flappy_dictionary_get(pkgd, "provides");
+		cnt = flappy_array_count(provides);
 		if (!cnt)
 			continue;
 
-		xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver);
-		xbps_dictionary_get_cstring_nocopy(pkgd, "pkgname", &pkgname);
+		flappy_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver);
+		flappy_dictionary_get_cstring_nocopy(pkgd, "pkgname", &pkgname);
 		assert(pkgname);
 
 		for (unsigned int i = 0; i < cnt; i++) {
-			char vpkgname[XBPS_NAME_SIZE];
+			char vpkgname[FLAPPY_NAME_SIZE];
 			const char *vpkg = NULL;
-			xbps_dictionary_t providers;
+			flappy_dictionary_t providers;
 			bool alloc = false;
 
-			xbps_array_get_cstring_nocopy(provides, i, &vpkg);
-			if (!xbps_pkg_name(vpkgname, sizeof(vpkgname), vpkg)) {
-				xbps_warn_printf("%s: invalid provides: %s\n", pkgver, vpkg);
+			flappy_array_get_cstring_nocopy(provides, i, &vpkg);
+			if (!flappy_pkg_name(vpkgname, sizeof(vpkgname), vpkg)) {
+				flappy_warn_printf("%s: invalid provides: %s\n", pkgver, vpkg);
 				continue;
 			}
 
-			providers = xbps_dictionary_get(xhp->vpkgd, vpkgname);
+			providers = flappy_dictionary_get(xhp->vpkgd, vpkgname);
 			if (!providers) {
-				providers = xbps_dictionary_create();
+				providers = flappy_dictionary_create();
 				if (!providers) {
 					r = -errno;
-					xbps_error_printf("failed to create dictionary\n");
+					flappy_error_printf("failed to create dictionary\n");
 					goto out;
 				}
-				if (!xbps_dictionary_set(xhp->vpkgd, vpkgname, providers)) {
+				if (!flappy_dictionary_set(xhp->vpkgd, vpkgname, providers)) {
 					r = -errno;
-					xbps_error_printf("failed to set dictionary entry\n");
-					xbps_object_release(providers);
+					flappy_error_printf("failed to set dictionary entry\n");
+					flappy_object_release(providers);
 					goto out;
 				}
 				alloc = true;
 			}
 
-			if (!xbps_dictionary_set_cstring(providers, vpkg, pkgname)) {
+			if (!flappy_dictionary_set_cstring(providers, vpkg, pkgname)) {
 				r = -errno;
-				xbps_error_printf("failed to set dictionary entry\n");
+				flappy_error_printf("failed to set dictionary entry\n");
 				if (alloc)
-					xbps_object_release(providers);
+					flappy_object_release(providers);
 				goto out;
 			}
 			if (alloc)
-				xbps_object_release(providers);
-			xbps_dbg_printf("[pkgdb] added vpkg %s for %s\n", vpkg, pkgname);
+				flappy_object_release(providers);
+			flappy_dbg_printf("[pkgdb] added vpkg %s for %s\n", vpkg, pkgname);
 		}
 	}
 out:
-	xbps_object_iterator_release(iter);
+	flappy_object_iterator_release(iter);
 	return r;
 }
 
 static int
-pkgdb_map_names(struct xbps_handle *xhp)
+pkgdb_map_names(struct flappy_handle *xhp)
 {
-	xbps_object_iterator_t iter;
-	xbps_object_t obj;
+	flappy_object_iterator_t iter;
+	flappy_object_t obj;
 	int rv = 0;
 
-	if (!xbps_dictionary_count(xhp->pkgdb))
+	if (!flappy_dictionary_count(xhp->pkgdb))
 		return 0;
 
 	/*
 	 * This maps all pkgs in pkgdb to have the "pkgname" string property.
 	 * This way we do it once and not multiple times.
 	 */
-	iter = xbps_dictionary_iterator(xhp->pkgdb);
+	iter = flappy_dictionary_iterator(xhp->pkgdb);
 	assert(iter);
 
-	while ((obj = xbps_object_iterator_next(iter))) {
-		xbps_dictionary_t pkgd;
+	while ((obj = flappy_object_iterator_next(iter))) {
+		flappy_dictionary_t pkgd;
 		const char *pkgver;
-		char pkgname[XBPS_NAME_SIZE] = {0};
+		char pkgname[FLAPPY_NAME_SIZE] = {0};
 
-		pkgd = xbps_dictionary_get_keysym(xhp->pkgdb, obj);
-		if (!xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver)) {
+		pkgd = flappy_dictionary_get_keysym(xhp->pkgdb, obj);
+		if (!flappy_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver)) {
 			continue;
 		}
-		if (!xbps_pkg_name(pkgname, sizeof(pkgname), pkgver)) {
+		if (!flappy_pkg_name(pkgname, sizeof(pkgname), pkgver)) {
 			rv = EINVAL;
 			break;
 		}
-		if (!xbps_dictionary_set_cstring(pkgd, "pkgname", pkgname)) {
+		if (!flappy_dictionary_set_cstring(pkgd, "pkgname", pkgname)) {
 			rv = EINVAL;
 			break;
 		}
 	}
-	xbps_object_iterator_release(iter);
+	flappy_object_iterator_release(iter);
 	return rv;
 }
 
 int HIDDEN
-xbps_pkgdb_init(struct xbps_handle *xhp)
+flappy_pkgdb_init(struct flappy_handle *xhp)
 {
 	int rv;
 
@@ -257,37 +257,37 @@ xbps_pkgdb_init(struct xbps_handle *xhp)
 		return 0;
 
 	if (!xhp->pkgdb_plist)
-		xhp->pkgdb_plist = xbps_xasprintf("%s/%s", xhp->metadir, XBPS_PKGDB);
+		xhp->pkgdb_plist = flappy_xasprintf("%s/%s", xhp->metadir, FLAPPY_PKGDB);
 
 #if 0
-	if ((rv = xbps_pkgdb_conversion(xhp)) != 0)
+	if ((rv = flappy_pkgdb_conversion(xhp)) != 0)
 		return rv;
 #endif
 
 
-	if ((rv = xbps_pkgdb_update(xhp, false, true)) != 0) {
+	if ((rv = flappy_pkgdb_update(xhp, false, true)) != 0) {
 		if (rv != ENOENT)
-			xbps_error_printf("failed to initialize pkgdb: %s\n", strerror(rv));
+			flappy_error_printf("failed to initialize pkgdb: %s\n", strerror(rv));
 		return rv;
 	}
 	if ((rv = pkgdb_map_names(xhp)) != 0) {
-		xbps_dbg_printf("[pkgdb] pkgdb_map_names %s\n", strerror(rv));
+		flappy_dbg_printf("[pkgdb] pkgdb_map_names %s\n", strerror(rv));
 		return rv;
 	}
 	if ((rv = pkgdb_map_vpkgs(xhp)) != 0) {
-		xbps_dbg_printf("[pkgdb] pkgdb_map_vpkgs %s\n", strerror(rv));
+		flappy_dbg_printf("[pkgdb] pkgdb_map_vpkgs %s\n", strerror(rv));
 		return rv;
 	}
 	assert(xhp->pkgdb);
-	xbps_dbg_printf("[pkgdb] initialized ok.\n");
+	flappy_dbg_printf("[pkgdb] initialized ok.\n");
 
 	return 0;
 }
 
 int
-xbps_pkgdb_update(struct xbps_handle *xhp, bool flush, bool update)
+flappy_pkgdb_update(struct flappy_handle *xhp, bool flush, bool update)
 {
-	xbps_dictionary_t pkgdb_storage;
+	flappy_dictionary_t pkgdb_storage;
 	mode_t prev_umask;
 	static int cached_rv;
 	int rv = 0;
@@ -296,21 +296,21 @@ xbps_pkgdb_update(struct xbps_handle *xhp, bool flush, bool update)
 		return cached_rv;
 
 	if (xhp->pkgdb && flush) {
-		pkgdb_storage = xbps_dictionary_internalize_from_file(xhp->pkgdb_plist);
+		pkgdb_storage = flappy_dictionary_internalize_from_file(xhp->pkgdb_plist);
 		if (pkgdb_storage == NULL ||
-		    !xbps_dictionary_equals(xhp->pkgdb, pkgdb_storage)) {
+		    !flappy_dictionary_equals(xhp->pkgdb, pkgdb_storage)) {
 			/* flush dictionary to storage */
 			prev_umask = umask(022);
-			if (!xbps_dictionary_externalize_to_file(xhp->pkgdb, xhp->pkgdb_plist)) {
+			if (!flappy_dictionary_externalize_to_file(xhp->pkgdb, xhp->pkgdb_plist)) {
 				umask(prev_umask);
 				return errno;
 			}
 			umask(prev_umask);
 		}
 		if (pkgdb_storage)
-			xbps_object_release(pkgdb_storage);
+			flappy_object_release(pkgdb_storage);
 
-		xbps_object_release(xhp->pkgdb);
+		flappy_object_release(xhp->pkgdb);
 		xhp->pkgdb = NULL;
 		cached_rv = 0;
 	}
@@ -318,15 +318,15 @@ xbps_pkgdb_update(struct xbps_handle *xhp, bool flush, bool update)
 		return rv;
 
 	/* update copy in memory */
-	if ((xhp->pkgdb = xbps_dictionary_internalize_from_file(xhp->pkgdb_plist)) == NULL) {
+	if ((xhp->pkgdb = flappy_dictionary_internalize_from_file(xhp->pkgdb_plist)) == NULL) {
 		rv = errno;
 		if (!rv)
 			rv = EINVAL;
 
 		if (rv == ENOENT)
-			xhp->pkgdb = xbps_dictionary_create();
+			xhp->pkgdb = flappy_dictionary_create();
 		else
-			xbps_error_printf("cannot access to pkgdb: %s\n", strerror(rv));
+			flappy_error_printf("cannot access to pkgdb: %s\n", strerror(rv));
 
 		cached_rv = rv = errno;
 	}
@@ -335,118 +335,118 @@ xbps_pkgdb_update(struct xbps_handle *xhp, bool flush, bool update)
 }
 
 void HIDDEN
-xbps_pkgdb_release(struct xbps_handle *xhp)
+flappy_pkgdb_release(struct flappy_handle *xhp)
 {
 	assert(xhp);
 
-	xbps_pkgdb_unlock(xhp);
+	flappy_pkgdb_unlock(xhp);
 	if (xhp->pkgdb)
-		xbps_object_release(xhp->pkgdb);
-	xbps_dbg_printf("[pkgdb] released ok.\n");
+		flappy_object_release(xhp->pkgdb);
+	flappy_dbg_printf("[pkgdb] released ok.\n");
 }
 
 int
-xbps_pkgdb_foreach_cb(struct xbps_handle *xhp,
-		int (*fn)(struct xbps_handle *, xbps_object_t, const char *, void *, bool *),
+flappy_pkgdb_foreach_cb(struct flappy_handle *xhp,
+		int (*fn)(struct flappy_handle *, flappy_object_t, const char *, void *, bool *),
 		void *arg)
 {
-	xbps_array_t allkeys;
+	flappy_array_t allkeys;
 	int r;
 
 	// XXX: this should be done before calling the function...
-	if ((r = xbps_pkgdb_init(xhp)) != 0)
+	if ((r = flappy_pkgdb_init(xhp)) != 0)
 		return r > 0 ? -r : r;
 
-	allkeys = xbps_dictionary_all_keys(xhp->pkgdb);
+	allkeys = flappy_dictionary_all_keys(xhp->pkgdb);
 	assert(allkeys);
-	r = xbps_array_foreach_cb(xhp, allkeys, xhp->pkgdb, fn, arg);
-	xbps_object_release(allkeys);
+	r = flappy_array_foreach_cb(xhp, allkeys, xhp->pkgdb, fn, arg);
+	flappy_object_release(allkeys);
 	return r;
 }
 
 int
-xbps_pkgdb_foreach_cb_multi(struct xbps_handle *xhp,
-		int (*fn)(struct xbps_handle *, xbps_object_t, const char *, void *, bool *),
+flappy_pkgdb_foreach_cb_multi(struct flappy_handle *xhp,
+		int (*fn)(struct flappy_handle *, flappy_object_t, const char *, void *, bool *),
 		void *arg)
 {
-	xbps_array_t allkeys;
+	flappy_array_t allkeys;
 	int r;
 
 	// XXX: this should be done before calling the function...
-	if ((r = xbps_pkgdb_init(xhp)) != 0)
+	if ((r = flappy_pkgdb_init(xhp)) != 0)
 		return r > 0 ? -r : r;
 
-	allkeys = xbps_dictionary_all_keys(xhp->pkgdb);
+	allkeys = flappy_dictionary_all_keys(xhp->pkgdb);
 	if (!allkeys)
-		return xbps_error_oom();
+		return flappy_error_oom();
 
-	r = xbps_array_foreach_cb_multi(xhp, allkeys, xhp->pkgdb, fn, arg);
-	xbps_object_release(allkeys);
+	r = flappy_array_foreach_cb_multi(xhp, allkeys, xhp->pkgdb, fn, arg);
+	flappy_object_release(allkeys);
 	return r;
 }
 
-xbps_dictionary_t
-xbps_pkgdb_get_pkg(struct xbps_handle *xhp, const char *pkg)
+flappy_dictionary_t
+flappy_pkgdb_get_pkg(struct flappy_handle *xhp, const char *pkg)
 {
-	xbps_dictionary_t pkgd;
+	flappy_dictionary_t pkgd;
 
-	if (xbps_pkgdb_init(xhp) != 0)
+	if (flappy_pkgdb_init(xhp) != 0)
 		return NULL;
 
-	pkgd = xbps_find_pkg_in_dict(xhp->pkgdb, pkg);
+	pkgd = flappy_find_pkg_in_dict(xhp->pkgdb, pkg);
 	if (!pkgd)
 		errno = ENOENT;
 	return pkgd;
 }
 
-xbps_dictionary_t
-xbps_pkgdb_get_virtualpkg(struct xbps_handle *xhp, const char *vpkg)
+flappy_dictionary_t
+flappy_pkgdb_get_virtualpkg(struct flappy_handle *xhp, const char *vpkg)
 {
-	if (xbps_pkgdb_init(xhp) != 0)
+	if (flappy_pkgdb_init(xhp) != 0)
 		return NULL;
 
-	return xbps_find_virtualpkg_in_dict(xhp, xhp->pkgdb, vpkg);
+	return flappy_find_virtualpkg_in_dict(xhp, xhp->pkgdb, vpkg);
 }
 
 static void
-generate_full_revdeps_tree(struct xbps_handle *xhp)
+generate_full_revdeps_tree(struct flappy_handle *xhp)
 {
-	xbps_object_t obj;
-	xbps_object_iterator_t iter;
-	xbps_dictionary_t vpkg_cache;
+	flappy_object_t obj;
+	flappy_object_iterator_t iter;
+	flappy_dictionary_t vpkg_cache;
 
 	if (xhp->pkgdb_revdeps)
 		return;
 
-	xhp->pkgdb_revdeps = xbps_dictionary_create();
+	xhp->pkgdb_revdeps = flappy_dictionary_create();
 	assert(xhp->pkgdb_revdeps);
 
-	vpkg_cache = xbps_dictionary_create();
+	vpkg_cache = flappy_dictionary_create();
 	assert(vpkg_cache);
 
-	iter = xbps_dictionary_iterator(xhp->pkgdb);
+	iter = flappy_dictionary_iterator(xhp->pkgdb);
 	assert(iter);
 
-	while ((obj = xbps_object_iterator_next(iter))) {
-		xbps_array_t rundeps;
-		xbps_dictionary_t pkgd;
+	while ((obj = flappy_object_iterator_next(iter))) {
+		flappy_array_t rundeps;
+		flappy_dictionary_t pkgd;
 		const char *pkgver = NULL;
 
-		pkgd = xbps_dictionary_get_keysym(xhp->pkgdb, obj);
-		rundeps = xbps_dictionary_get(pkgd, "run_depends");
-		if (!xbps_array_count(rundeps))
+		pkgd = flappy_dictionary_get_keysym(xhp->pkgdb, obj);
+		rundeps = flappy_dictionary_get(pkgd, "run_depends");
+		if (!flappy_array_count(rundeps))
 			continue;
 
-		xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver);
-		for (unsigned int i = 0; i < xbps_array_count(rundeps); i++) {
-			xbps_array_t pkg;
+		flappy_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver);
+		for (unsigned int i = 0; i < flappy_array_count(rundeps); i++) {
+			flappy_array_t pkg;
 			const char *pkgdep = NULL, *v;
-			char curpkgname[XBPS_NAME_SIZE];
+			char curpkgname[FLAPPY_NAME_SIZE];
 			bool alloc = false;
 
-			xbps_array_get_cstring_nocopy(rundeps, i, &pkgdep);
-			if ((!xbps_pkgpattern_name(curpkgname, sizeof(curpkgname), pkgdep)) &&
-			    (!xbps_pkg_name(curpkgname, sizeof(curpkgname), pkgdep))) {
+			flappy_array_get_cstring_nocopy(rundeps, i, &pkgdep);
+			if ((!flappy_pkgpattern_name(curpkgname, sizeof(curpkgname), pkgdep)) &&
+			    (!flappy_pkg_name(curpkgname, sizeof(curpkgname), pkgdep))) {
 					abort();
 			}
 
@@ -455,7 +455,7 @@ generate_full_revdeps_tree(struct xbps_handle *xhp)
 			 * solution for itself vpkg_user_conf being slow should probably be
 			 * implemented at some point.
 			 */
-			if (!xbps_dictionary_get_cstring_nocopy(vpkg_cache, curpkgname, &v)) {
+			if (!flappy_dictionary_get_cstring_nocopy(vpkg_cache, curpkgname, &v)) {
 				const char *vpkgname = vpkg_user_conf(xhp, curpkgname);
 				if (vpkgname) {
 					v = vpkgname;
@@ -463,71 +463,71 @@ generate_full_revdeps_tree(struct xbps_handle *xhp)
 					v = curpkgname;
 				}
 				errno = 0;
-				if (!xbps_dictionary_set_cstring_nocopy(vpkg_cache, curpkgname, v)) {
-					xbps_error_printf("%s\n", strerror(errno ? errno : ENOMEM));
+				if (!flappy_dictionary_set_cstring_nocopy(vpkg_cache, curpkgname, v)) {
+					flappy_error_printf("%s\n", strerror(errno ? errno : ENOMEM));
 					abort();
 				}
 			}
 
-			pkg = xbps_dictionary_get(xhp->pkgdb_revdeps, v);
+			pkg = flappy_dictionary_get(xhp->pkgdb_revdeps, v);
 			if (pkg == NULL) {
 				alloc = true;
-				pkg = xbps_array_create();
+				pkg = flappy_array_create();
 			}
-			if (!xbps_match_string_in_array(pkg, pkgver)) {
-				xbps_array_add_cstring_nocopy(pkg, pkgver);
-				xbps_dictionary_set(xhp->pkgdb_revdeps, v, pkg);
+			if (!flappy_match_string_in_array(pkg, pkgver)) {
+				flappy_array_add_cstring_nocopy(pkg, pkgver);
+				flappy_dictionary_set(xhp->pkgdb_revdeps, v, pkg);
 			}
 			if (alloc)
-				xbps_object_release(pkg);
+				flappy_object_release(pkg);
 		}
 	}
-	xbps_object_iterator_release(iter);
-	xbps_object_release(vpkg_cache);
+	flappy_object_iterator_release(iter);
+	flappy_object_release(vpkg_cache);
 }
 
-xbps_array_t
-xbps_pkgdb_get_pkg_revdeps(struct xbps_handle *xhp, const char *pkg)
+flappy_array_t
+flappy_pkgdb_get_pkg_revdeps(struct flappy_handle *xhp, const char *pkg)
 {
-	xbps_dictionary_t pkgd;
+	flappy_dictionary_t pkgd;
 	const char *pkgver = NULL;
-	char pkgname[XBPS_NAME_SIZE];
+	char pkgname[FLAPPY_NAME_SIZE];
 
-	if ((pkgd = xbps_pkgdb_get_pkg(xhp, pkg)) == NULL)
+	if ((pkgd = flappy_pkgdb_get_pkg(xhp, pkg)) == NULL)
 		return NULL;
 
 	generate_full_revdeps_tree(xhp);
-	xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver);
-	if (!xbps_pkg_name(pkgname, sizeof(pkgname), pkgver)) 
+	flappy_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver);
+	if (!flappy_pkg_name(pkgname, sizeof(pkgname), pkgver)) 
 		return NULL;
 
-	return xbps_dictionary_get(xhp->pkgdb_revdeps, pkgname);
+	return flappy_dictionary_get(xhp->pkgdb_revdeps, pkgname);
 }
 
-xbps_array_t
-xbps_pkgdb_get_pkg_fulldeptree(struct xbps_handle *xhp, const char *pkg)
+flappy_array_t
+flappy_pkgdb_get_pkg_fulldeptree(struct flappy_handle *xhp, const char *pkg)
 {
-	return xbps_get_pkg_fulldeptree(xhp, pkg, false);
+	return flappy_get_pkg_fulldeptree(xhp, pkg, false);
 }
 
-xbps_dictionary_t
-xbps_pkgdb_get_pkg_files(struct xbps_handle *xhp, const char *pkg)
+flappy_dictionary_t
+flappy_pkgdb_get_pkg_files(struct flappy_handle *xhp, const char *pkg)
 {
-	xbps_dictionary_t pkgd;
+	flappy_dictionary_t pkgd;
 	const char *pkgver = NULL;
-	char pkgname[XBPS_NAME_SIZE], plist[PATH_MAX];
+	char pkgname[FLAPPY_NAME_SIZE], plist[PATH_MAX];
 
 	if (pkg == NULL)
 		return NULL;
 
-	pkgd = xbps_pkgdb_get_pkg(xhp, pkg);
+	pkgd = flappy_pkgdb_get_pkg(xhp, pkg);
 	if (pkgd == NULL)
 		return NULL;
 
-	xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver);
-	if (!xbps_pkg_name(pkgname, sizeof(pkgname), pkgver))
+	flappy_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver);
+	if (!flappy_pkg_name(pkgname, sizeof(pkgname), pkgver))
 		return NULL;
 
 	snprintf(plist, sizeof(plist)-1, "%s/.%s-files.plist", xhp->metadir, pkgname);
-	return xbps_plist_dictionary_from_file(plist);
+	return flappy_plist_dictionary_from_file(plist);
 }

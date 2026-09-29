@@ -24,7 +24,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /*-
- * xbps_path_clean is based on the go filepath.Clean function:
+ * flappy_path_clean is based on the go filepath.Clean function:
  * - https://github.com/golang/go/blob/cfe2ab42/src/path/filepath/path.go#L88
  *
  * Copyright (c) 2009 The Go Authors. All rights reserved.
@@ -61,10 +61,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 ssize_t
-xbps_path_clean(char *dst)
+flappy_path_clean(char *dst)
 {
 	char buf[PATH_MAX];
 	const char *p = buf;
@@ -72,7 +72,7 @@ xbps_path_clean(char *dst)
 	char *d = dst;
 	bool rooted = *dst == '/';
 
-	if (xbps_strlcpy(buf, dst, sizeof buf) >= sizeof buf)
+	if (flappy_strlcpy(buf, dst, sizeof buf) >= sizeof buf)
 		return -1;
 
 	if (rooted) {
@@ -128,7 +128,7 @@ xbps_path_clean(char *dst)
 }
 
 ssize_t
-xbps_path_rel(char *dst, size_t dstlen, const char *from, const char *to)
+flappy_path_rel(char *dst, size_t dstlen, const char *from, const char *to)
 {
 	char frombuf[PATH_MAX], tobuf[PATH_MAX];
 	const char *fromp = frombuf, *top = tobuf, *suffix = tobuf;
@@ -137,11 +137,11 @@ xbps_path_rel(char *dst, size_t dstlen, const char *from, const char *to)
 
 	*dst = '\0';
 
-	if (xbps_strlcpy(frombuf, from, sizeof frombuf) >= sizeof frombuf ||
-	    xbps_strlcpy(tobuf, to, sizeof tobuf) >= sizeof tobuf)
+	if (flappy_strlcpy(frombuf, from, sizeof frombuf) >= sizeof frombuf ||
+	    flappy_strlcpy(tobuf, to, sizeof tobuf) >= sizeof tobuf)
 		return -1;
 
-	if (xbps_path_clean(frombuf) == -1 || xbps_path_clean(tobuf) == -1)
+	if (flappy_path_clean(frombuf) == -1 || flappy_path_clean(tobuf) == -1)
 		return -1;
 
 	for (; *fromp == *top && *to; fromp++, top++)
@@ -171,7 +171,7 @@ xbps_path_rel(char *dst, size_t dstlen, const char *from, const char *to)
 }
 
 static ssize_t
-xbps_path_vjoin(char *dst, size_t dstlen, va_list ap)
+flappy_path_vjoin(char *dst, size_t dstlen, va_list ap)
 {
 	size_t len = 0;
 	const char *val;
@@ -182,7 +182,7 @@ xbps_path_vjoin(char *dst, size_t dstlen, va_list ap)
 
 	for (;;) {
 		size_t n;
-		if ((n = xbps_strlcat(dst+len, val, dstlen-len)) >= dstlen-len)
+		if ((n = flappy_strlcat(dst+len, val, dstlen-len)) >= dstlen-len)
 		    goto err;
 		len += n;
 		if ((val = va_arg(ap, const char *)) == NULL)
@@ -205,18 +205,18 @@ err:
 }
 
 ssize_t
-xbps_path_join(char *dst, size_t dstlen, ...)
+flappy_path_join(char *dst, size_t dstlen, ...)
 {
 	ssize_t len;
 	va_list ap;
 	va_start(ap, dstlen);
-	len = xbps_path_vjoin(dst, dstlen, ap);
+	len = flappy_path_vjoin(dst, dstlen, ap);
 	va_end(ap);
 	return len;
 }
 
 ssize_t
-xbps_path_append(char *dst, size_t dstlen, const char *suffix)
+flappy_path_append(char *dst, size_t dstlen, const char *suffix)
 {
 	size_t len = strlen(dst);
 
@@ -224,7 +224,7 @@ xbps_path_append(char *dst, size_t dstlen, const char *suffix)
 		goto out;
 
 	if (*dst == '\0') {
-		if ((len = xbps_strlcpy(dst, suffix, dstlen)) >= dstlen)
+		if ((len = flappy_strlcpy(dst, suffix, dstlen)) >= dstlen)
 			goto err;
 		goto out;
 	}
@@ -236,7 +236,7 @@ xbps_path_append(char *dst, size_t dstlen, const char *suffix)
 	if (*suffix == '/')
 		suffix++;
 
-	if ((len = xbps_strlcat(dst, suffix, dstlen)) >= dstlen)
+	if ((len = flappy_strlcat(dst, suffix, dstlen)) >= dstlen)
 		goto err;
 out:
 	return (ssize_t)len < 0 ? -1 : (ssize_t)len;
@@ -246,7 +246,7 @@ err:
 }
 
 ssize_t
-xbps_path_prepend(char *dst, size_t dstlen, const char *prefix)
+flappy_path_prepend(char *dst, size_t dstlen, const char *prefix)
 {
 	size_t len, prelen;
 	char *p = dst;
@@ -257,7 +257,7 @@ xbps_path_prepend(char *dst, size_t dstlen, const char *prefix)
 		goto out;
 
 	if (*dst == '\0') {
-		if ((len = xbps_strlcpy(dst, prefix, dstlen)) >= dstlen)
+		if ((len = flappy_strlcpy(dst, prefix, dstlen)) >= dstlen)
 			goto err;
 		goto out;
 	}

@@ -29,7 +29,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 struct state {
 	const char *string;
@@ -37,11 +37,11 @@ struct state {
 };
 
 static const struct state states[] = {
-	{ "unpacked", 		XBPS_PKG_STATE_UNPACKED },
-	{ "installed",		XBPS_PKG_STATE_INSTALLED },
-	{ "broken",		XBPS_PKG_STATE_BROKEN },
-	{ "half-removed",	XBPS_PKG_STATE_HALF_REMOVED },
-	{ "not-installed",	XBPS_PKG_STATE_NOT_INSTALLED },
+	{ "unpacked", 		FLAPPY_PKG_STATE_UNPACKED },
+	{ "installed",		FLAPPY_PKG_STATE_INSTALLED },
+	{ "broken",		FLAPPY_PKG_STATE_BROKEN },
+	{ "half-removed",	FLAPPY_PKG_STATE_HALF_REMOVED },
+	{ "not-installed",	FLAPPY_PKG_STATE_NOT_INSTALLED },
 	{ NULL,			0 }
 };
 
@@ -53,11 +53,11 @@ static const struct state states[] = {
  */
 
 static int
-set_new_state(xbps_dictionary_t dict, pkg_state_t state)
+set_new_state(flappy_dictionary_t dict, pkg_state_t state)
 {
 	const struct state *stp;
 
-	assert(xbps_object_type(dict) == XBPS_TYPE_DICTIONARY);
+	assert(flappy_object_type(dict) == FLAPPY_TYPE_DICTIONARY);
 
 	for (stp = states; stp->string != NULL; stp++)
 		if (state == stp->number)
@@ -66,21 +66,21 @@ set_new_state(xbps_dictionary_t dict, pkg_state_t state)
 	if (stp->string == NULL)
 		return EINVAL;
 
-	if (!xbps_dictionary_set_cstring_nocopy(dict, "state", stp->string))
+	if (!flappy_dictionary_set_cstring_nocopy(dict, "state", stp->string))
 		return EINVAL;
 
 	return 0;
 }
 
 static pkg_state_t
-get_state(xbps_dictionary_t dict)
+get_state(flappy_dictionary_t dict)
 {
 	const struct state *stp;
 	const char *state_str;
 
-	assert(xbps_object_type(dict) == XBPS_TYPE_DICTIONARY);
+	assert(flappy_object_type(dict) == FLAPPY_TYPE_DICTIONARY);
 
-	if (!xbps_dictionary_get_cstring_nocopy(dict,
+	if (!flappy_dictionary_get_cstring_nocopy(dict,
 	    "state", &state_str))
 		return 0;
 
@@ -92,16 +92,16 @@ get_state(xbps_dictionary_t dict)
 }
 
 int
-xbps_pkg_state_installed(struct xbps_handle *xhp,
+flappy_pkg_state_installed(struct flappy_handle *xhp,
 			 const char *pkgver,
 			 pkg_state_t *state)
 {
-	xbps_dictionary_t pkgd;
+	flappy_dictionary_t pkgd;
 
 	assert(pkgver != NULL);
 	assert(state != NULL);
 
-	pkgd = xbps_pkgdb_get_pkg(xhp, pkgver);
+	pkgd = flappy_pkgdb_get_pkg(xhp, pkgver);
 	if (pkgd == NULL)
 		return ENOENT;
 
@@ -113,9 +113,9 @@ xbps_pkg_state_installed(struct xbps_handle *xhp,
 }
 
 int
-xbps_pkg_state_dictionary(xbps_dictionary_t dict, pkg_state_t *state)
+flappy_pkg_state_dictionary(flappy_dictionary_t dict, pkg_state_t *state)
 {
-	assert(xbps_object_type(dict) == XBPS_TYPE_DICTIONARY);
+	assert(flappy_object_type(dict) == FLAPPY_TYPE_DICTIONARY);
 	assert(state != NULL);
 
 	if ((*state = get_state(dict)) == 0)
@@ -125,54 +125,54 @@ xbps_pkg_state_dictionary(xbps_dictionary_t dict, pkg_state_t *state)
 }
 
 int
-xbps_set_pkg_state_dictionary(xbps_dictionary_t dict, pkg_state_t state)
+flappy_set_pkg_state_dictionary(flappy_dictionary_t dict, pkg_state_t state)
 {
-	assert(xbps_object_type(dict) == XBPS_TYPE_DICTIONARY);
+	assert(flappy_object_type(dict) == FLAPPY_TYPE_DICTIONARY);
 
 	return set_new_state(dict, state);
 }
 
 int
-xbps_set_pkg_state_installed(struct xbps_handle *xhp,
+flappy_set_pkg_state_installed(struct flappy_handle *xhp,
 			     const char *pkgver,
 			     pkg_state_t state)
 {
-	xbps_dictionary_t pkgd;
-	char pkgname[XBPS_NAME_SIZE];
+	flappy_dictionary_t pkgd;
+	char pkgname[FLAPPY_NAME_SIZE];
 	int rv = 0;
 
 	assert(pkgver != NULL);
 
-	pkgd = xbps_pkgdb_get_pkg(xhp, pkgver);
+	pkgd = flappy_pkgdb_get_pkg(xhp, pkgver);
 	if (pkgd == NULL) {
-		pkgd = xbps_dictionary_create();
+		pkgd = flappy_dictionary_create();
 		if (pkgd == NULL)
 			return ENOMEM;
 
-		if (!xbps_dictionary_set_cstring_nocopy(pkgd,
+		if (!flappy_dictionary_set_cstring_nocopy(pkgd,
 		    "pkgver", pkgver)) {
-			xbps_object_release(pkgd);
+			flappy_object_release(pkgd);
 			return EINVAL;
 		}
 		if ((rv = set_new_state(pkgd, state)) != 0) {
-			xbps_object_release(pkgd);
+			flappy_object_release(pkgd);
 			return rv;
 		}
-		if (!xbps_pkg_name(pkgname, XBPS_NAME_SIZE, pkgver))
-			xbps_unreachable();
-		if (!xbps_dictionary_set(xhp->pkgdb, pkgname, pkgd)) {
-			xbps_object_release(pkgd);
+		if (!flappy_pkg_name(pkgname, FLAPPY_NAME_SIZE, pkgver))
+			flappy_unreachable();
+		if (!flappy_dictionary_set(xhp->pkgdb, pkgname, pkgd)) {
+			flappy_object_release(pkgd);
 			return EINVAL;
 		}
-		xbps_object_release(pkgd);
+		flappy_object_release(pkgd);
 	} else {
 		if ((rv = set_new_state(pkgd, state)) != 0)
 			return rv;
 
-		if (!xbps_pkg_name(pkgname, XBPS_NAME_SIZE, pkgver)) {
+		if (!flappy_pkg_name(pkgname, FLAPPY_NAME_SIZE, pkgver)) {
 			abort();
 		}
-		if (!xbps_dictionary_set(xhp->pkgdb, pkgname, pkgd)) {
+		if (!flappy_dictionary_set(xhp->pkgdb, pkgname, pkgd)) {
 			return EINVAL;
 		}
 	}

@@ -32,7 +32,7 @@
 #include <limits.h>
 #include <locale.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 /**
  * @file lib/transaction_commit.c
@@ -40,9 +40,9 @@
  * @defgroup transaction Transaction handling functions
  *
  * The following image shows off the full transaction dictionary returned
- * by xbps_transaction_prepare().
+ * by flappy_transaction_prepare().
  *
- * @image html images/xbps_transaction_dictionary.png
+ * @image html images/flappy_transaction_dictionary.png
  *
  * Legend:
  *  - <b>Salmon bg box</b>: The transaction dictionary.
@@ -56,38 +56,38 @@
  */
 
 static int
-run_post_remove_scripts(struct xbps_handle *xhp, xbps_array_t remove_scripts)
+run_post_remove_scripts(struct flappy_handle *xhp, flappy_array_t remove_scripts)
 {
 	int rv = 0;
 
-	for (unsigned int i = 0; i < xbps_array_count(remove_scripts); i++) {
-		xbps_dictionary_t dict;
-		xbps_data_t script = NULL;
+	for (unsigned int i = 0; i < flappy_array_count(remove_scripts); i++) {
+		flappy_dictionary_t dict;
+		flappy_data_t script = NULL;
 		const char *pkgver = NULL;
 		const void *buf;
 		size_t buflen;
 
-		dict = xbps_array_get(remove_scripts, i);
+		dict = flappy_array_get(remove_scripts, i);
 		assert(dict);
 
-		xbps_dictionary_get_cstring_nocopy(dict, "pkgver", &pkgver);
+		flappy_dictionary_get_cstring_nocopy(dict, "pkgver", &pkgver);
 		assert(pkgver);
 
-		script = xbps_dictionary_get(dict, "remove-script");
+		script = flappy_dictionary_get(dict, "remove-script");
 		assert(script);
 
-		buf = xbps_data_data_nocopy(script);
-		buflen = xbps_data_size(script);
-		rv = xbps_pkg_exec_buffer(xhp, buf, buflen, pkgver, "post", false);
+		buf = flappy_data_data_nocopy(script);
+		buflen = flappy_data_size(script);
+		rv = flappy_pkg_exec_buffer(xhp, buf, buflen, pkgver, "post", false);
 		if (rv != 0) {
-			xbps_set_cb_state(xhp, XBPS_STATE_TRANS_FAIL, rv, pkgver,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_TRANS_FAIL, rv, pkgver,
 			    "%s: [trans] REMOVE script failed to execute pre ACTION: %s",
 			    pkgver, strerror(rv));
 			goto out;
 		}
-		rv = xbps_pkg_exec_buffer(xhp, buf, buflen, pkgver, "purge", false);
+		rv = flappy_pkg_exec_buffer(xhp, buf, buflen, pkgver, "purge", false);
 		if (rv != 0) {
-			xbps_set_cb_state(xhp, XBPS_STATE_TRANS_FAIL, rv, pkgver,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_TRANS_FAIL, rv, pkgver,
 			    "%s: [trans] REMOVE script failed to execute pre ACTION: %s",
 			    pkgver, strerror(rv));
 			goto out;
@@ -99,13 +99,13 @@ out:
 }
 
 int
-xbps_transaction_commit(struct xbps_handle *xhp)
+flappy_transaction_commit(struct flappy_handle *xhp)
 {
-	xbps_array_t remove_scripts;
-	xbps_dictionary_t pkgdb_pkgd;
-	xbps_object_t obj;
-	xbps_object_iterator_t iter;
-	xbps_trans_type_t ttype;
+	flappy_array_t remove_scripts;
+	flappy_dictionary_t pkgdb_pkgd;
+	flappy_object_t obj;
+	flappy_object_iterator_t iter;
+	flappy_trans_type_t ttype;
 	const char *pkgver = NULL, *pkgname = NULL;
 	int rv = 0;
 
@@ -116,17 +116,17 @@ xbps_transaction_commit(struct xbps_handle *xhp)
 	 * that we can run them after the package has been removed
 	 * from the package database.
 	 */
-	remove_scripts = xbps_array_create();
+	remove_scripts = flappy_array_create();
 	if (remove_scripts == NULL)
 		return errno ? errno : ENOMEM;
 
-	assert(xbps_object_type(xhp->transd) == XBPS_TYPE_DICTIONARY);
+	assert(flappy_object_type(xhp->transd) == FLAPPY_TYPE_DICTIONARY);
 	/*
 	 * Create cachedir if necessary.
 	 */
-	if (xbps_mkpath(xhp->cachedir, 0755) == -1) {
+	if (flappy_mkpath(xhp->cachedir, 0755) == -1) {
 		if (errno != EEXIST) {
-			xbps_set_cb_state(xhp, XBPS_STATE_TRANS_FAIL,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_TRANS_FAIL,
 			    errno, NULL,
 			    "[trans] cannot create cachedir `%s': %s",
 			    xhp->cachedir, strerror(errno));
@@ -134,25 +134,25 @@ xbps_transaction_commit(struct xbps_handle *xhp)
 		}
 	}
 	if (chdir(xhp->cachedir) == -1) {
-		xbps_set_cb_state(xhp, XBPS_STATE_TRANS_FAIL,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_TRANS_FAIL,
 		    errno, NULL,
 		    "[trans] failed to change dir to cachedir `%s': %s",
 		    xhp->cachedir, strerror(errno));
 		return errno;
 	}
-	iter = xbps_array_iter_from_dict(xhp->transd, "packages");
+	iter = flappy_array_iter_from_dict(xhp->transd, "packages");
 	if (iter == NULL)
 		return EINVAL;
 
 	/*
 	 * Download and verify binary packages.
 	 */
-	if ((rv = xbps_transaction_fetch(xhp, iter)) != 0) {
-		xbps_dbg_printf("[trans] failed to fetch and verify binpkgs: "
+	if ((rv = flappy_transaction_fetch(xhp, iter)) != 0) {
+		flappy_dbg_printf("[trans] failed to fetch and verify binpkgs: "
 		    "%s\n", strerror(rv));
 		goto out;
 	}
-	if (xhp->flags & XBPS_FLAG_DOWNLOAD_ONLY) {
+	if (xhp->flags & FLAPPY_FLAG_DOWNLOAD_ONLY) {
 		goto out;
 	}
 
@@ -160,13 +160,13 @@ xbps_transaction_commit(struct xbps_handle *xhp)
 	 * After all downloads are finished, clear the connection cache
 	 * to avoid file descriptor leaks (see #303)
 	 */
-	xbps_fetch_unset_cache_connection();
+	flappy_fetch_unset_cache_connection();
 
 	/*
 	 * Internalize metadata of downloaded binary packages.
 	 */
-	if ((rv = xbps_transaction_internalize(xhp, iter)) < 0) {
-		xbps_dbg_printf("[trans] failed to internalize transaction binpkgs: "
+	if ((rv = flappy_transaction_internalize(xhp, iter)) < 0) {
+		flappy_dbg_printf("[trans] failed to internalize transaction binpkgs: "
 		    "%s\n", strerror(-rv));
 		goto out;
 	}
@@ -175,9 +175,9 @@ xbps_transaction_commit(struct xbps_handle *xhp)
 	 * Collect files in the transaction and find some issues
 	 * like multiple packages installing the same file.
 	 */
-	xbps_set_cb_state(xhp, XBPS_STATE_TRANS_FILES, 0, NULL, NULL);
-	if ((rv = xbps_transaction_files(xhp, iter)) != 0) {
-		xbps_dbg_printf("[trans] failed to verify transaction files: "
+	flappy_set_cb_state(xhp, FLAPPY_STATE_TRANS_FILES, 0, NULL, NULL);
+	if ((rv = flappy_transaction_files(xhp, iter)) != 0) {
+		flappy_dbg_printf("[trans] failed to verify transaction files: "
 		    "%s\n", strerror(rv));
 		goto out;
 	}
@@ -186,15 +186,15 @@ xbps_transaction_commit(struct xbps_handle *xhp)
 	 * Install, update, configure or remove packages as specified
 	 * in the transaction dictionary.
 	 */
-	xbps_set_cb_state(xhp, XBPS_STATE_TRANS_RUN, 0, NULL, NULL);
+	flappy_set_cb_state(xhp, FLAPPY_STATE_TRANS_RUN, 0, NULL, NULL);
 
 	/*
 	 * Create rootdir if necessary.
 	 */
-	if (xbps_mkpath(xhp->rootdir, 0750) == -1) {
+	if (flappy_mkpath(xhp->rootdir, 0750) == -1) {
 		rv = errno;
 		if (rv != EEXIST) {
-			xbps_set_cb_state(xhp, XBPS_STATE_TRANS_FAIL, errno, xhp->rootdir,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_TRANS_FAIL, errno, xhp->rootdir,
 			    "[trans] failed to create rootdir `%s': %s",
 			    xhp->rootdir, strerror(rv));
 			goto out;
@@ -202,7 +202,7 @@ xbps_transaction_commit(struct xbps_handle *xhp)
 	}
 	if (chdir(xhp->rootdir) == -1) {
 		rv = errno;
-		xbps_set_cb_state(xhp, XBPS_STATE_UNPACK_FAIL, rv, xhp->rootdir,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_UNPACK_FAIL, rv, xhp->rootdir,
 		    "[trans] failed to chdir to rootdir `%s': %s",
 		    xhp->rootdir, strerror(errno));
 		goto out;
@@ -214,46 +214,46 @@ xbps_transaction_commit(struct xbps_handle *xhp)
 	 * so we can execute the post and purge actions
 	 * after the package is removed from the pkgdb.
 	 */
-	while ((obj = xbps_object_iterator_next(iter)) != NULL) {
-		xbps_dictionary_t dict;
-		xbps_data_t script = NULL;
+	while ((obj = flappy_object_iterator_next(iter)) != NULL) {
+		flappy_dictionary_t dict;
+		flappy_data_t script = NULL;
 		const char *pkgdb_pkgver;
 		bool update;
 
-		xbps_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgver);
-		xbps_dictionary_get_cstring_nocopy(obj, "pkgname", &pkgname);
+		flappy_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgver);
+		flappy_dictionary_get_cstring_nocopy(obj, "pkgname", &pkgname);
 
-		ttype = xbps_transaction_pkg_type(obj);
-		if (ttype == XBPS_TRANS_INSTALL || ttype == XBPS_TRANS_HOLD || ttype == XBPS_TRANS_CONFIGURE) {
-			xbps_dbg_printf("%s: skipping pre-remove script for "
+		ttype = flappy_transaction_pkg_type(obj);
+		if (ttype == FLAPPY_TRANS_INSTALL || ttype == FLAPPY_TRANS_HOLD || ttype == FLAPPY_TRANS_CONFIGURE) {
+			flappy_dbg_printf("%s: skipping pre-remove script for "
 			    "%s: %d\n", __func__, pkgver, ttype);
 			continue;
 		}
 
-		if ((pkgdb_pkgd = xbps_pkgdb_get_pkg(xhp, pkgname)) == NULL) {
+		if ((pkgdb_pkgd = flappy_pkgdb_get_pkg(xhp, pkgname)) == NULL) {
 			bool replaced = false;
-			xbps_dictionary_get_bool(obj, "replaced", &replaced);
+			flappy_dictionary_get_bool(obj, "replaced", &replaced);
 			if (replaced) {
 				continue;
 			}
 			rv = ENOENT;
-			xbps_dbg_printf("[trans] cannot find %s in pkgdb: %s\n",
+			flappy_dbg_printf("[trans] cannot find %s in pkgdb: %s\n",
 			    pkgname, strerror(rv));
 			goto out;
 		}
 
-		script = xbps_dictionary_get(pkgdb_pkgd, "remove-script");
+		script = flappy_dictionary_get(pkgdb_pkgd, "remove-script");
 		if (script == NULL)
 			continue;
 
-		xbps_dictionary_get_cstring_nocopy(pkgdb_pkgd, "pkgver", &pkgdb_pkgver);
+		flappy_dictionary_get_cstring_nocopy(pkgdb_pkgd, "pkgver", &pkgdb_pkgver);
 		assert(pkgdb_pkgver);
 
-		update = ttype == XBPS_TRANS_UPDATE;
+		update = ttype == FLAPPY_TRANS_UPDATE;
 
-		rv = xbps_pkg_exec_script(xhp, pkgdb_pkgd, "remove-script", "pre", update);
+		rv = flappy_pkg_exec_script(xhp, pkgdb_pkgd, "remove-script", "pre", update);
 		if (rv != 0) {
-			xbps_set_cb_state(xhp, XBPS_STATE_TRANS_FAIL, rv, pkgver,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_TRANS_FAIL, rv, pkgver,
 			    "%s: [trans] REMOVE script failed to execute pre ACTION: %s",
 			    pkgver, strerror(rv));
 			goto out;
@@ -261,137 +261,137 @@ xbps_transaction_commit(struct xbps_handle *xhp)
 		if (update)
 			continue;
 
-		dict = xbps_dictionary_create();
+		dict = flappy_dictionary_create();
 		if (dict == NULL) {
 			rv = errno ? errno : ENOMEM;
 			goto out;
 		}
-		if (!xbps_dictionary_set_cstring(dict, "pkgver", pkgdb_pkgver)) {
+		if (!flappy_dictionary_set_cstring(dict, "pkgver", pkgdb_pkgver)) {
 			rv = errno ? errno : ENOMEM;
 			goto out;
 		}
-		if (!xbps_dictionary_set(dict, "remove-script", script)) {
+		if (!flappy_dictionary_set(dict, "remove-script", script)) {
 			rv = errno ? errno : ENOMEM;
 			goto out;
 		}
-		if (!xbps_array_add(remove_scripts, dict)) {
+		if (!flappy_array_add(remove_scripts, dict)) {
 			rv = errno ? errno : ENOMEM;
 			goto out;
 		}
-		xbps_object_release(dict);
+		flappy_object_release(dict);
 	}
-	xbps_object_iterator_reset(iter);
+	flappy_object_iterator_reset(iter);
 
 	/*
 	 * Run all pre-install scripts.
 	 */
-	while ((obj = xbps_object_iterator_next(iter)) != NULL) {
-		xbps_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgver);
-		ttype = xbps_transaction_pkg_type(obj);
-		if (ttype == XBPS_TRANS_REMOVE || ttype == XBPS_TRANS_HOLD) {
-			xbps_dbg_printf("%s: skipping pre-install script for "
+	while ((obj = flappy_object_iterator_next(iter)) != NULL) {
+		flappy_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgver);
+		ttype = flappy_transaction_pkg_type(obj);
+		if (ttype == FLAPPY_TRANS_REMOVE || ttype == FLAPPY_TRANS_HOLD) {
+			flappy_dbg_printf("%s: skipping pre-install script for "
 			    "%s: %d\n", __func__, pkgver, ttype);
 			continue;
 		}
-		rv = xbps_pkg_exec_script(xhp, obj, "install-script", "pre", ttype == XBPS_TRANS_UPDATE);
+		rv = flappy_pkg_exec_script(xhp, obj, "install-script", "pre", ttype == FLAPPY_TRANS_UPDATE);
 		if (rv != 0) {
-			xbps_set_cb_state(xhp, XBPS_STATE_TRANS_FAIL, rv, pkgver,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_TRANS_FAIL, rv, pkgver,
 			    "%s: [trans] INSTALL script failed to execute pre ACTION: %s",
 			    pkgver, strerror(rv));
 			goto out;
 		}
 	}
-	xbps_object_iterator_reset(iter);
+	flappy_object_iterator_reset(iter);
 
 
-	while ((obj = xbps_object_iterator_next(iter)) != NULL) {
-		xbps_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgver);
-		xbps_dictionary_get_cstring_nocopy(obj, "pkgname", &pkgname);
+	while ((obj = flappy_object_iterator_next(iter)) != NULL) {
+		flappy_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgver);
+		flappy_dictionary_get_cstring_nocopy(obj, "pkgname", &pkgname);
 
-		ttype = xbps_transaction_pkg_type(obj);
-		if (ttype == XBPS_TRANS_REMOVE) {
+		ttype = flappy_transaction_pkg_type(obj);
+		if (ttype == FLAPPY_TRANS_REMOVE) {
 			bool replaced = false;
 			bool update = false;
 			/*
 			 * Remove package.
 			 */
-			xbps_dictionary_get_bool(obj, "remove-and-update", &update);
-			xbps_dictionary_get_bool(obj, "replaced", &replaced);
-			if (replaced && !xbps_pkgdb_get_pkg(xhp, pkgname)) {
+			flappy_dictionary_get_bool(obj, "remove-and-update", &update);
+			flappy_dictionary_get_bool(obj, "replaced", &replaced);
+			if (replaced && !flappy_pkgdb_get_pkg(xhp, pkgname)) {
 				continue;
 			}
-			rv = xbps_remove_pkg(xhp, pkgver, update);
+			rv = flappy_remove_pkg(xhp, pkgver, update);
 			if (rv != 0) {
-				xbps_dbg_printf("[trans] failed to "
+				flappy_dbg_printf("[trans] failed to "
 				    "remove %s: %s\n", pkgver, strerror(rv));
 				goto out;
 			}
 			continue;
 
-		} else if (ttype == XBPS_TRANS_UPDATE) {
+		} else if (ttype == FLAPPY_TRANS_UPDATE) {
 			/*
 			 * Update a package: execute pre-remove action of
 			 * existing package before unpacking new version.
 			 */
-			xbps_set_cb_state(xhp, XBPS_STATE_UPDATE, 0, pkgver, NULL);
-			rv = xbps_remove_pkg(xhp, pkgver, true);
+			flappy_set_cb_state(xhp, FLAPPY_STATE_UPDATE, 0, pkgver, NULL);
+			rv = flappy_remove_pkg(xhp, pkgver, true);
 			if (rv != 0) {
-				xbps_set_cb_state(xhp,
-				    XBPS_STATE_UPDATE_FAIL,
+				flappy_set_cb_state(xhp,
+				    FLAPPY_STATE_UPDATE_FAIL,
 				    rv, pkgver,
 				    "%s: [trans] failed to update "
 				    "package `%s'", pkgver,
 				    strerror(rv));
 				goto out;
 			}
-		} else if (ttype == XBPS_TRANS_CONFIGURE) {
+		} else if (ttype == FLAPPY_TRANS_CONFIGURE) {
 			/*
 			 * Package just needs to be configured, ignore it.
 			 */
 			continue;
-		} else if (ttype == XBPS_TRANS_HOLD) {
+		} else if (ttype == FLAPPY_TRANS_HOLD) {
 			/*
 			 * Package is on hold mode, ignore it.
 			 */
 			continue;
 		} else {
 			/* Install or reinstall package */
-			xbps_set_cb_state(xhp, XBPS_STATE_INSTALL, 0,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_INSTALL, 0,
 			    pkgver, NULL);
 		}
 		/*
 		 * Unpack binary package.
 		 */
-		if ((rv = xbps_unpack_binary_pkg(xhp, obj)) != 0) {
-			xbps_dbg_printf("[trans] failed to unpack "
+		if ((rv = flappy_unpack_binary_pkg(xhp, obj)) != 0) {
+			flappy_dbg_printf("[trans] failed to unpack "
 			    "%s: %s\n", pkgver, strerror(rv));
 			goto out;
 		}
 		/*
 		 * Register package.
 		 */
-		if ((rv = xbps_register_pkg(xhp, obj)) != 0) {
-			xbps_dbg_printf("[trans] failed to register "
+		if ((rv = flappy_register_pkg(xhp, obj)) != 0) {
+			flappy_dbg_printf("[trans] failed to register "
 			    "%s: %s\n", pkgver, strerror(rv));
 			goto out;
 		}
 	}
 	/* if there are no packages to install or update we are done */
-	if (!xbps_dictionary_get(xhp->transd, "total-update-pkgs") &&
-	    !xbps_dictionary_get(xhp->transd, "total-install-pkgs"))
+	if (!flappy_dictionary_get(xhp->transd, "total-update-pkgs") &&
+	    !flappy_dictionary_get(xhp->transd, "total-install-pkgs"))
 		goto out;
 
 	if (xhp->target_arch && strcmp(xhp->native_arch, xhp->target_arch)) {
 		/* if installing packages for target_arch, don't configure anything */
 		goto out;
 		/* do not configure packages if only unpacking is desired */
-	} else if (xhp->flags & XBPS_FLAG_UNPACK_ONLY) {
+	} else if (xhp->flags & FLAPPY_FLAG_UNPACK_ONLY) {
 		goto out;
 	}
 
-	xbps_object_iterator_reset(iter);
+	flappy_object_iterator_reset(iter);
 	/* Force a pkgdb write for all unpacked pkgs in transaction */
-	if ((rv = xbps_pkgdb_update(xhp, true, true)) != 0)
+	if ((rv = flappy_pkgdb_update(xhp, true, true)) != 0)
 		goto out;
 
 	/*
@@ -406,23 +406,23 @@ xbps_transaction_commit(struct xbps_handle *xhp)
 	/*
 	 * Configure all unpacked packages (post-install).
 	 */
-	xbps_set_cb_state(xhp, XBPS_STATE_TRANS_CONFIGURE, 0, NULL, NULL);
+	flappy_set_cb_state(xhp, FLAPPY_STATE_TRANS_CONFIGURE, 0, NULL, NULL);
 
-	while ((obj = xbps_object_iterator_next(iter)) != NULL) {
+	while ((obj = flappy_object_iterator_next(iter)) != NULL) {
 		bool update;
 
-		xbps_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgver);
-		ttype = xbps_transaction_pkg_type(obj);
-		if (ttype == XBPS_TRANS_REMOVE || ttype == XBPS_TRANS_HOLD) {
-			xbps_dbg_printf("%s: skipping configuration for "
+		flappy_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgver);
+		ttype = flappy_transaction_pkg_type(obj);
+		if (ttype == FLAPPY_TRANS_REMOVE || ttype == FLAPPY_TRANS_HOLD) {
+			flappy_dbg_printf("%s: skipping configuration for "
 			    "%s: %d\n", __func__, pkgver, ttype);
 			continue;
 		}
-		update = ttype == XBPS_TRANS_UPDATE;
+		update = ttype == FLAPPY_TRANS_UPDATE;
 
-		rv = xbps_configure_pkg(xhp, pkgver, false, update);
+		rv = flappy_configure_pkg(xhp, pkgver, false, update);
 		if (rv != 0) {
-			xbps_dbg_printf("%s: configure failed for "
+			flappy_dbg_printf("%s: configure failed for "
 			    "%s: %s\n", __func__, pkgver, strerror(rv));
 			goto out;
 		}
@@ -431,20 +431,20 @@ xbps_transaction_commit(struct xbps_handle *xhp)
 		 * installed or updated.
 		 */
 		if (update) {
-			xbps_set_cb_state(xhp, XBPS_STATE_UPDATE_DONE, 0,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_UPDATE_DONE, 0,
 			    pkgver, NULL);
 		} else {
-			xbps_set_cb_state(xhp, XBPS_STATE_INSTALL_DONE, 0,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_INSTALL_DONE, 0,
 			    pkgver, NULL);
 		}
 	}
 
 out:
-	xbps_object_release(remove_scripts);
-	xbps_object_iterator_release(iter);
+	flappy_object_release(remove_scripts);
+	flappy_object_iterator_release(iter);
 	if (rv == 0) {
 		/* Force a pkgdb write for all unpacked pkgs in transaction */
-		rv = xbps_pkgdb_update(xhp, true, true);
+		rv = flappy_pkgdb_update(xhp, true, true);
 	}
 	return rv;
 }

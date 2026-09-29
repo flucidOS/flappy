@@ -30,7 +30,7 @@
 #include <errno.h>
 #include <sys/statvfs.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 /**
  * @file lib/transaction_prepare.c
@@ -38,9 +38,9 @@
  * @defgroup transaction Transaction handling functions
  *
  * The following image shows off the full transaction dictionary returned
- * by xbps_transaction_prepare().
+ * by flappy_transaction_prepare().
  *
- * @image html images/xbps_transaction_dictionary.png
+ * @image html images/flappy_transaction_dictionary.png
  *
  * Legend:
  *  - <b>Salmon bg box</b>: The transaction dictionary.
@@ -54,11 +54,11 @@
  */
 
 static int
-compute_transaction_stats(struct xbps_handle *xhp)
+compute_transaction_stats(struct flappy_handle *xhp)
 {
-	xbps_dictionary_t pkg_metad;
-	xbps_object_iterator_t iter;
-	xbps_object_t obj;
+	flappy_dictionary_t pkg_metad;
+	flappy_object_iterator_t iter;
+	flappy_object_t obj;
 	struct statvfs svfs;
 	uint64_t rootdir_free_size, tsize, dlsize, instsize, rmsize;
 	uint32_t inst_pkgcnt, up_pkgcnt, cf_pkgcnt, rm_pkgcnt, dl_pkgcnt;
@@ -68,69 +68,69 @@ compute_transaction_stats(struct xbps_handle *xhp)
 	hold_pkgcnt = dl_pkgcnt = 0;
 	tsize = dlsize = instsize = rmsize = 0;
 
-	iter = xbps_array_iter_from_dict(xhp->transd, "packages");
+	iter = flappy_array_iter_from_dict(xhp->transd, "packages");
 	if (iter == NULL)
 		return EINVAL;
 
-	while ((obj = xbps_object_iterator_next(iter)) != NULL) {
+	while ((obj = flappy_object_iterator_next(iter)) != NULL) {
 		const char *pkgver = NULL, *repo = NULL, *pkgname = NULL;
 		bool preserve = false;
-		xbps_trans_type_t ttype;
+		flappy_trans_type_t ttype;
 		/*
 		 * Count number of pkgs to be removed, configured,
 		 * installed and updated.
 		 */
-		xbps_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgver);
-		xbps_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgname);
-		xbps_dictionary_get_cstring_nocopy(obj, "repository", &repo);
-		xbps_dictionary_get_bool(obj, "preserve", &preserve);
-		ttype = xbps_transaction_pkg_type(obj);
+		flappy_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgver);
+		flappy_dictionary_get_cstring_nocopy(obj, "pkgver", &pkgname);
+		flappy_dictionary_get_cstring_nocopy(obj, "repository", &repo);
+		flappy_dictionary_get_bool(obj, "preserve", &preserve);
+		ttype = flappy_transaction_pkg_type(obj);
 
-		if (ttype == XBPS_TRANS_REMOVE) {
+		if (ttype == FLAPPY_TRANS_REMOVE) {
 			rm_pkgcnt++;
-		} else if (ttype == XBPS_TRANS_CONFIGURE) {
+		} else if (ttype == FLAPPY_TRANS_CONFIGURE) {
 			cf_pkgcnt++;
-		} else if (ttype == XBPS_TRANS_INSTALL || ttype == XBPS_TRANS_REINSTALL) {
+		} else if (ttype == FLAPPY_TRANS_INSTALL || ttype == FLAPPY_TRANS_REINSTALL) {
 			inst_pkgcnt++;
-		} else if (ttype == XBPS_TRANS_UPDATE) {
+		} else if (ttype == FLAPPY_TRANS_UPDATE) {
 			up_pkgcnt++;
-		} else if (ttype == XBPS_TRANS_HOLD) {
+		} else if (ttype == FLAPPY_TRANS_HOLD) {
 			hold_pkgcnt++;
 		}
 
-		if ((ttype != XBPS_TRANS_CONFIGURE) && (ttype != XBPS_TRANS_REMOVE) &&
-		    (ttype != XBPS_TRANS_HOLD) &&
-		    xbps_repository_is_remote(repo) && !xbps_binpkg_exists(xhp, obj)) {
-			xbps_dictionary_get_uint64(obj, "filename-size", &tsize);
+		if ((ttype != FLAPPY_TRANS_CONFIGURE) && (ttype != FLAPPY_TRANS_REMOVE) &&
+		    (ttype != FLAPPY_TRANS_HOLD) &&
+		    flappy_repository_is_remote(repo) && !flappy_binpkg_exists(xhp, obj)) {
+			flappy_dictionary_get_uint64(obj, "filename-size", &tsize);
 			tsize += 512;
 			dlsize += tsize;
 			dl_pkgcnt++;
-			xbps_dictionary_set_bool(obj, "download", true);
+			flappy_dictionary_set_bool(obj, "download", true);
 		}
-		if (xhp->flags & XBPS_FLAG_DOWNLOAD_ONLY) {
+		if (xhp->flags & FLAPPY_FLAG_DOWNLOAD_ONLY) {
 			continue;
 		}
 		/* installed_size from repo */
-		if (ttype != XBPS_TRANS_REMOVE && ttype != XBPS_TRANS_HOLD &&
-		    ttype != XBPS_TRANS_CONFIGURE) {
-			xbps_dictionary_get_uint64(obj, "installed_size", &tsize);
+		if (ttype != FLAPPY_TRANS_REMOVE && ttype != FLAPPY_TRANS_HOLD &&
+		    ttype != FLAPPY_TRANS_CONFIGURE) {
+			flappy_dictionary_get_uint64(obj, "installed_size", &tsize);
 			instsize += tsize;
 		}
 		/*
 		 * If removing or updating a package without preserve,
 		 * get installed_size from pkgdb instead.
 		 */
-		if (ttype == XBPS_TRANS_REMOVE ||
-		   ((ttype == XBPS_TRANS_UPDATE) && !preserve)) {
-			pkg_metad = xbps_pkgdb_get_pkg(xhp, pkgname);
+		if (ttype == FLAPPY_TRANS_REMOVE ||
+		   ((ttype == FLAPPY_TRANS_UPDATE) && !preserve)) {
+			pkg_metad = flappy_pkgdb_get_pkg(xhp, pkgname);
 			if (pkg_metad == NULL)
 				continue;
-			xbps_dictionary_get_uint64(pkg_metad,
+			flappy_dictionary_get_uint64(pkg_metad,
 			    "installed_size", &tsize);
 			rmsize += tsize;
 		}
 	}
-	xbps_object_iterator_release(iter);
+	flappy_object_iterator_release(iter);
 
 	if (instsize > rmsize) {
 		instsize -= rmsize;
@@ -142,43 +142,43 @@ compute_transaction_stats(struct xbps_handle *xhp)
 		instsize = rmsize = 0;
 	}
 
-	if (!xbps_dictionary_set_uint32(xhp->transd,
+	if (!flappy_dictionary_set_uint32(xhp->transd,
 				"total-install-pkgs", inst_pkgcnt))
 		return EINVAL;
-	if (!xbps_dictionary_set_uint32(xhp->transd,
+	if (!flappy_dictionary_set_uint32(xhp->transd,
 				"total-update-pkgs", up_pkgcnt))
 		return EINVAL;
-	if (!xbps_dictionary_set_uint32(xhp->transd,
+	if (!flappy_dictionary_set_uint32(xhp->transd,
 				"total-configure-pkgs", cf_pkgcnt))
 		return EINVAL;
-	if (!xbps_dictionary_set_uint32(xhp->transd,
+	if (!flappy_dictionary_set_uint32(xhp->transd,
 				"total-remove-pkgs", rm_pkgcnt))
 		return EINVAL;
-	if (!xbps_dictionary_set_uint32(xhp->transd,
+	if (!flappy_dictionary_set_uint32(xhp->transd,
 				"total-download-pkgs", dl_pkgcnt))
 		return EINVAL;
-	if (!xbps_dictionary_set_uint32(xhp->transd,
+	if (!flappy_dictionary_set_uint32(xhp->transd,
 				"total-hold-pkgs", hold_pkgcnt))
 		return EINVAL;
-	if (!xbps_dictionary_set_uint64(xhp->transd,
+	if (!flappy_dictionary_set_uint64(xhp->transd,
 				"total-installed-size", instsize))
 		return EINVAL;
-	if (!xbps_dictionary_set_uint64(xhp->transd,
+	if (!flappy_dictionary_set_uint64(xhp->transd,
 				"total-download-size", dlsize))
 		return EINVAL;
-	if (!xbps_dictionary_set_uint64(xhp->transd,
+	if (!flappy_dictionary_set_uint64(xhp->transd,
 				"total-removed-size", rmsize))
 		return EINVAL;
 
 	/* Get free space from target rootdir: return ENOSPC if there's not enough space */
 	if (statvfs(xhp->rootdir, &svfs) == -1) {
-		xbps_dbg_printf("%s: statvfs failed: %s\n", __func__, strerror(errno));
+		flappy_dbg_printf("%s: statvfs failed: %s\n", __func__, strerror(errno));
 		return 0;
 	}
 	/* compute free space on disk */
 	rootdir_free_size = svfs.f_bfree * svfs.f_bsize;
 
-	if (!xbps_dictionary_set_uint64(xhp->transd,
+	if (!flappy_dictionary_set_uint64(xhp->transd,
 				"disk-free-size", rootdir_free_size))
 		return EINVAL;
 
@@ -189,104 +189,104 @@ compute_transaction_stats(struct xbps_handle *xhp)
 }
 
 int HIDDEN
-xbps_transaction_init(struct xbps_handle *xhp)
+flappy_transaction_init(struct flappy_handle *xhp)
 {
-	xbps_array_t array;
-	xbps_dictionary_t dict;
+	flappy_array_t array;
+	flappy_dictionary_t dict;
 
 	if (xhp->transd != NULL)
 		return 0;
 
-	if ((xhp->transd = xbps_dictionary_create()) == NULL)
-		return xbps_error_oom();
+	if ((xhp->transd = flappy_dictionary_create()) == NULL)
+		return flappy_error_oom();
 
-	if ((array = xbps_array_create()) == NULL) {
-		xbps_object_release(xhp->transd);
+	if ((array = flappy_array_create()) == NULL) {
+		flappy_object_release(xhp->transd);
 		xhp->transd = NULL;
-		return xbps_error_oom();
+		return flappy_error_oom();
 	}
-	if (!xbps_dictionary_set(xhp->transd, "packages", array)) {
-		xbps_object_release(xhp->transd);
+	if (!flappy_dictionary_set(xhp->transd, "packages", array)) {
+		flappy_object_release(xhp->transd);
 		xhp->transd = NULL;
 		return EINVAL;
 	}
-	xbps_object_release(array);
+	flappy_object_release(array);
 
-	if ((array = xbps_array_create()) == NULL) {
-		xbps_object_release(xhp->transd);
+	if ((array = flappy_array_create()) == NULL) {
+		flappy_object_release(xhp->transd);
 		xhp->transd = NULL;
-		return xbps_error_oom();
+		return flappy_error_oom();
 	}
-	if (!xbps_dictionary_set(xhp->transd, "missing_deps", array)) {
-		xbps_object_release(xhp->transd);
+	if (!flappy_dictionary_set(xhp->transd, "missing_deps", array)) {
+		flappy_object_release(xhp->transd);
 		xhp->transd = NULL;
 		return EINVAL;
 	}
-	xbps_object_release(array);
+	flappy_object_release(array);
 
-	if ((array = xbps_array_create()) == NULL) {
-		xbps_object_release(xhp->transd);
+	if ((array = flappy_array_create()) == NULL) {
+		flappy_object_release(xhp->transd);
 		xhp->transd = NULL;
-		return xbps_error_oom();
+		return flappy_error_oom();
 	}
-	if (!xbps_dictionary_set(xhp->transd, "missing_shlibs", array)) {
-		xbps_object_release(xhp->transd);
+	if (!flappy_dictionary_set(xhp->transd, "missing_shlibs", array)) {
+		flappy_object_release(xhp->transd);
 		xhp->transd = NULL;
-		return xbps_error_oom();
+		return flappy_error_oom();
 	}
-	xbps_object_release(array);
+	flappy_object_release(array);
 
-	if ((array = xbps_array_create()) == NULL) {
-		xbps_object_release(xhp->transd);
+	if ((array = flappy_array_create()) == NULL) {
+		flappy_object_release(xhp->transd);
 		xhp->transd = NULL;
-		return xbps_error_oom();
+		return flappy_error_oom();
 	}
-	if (!xbps_dictionary_set(xhp->transd, "conflicts", array)) {
-		xbps_object_release(xhp->transd);
+	if (!flappy_dictionary_set(xhp->transd, "conflicts", array)) {
+		flappy_object_release(xhp->transd);
 		xhp->transd = NULL;
-		return xbps_error_oom();
+		return flappy_error_oom();
 	}
-	xbps_object_release(array);
+	flappy_object_release(array);
 
-	if ((dict = xbps_dictionary_create()) == NULL) {
-		xbps_object_release(xhp->transd);
+	if ((dict = flappy_dictionary_create()) == NULL) {
+		flappy_object_release(xhp->transd);
 		xhp->transd = NULL;
-		return xbps_error_oom();
+		return flappy_error_oom();
 	}
-	if (!xbps_dictionary_set(xhp->transd, "obsolete_files", dict)) {
-		xbps_object_release(xhp->transd);
+	if (!flappy_dictionary_set(xhp->transd, "obsolete_files", dict)) {
+		flappy_object_release(xhp->transd);
 		xhp->transd = NULL;
-		return xbps_error_oom();
+		return flappy_error_oom();
 	}
-	xbps_object_release(dict);
+	flappy_object_release(dict);
 
-	if ((dict = xbps_dictionary_create()) == NULL) {
-		xbps_object_release(xhp->transd);
+	if ((dict = flappy_dictionary_create()) == NULL) {
+		flappy_object_release(xhp->transd);
 		xhp->transd = NULL;
-		return xbps_error_oom();
+		return flappy_error_oom();
 	}
-	if (!xbps_dictionary_set(xhp->transd, "remove_files", dict)) {
-		xbps_object_release(xhp->transd);
+	if (!flappy_dictionary_set(xhp->transd, "remove_files", dict)) {
+		flappy_object_release(xhp->transd);
 		xhp->transd = NULL;
-		return xbps_error_oom();
+		return flappy_error_oom();
 	}
-	xbps_object_release(dict);
+	flappy_object_release(dict);
 
 	return 0;
 }
 
 int
-xbps_transaction_prepare(struct xbps_handle *xhp)
+flappy_transaction_prepare(struct flappy_handle *xhp)
 {
-	xbps_array_t pkgs, edges;
-	xbps_dictionary_t tpkgd;
-	xbps_trans_type_t ttype;
+	flappy_array_t pkgs, edges;
+	flappy_dictionary_t tpkgd;
+	flappy_trans_type_t ttype;
 	unsigned int i, cnt;
 	int rv = 0;
 	int r;
 	bool all_on_hold = true;
 
-	if ((rv = xbps_transaction_init(xhp)) != 0)
+	if ((rv = flappy_transaction_init(xhp)) != 0)
 		return rv;
 
 	if (xhp->transd == NULL)
@@ -295,66 +295,66 @@ xbps_transaction_prepare(struct xbps_handle *xhp)
 	/*
 	 * Collect dependencies for pkgs in transaction.
 	 */
-	if ((edges = xbps_array_create()) == NULL)
+	if ((edges = flappy_array_create()) == NULL)
 		return ENOMEM;
 
-	xbps_dbg_printf("%s: processing deps\n", __func__);
+	flappy_dbg_printf("%s: processing deps\n", __func__);
 	/*
 	 * The edges are also appended after its dependencies have been
 	 * collected; the edges at the original array are removed later.
 	 */
-	pkgs = xbps_dictionary_get(xhp->transd, "packages");
-	assert(xbps_object_type(pkgs) == XBPS_TYPE_ARRAY);
-	cnt = xbps_array_count(pkgs);
+	pkgs = flappy_dictionary_get(xhp->transd, "packages");
+	assert(flappy_object_type(pkgs) == FLAPPY_TYPE_ARRAY);
+	cnt = flappy_array_count(pkgs);
 	for (i = 0; i < cnt; i++) {
-		xbps_dictionary_t pkgd;
-		xbps_string_t str;
+		flappy_dictionary_t pkgd;
+		flappy_string_t str;
 
-		pkgd = xbps_array_get(pkgs, i);
-		str = xbps_dictionary_get(pkgd, "pkgver");
-		ttype = xbps_transaction_pkg_type(pkgd);
+		pkgd = flappy_array_get(pkgs, i);
+		str = flappy_dictionary_get(pkgd, "pkgver");
+		ttype = flappy_transaction_pkg_type(pkgd);
 
-		if (ttype == XBPS_TRANS_REMOVE || ttype == XBPS_TRANS_HOLD)
+		if (ttype == FLAPPY_TRANS_REMOVE || ttype == FLAPPY_TRANS_HOLD)
 			continue;
 
-		assert(xbps_object_type(str) == XBPS_TYPE_STRING);
+		assert(flappy_object_type(str) == FLAPPY_TYPE_STRING);
 
-		if (!xbps_array_add(edges, str)) {
-			xbps_object_release(edges);
+		if (!flappy_array_add(edges, str)) {
+			flappy_object_release(edges);
 			return ENOMEM;
 		}
-		if ((rv = xbps_transaction_pkg_deps(xhp, pkgs, pkgd)) != 0) {
-			xbps_object_release(edges);
+		if ((rv = flappy_transaction_pkg_deps(xhp, pkgs, pkgd)) != 0) {
+			flappy_object_release(edges);
 			return rv;
 		}
-		if (!xbps_array_add(pkgs, pkgd)) {
-			xbps_object_release(edges);
+		if (!flappy_array_add(pkgs, pkgd)) {
+			flappy_object_release(edges);
 			return ENOMEM;
 		}
 	}
 	/* ... remove dup edges at head */
-	for (i = 0; i < xbps_array_count(edges); i++) {
+	for (i = 0; i < flappy_array_count(edges); i++) {
 		const char *pkgver = NULL;
-		xbps_array_get_cstring_nocopy(edges, i, &pkgver);
-		xbps_remove_pkg_from_array_by_pkgver(pkgs, pkgver);
+		flappy_array_get_cstring_nocopy(edges, i, &pkgver);
+		flappy_remove_pkg_from_array_by_pkgver(pkgs, pkgver);
 	}
-	xbps_object_release(edges);
+	flappy_object_release(edges);
 
 	/*
-	 * Do not perform any checks if XBPS_FLAG_DOWNLOAD_ONLY
+	 * Do not perform any checks if FLAPPY_FLAG_DOWNLOAD_ONLY
 	 * is set. We just need to download the archives (dependencies).
 	 */
-	if (xhp->flags & XBPS_FLAG_DOWNLOAD_ONLY)
+	if (xhp->flags & FLAPPY_FLAG_DOWNLOAD_ONLY)
 		goto out;
 
 	/*
 	 * If all pkgs in transaction are on hold, no need to check
 	 * for anything else.
 	 */
-	xbps_dbg_printf("%s: checking on hold pkgs\n", __func__);
+	flappy_dbg_printf("%s: checking on hold pkgs\n", __func__);
 	for (i = 0; i < cnt; i++) {
-		tpkgd = xbps_array_get(pkgs, i);
-		if (xbps_transaction_pkg_type(tpkgd) != XBPS_TRANS_HOLD) {
+		tpkgd = flappy_array_get(pkgs, i);
+		if (flappy_transaction_pkg_type(tpkgd) != FLAPPY_TRANS_HOLD) {
 			all_on_hold = false;
 			break;
 		}
@@ -365,24 +365,24 @@ xbps_transaction_prepare(struct xbps_handle *xhp)
 	/*
 	 * Check for packages to be replaced.
 	 */
-	xbps_dbg_printf("%s: checking replaces\n", __func__);
-	if (!xbps_transaction_check_replaces(xhp, pkgs)) {
-		xbps_object_release(xhp->transd);
+	flappy_dbg_printf("%s: checking replaces\n", __func__);
+	if (!flappy_transaction_check_replaces(xhp, pkgs)) {
+		flappy_object_release(xhp->transd);
 		xhp->transd = NULL;
 		return EINVAL;
 	}
 	/*
 	 * Check if there are missing revdeps.
 	 */
-	xbps_dbg_printf("%s: checking revdeps\n", __func__);
-	if (!xbps_transaction_check_revdeps(xhp, pkgs)) {
-		xbps_object_release(xhp->transd);
+	flappy_dbg_printf("%s: checking revdeps\n", __func__);
+	if (!flappy_transaction_check_revdeps(xhp, pkgs)) {
+		flappy_object_release(xhp->transd);
 		xhp->transd = NULL;
 		return EINVAL;
 	}
-	if (xbps_dictionary_get(xhp->transd, "missing_deps")) {
-		if (xhp->flags & XBPS_FLAG_FORCE_REMOVE_REVDEPS) {
-			xbps_dbg_printf("[trans] continuing with broken reverse dependencies!");
+	if (flappy_dictionary_get(xhp->transd, "missing_deps")) {
+		if (xhp->flags & FLAPPY_FLAG_FORCE_REMOVE_REVDEPS) {
+			flappy_dbg_printf("[trans] continuing with broken reverse dependencies!");
 		} else {
 			return ENODEV;
 		}
@@ -390,28 +390,28 @@ xbps_transaction_prepare(struct xbps_handle *xhp)
 	/*
 	 * Check for package conflicts.
 	 */
-	xbps_dbg_printf("%s: checking conflicts\n", __func__);
-	r = xbps_transaction_check_conflicts(xhp, pkgs);
+	flappy_dbg_printf("%s: checking conflicts\n", __func__);
+	r = flappy_transaction_check_conflicts(xhp, pkgs);
 	if (r < 0) {
-		xbps_object_release(xhp->transd);
+		flappy_object_release(xhp->transd);
 		xhp->transd = NULL;
 		return -r;
 	}
-	if (xbps_dictionary_get(xhp->transd, "conflicts")) {
+	if (flappy_dictionary_get(xhp->transd, "conflicts")) {
 		return EAGAIN;
 	}
 	/*
 	 * Check for unresolved shared libraries.
 	 */
-	xbps_dbg_printf("%s: checking shlibs\n", __func__);
-	if (!xbps_transaction_check_shlibs(xhp, pkgs)) {
-		xbps_object_release(xhp->transd);
+	flappy_dbg_printf("%s: checking shlibs\n", __func__);
+	if (!flappy_transaction_check_shlibs(xhp, pkgs)) {
+		flappy_object_release(xhp->transd);
 		xhp->transd = NULL;
 		return EINVAL;
 	}
-	if (xbps_dictionary_get(xhp->transd, "missing_shlibs")) {
-		if (xhp->flags & XBPS_FLAG_FORCE_REMOVE_REVDEPS) {
-			xbps_dbg_printf("[trans] continuing with unresolved shared libraries!");
+	if (flappy_dictionary_get(xhp->transd, "missing_shlibs")) {
+		if (xhp->flags & FLAPPY_FLAG_FORCE_REMOVE_REVDEPS) {
+			flappy_dbg_printf("[trans] continuing with unresolved shared libraries!");
 		} else {
 			return ENOEXEC;
 		}
@@ -422,14 +422,14 @@ out:
 	 * number of packages to be installed, updated, configured
 	 * and removed to the transaction dictionary.
 	 */
-	xbps_dbg_printf("%s: computing stats\n", __func__);
+	flappy_dbg_printf("%s: computing stats\n", __func__);
 	if ((rv = compute_transaction_stats(xhp)) != 0) {
 		return rv;
 	}
 	/*
 	 * Make transaction dictionary immutable.
 	 */
-	xbps_dictionary_make_immutable(xhp->transd);
+	flappy_dictionary_make_immutable(xhp->transd);
 
 	return 0;
 }

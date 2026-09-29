@@ -1,0 +1,167 @@
+.Dd May 20, 2025
+.Dt FLAPPY 7
+.Os
+.Sh NAME
+.Nm flappy
+.Nd Introduction and concepts
+.Sh DESCRIPTION
+The X Binary Package System (FLAPPY) is a binary package system designed and implemented from scratch.
+Its goal is to be fast, easy to use, bug-free, featureful and portable as much as possible.
+
+The primary interface of FLAPPY is its suite of tools, including
+.Xr flappy-install 1
+for installing packages,
+.Xr flappy-remove 1
+for removing packages, and
+.Xr flappy-query 1
+for searching repositories and querying package properties.
+A C library is also available, called
+.Em libflappy .
+.Sh PACKAGES
+An FLAPPY package is a compressed archive of the package's files and metadata.
+
+Packages can also include scripts that run during installation and removal, during the
+.Dq configuration
+phase.
+These scripts can be re-run with
+.Nm flappy-reconfigure Fl f .
+
+Packages can be checked for issues with
+.Xr flappy-pkgdb 1 .
+If a package reports errors, it should be reinstalled with
+.Nm flappy-install Fl f .
+
+Packages can mark files as
+.Em conf_files ,
+which will prevent them from being replaced upon package update if modified.
+.Sh PACKAGE EXPRESSIONS
+Packages can be referred to in several ways.
+A package expression is a form to match a pattern; currently flappy
+supports 3 ways to specify them:
+.Bl -dash
+.It
+by package name, i.e:
+.Dq Sy foo .
+.It
+by exact package name and version, i.e:
+.Dq Sy foo-1.0_1 .
+.It
+by specifying a package name and version separated by any of the following version comparators:
+.Pp
+.Bl -item -compact
+.It
+.Sy <
+less than
+.It
+.Sy >
+greater than
+.It
+.Sy <=
+less or equal than
+.It
+.Sy >=
+greater or equal than
+.Pp
+Example:
+.Dq Sy foo>=2.0 .
+.El
+.El
+.Pp
+The first repository matching the package expression wins.
+.Sh PACKAGE MODES
+An installed package can have some specific modes of operation.
+Package modes can be changed with
+.Xr flappy-pkgdb 1 .
+Currently the following modes are available:
+.Bl -tag -width -x
+.It Sy hold
+The package is on hold mode.
+Packages in this mode won't be updated unless
+it's explicitely declared to be updated.
+The only way to update packages in this mode is by using the
+.Fl f , Fl -force
+option.
+To list packages in this mode use
+.Nm flappy-query Fl H .
+.It Sy manual
+The package is in manual mode of installation and won't be considered for
+removal when running
+.Nm flappy-remove Fl o .
+To list packages in this mode use
+.Nm flappy-query Fl m .
+.It Sy repolock
+A package in repolock mode will only accept updates that are available in the
+same repository that was used for installing.
+To list packages in this mode use
+.Nm flappy-query Fl -list-repolock-pkgs .
+.El
+.Sh REPOSITORIES
+An FLAPPY repository is a directory containing FLAPPY packages and an
+.Em <arch>-repodata
+repository index file.
+If the repository is remote (served via a web server), packages must be RSA-signed.
+
+In FLAPPY configuration and command-line flags, repositories are specified by a complete url or absolute path to the directory where the
+.Em <arch>-repodata
+resides.
+To synchronize configured remote repositories locally, use
+.Nm flappy-install Fl S .
+
+Repositories are created and managed with
+.Xr flappy-rindex 1 .
+.Sh FILES
+.Bl -tag -width /var/db/flappy/.<pkgname>-files.plist
+.It Ar /etc/flappy.d
+Default configuration directory.
+See also
+.Xr flappy.d 5 .
+.It Ar /usr/share/flappy.d
+Default system configuration directory.
+See also
+.Xr flappy.d 5 .
+.It Ar /var/db/flappy/.<pkgname>-files.plist
+Package files metadata.
+.It Ar /var/db/flappy/pkgdb-0.38.plist
+Default package database (0.38 format).
+Keeps track of installed packages and properties.
+.It Ar /var/cache/flappy
+Default cache directory to store downloaded binary packages.
+.El
+.Sh ENVIRONMENT
+.Bl -tag -width FLAPPY_TARGET_ARCH
+.It Sy FLAPPY_ARCH
+Overrides
+.Xr uname 2
+machine result with this value.
+.It Sy FLAPPY_TARGET_ARCH
+Sets the target architecture to this value.
+.It Sy FLAPPY_SYSLOG
+Overrides the
+.Xr flappy.d 5
+.Sy syslog=true|false
+configuration option.
+.El
+.Sh SEE ALSO
+.Xr flappy-alternatives 1 ,
+.Xr flappy-create 1 ,
+.Xr flappy-dgraph 1 ,
+.Xr flappy-fbulk 1 ,
+.Xr flappy-fetch 1 ,
+.Xr flappy 1 ,
+.Xr flappy-install 1 ,
+.Xr flappy-pkgdb 1 ,
+.Xr flappy-query 1 ,
+.Xr flappy-reconfigure 1 ,
+.Xr flappy-remove 1 ,
+.Xr flappy-rindex 1 ,
+.Xr flappy.d 5 ,
+.Lk https://github.com/FlucidOS/flappy
+.Sh AUTHORS
+.An Juan Romero Pardines Aq Mt xtraeme@gmail.com
+.An Duncan Overbruck Aq Mt mail@duncano.de
+.Sh BUGS
+Probably, but I try to make this not happen. Use it under your own
+responsibility and enjoy your life.
+.Pp
+Report bugs at
+.Lk https://github.com/FlucidOS/flappy/issues

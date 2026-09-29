@@ -1,0 +1,40 @@
+pkgname=flucid-motd
+version=1.0
+revision=1
+arch=noarch
+short_desc="Message-of-the-day tool with a config file and install scripts"
+maintainer="FlucidOS <flucidos@localhost>"
+license="BSD-2-Clause"
+homepage="https://github.com/FlucidOS/flappy"
+conf_files="/etc/flucid-motd.conf"
+
+do_install() {
+	mkdir -p "$DESTDIR/usr/bin" "$DESTDIR/etc"
+	cat > "$DESTDIR/usr/bin/flucid-motd" <<'SH'
+#!/bin/sh
+. /etc/flucid-motd.conf
+echo "$MESSAGE"
+SH
+	chmod 755 "$DESTDIR/usr/bin/flucid-motd"
+	echo "MESSAGE=\"welcome to FlucidOS (motd ${version}_${revision})\"" \
+		> "$DESTDIR/etc/flucid-motd.conf"
+	# INSTALL / REMOVE scripts: called as `<script> pre|post <pkgname> <version> <update> <arch>`
+	cat > "$DESTDIR/INSTALL" <<'SH'
+#!/bin/sh
+case "$1" in
+post)
+	mkdir -p var/lib/flucid-motd
+	echo "$2 $3 update=$4" > var/lib/flucid-motd/last-install
+	;;
+esac
+SH
+	cat > "$DESTDIR/REMOVE" <<'SH'
+#!/bin/sh
+case "$1" in
+post)
+	rm -rf var/lib/flucid-motd
+	;;
+esac
+SH
+	chmod 755 "$DESTDIR/INSTALL" "$DESTDIR/REMOVE"
+}

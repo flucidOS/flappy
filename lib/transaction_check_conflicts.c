@@ -28,16 +28,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "xbps/xbps_array.h"
-#include "xbps_api_impl.h"
+#include "flappy/flappy_array.h"
+#include "flappy_api_impl.h"
 
 static int
-pkg_conflicts_trans(struct xbps_handle *xhp, xbps_array_t array,
-		xbps_dictionary_t pkg_repod)
+pkg_conflicts_trans(struct flappy_handle *xhp, flappy_array_t array,
+		flappy_dictionary_t pkg_repod)
 {
-	xbps_array_t pkg_cflicts, trans_cflicts;
-	xbps_dictionary_t pkgd, tpkgd;
-	xbps_trans_type_t ttype;
+	flappy_array_t pkg_cflicts, trans_cflicts;
+	flappy_dictionary_t pkgd, tpkgd;
+	flappy_trans_type_t ttype;
 	const char *repopkgver, *repopkgname;
 	char *buf;
 
@@ -45,92 +45,92 @@ pkg_conflicts_trans(struct xbps_handle *xhp, xbps_array_t array,
 	assert(array);
 	assert(pkg_repod);
 
-	pkg_cflicts = xbps_dictionary_get(pkg_repod, "conflicts");
-	if (xbps_array_count(pkg_cflicts) == 0)
+	pkg_cflicts = flappy_dictionary_get(pkg_repod, "conflicts");
+	if (flappy_array_count(pkg_cflicts) == 0)
 		return 0;
 
-	ttype = xbps_transaction_pkg_type(pkg_repod);
-	if (ttype == XBPS_TRANS_HOLD || ttype == XBPS_TRANS_REMOVE)
+	ttype = flappy_transaction_pkg_type(pkg_repod);
+	if (ttype == FLAPPY_TRANS_HOLD || ttype == FLAPPY_TRANS_REMOVE)
 		return 0;
 
-	trans_cflicts = xbps_dictionary_get(xhp->transd, "conflicts");
-	if (!xbps_dictionary_get_cstring_nocopy(pkg_repod, "pkgver", &repopkgver))
+	trans_cflicts = flappy_dictionary_get(xhp->transd, "conflicts");
+	if (!flappy_dictionary_get_cstring_nocopy(pkg_repod, "pkgver", &repopkgver))
 		abort();
-	if (!xbps_dictionary_get_cstring_nocopy(pkg_repod, "pkgname", &repopkgname))
+	if (!flappy_dictionary_get_cstring_nocopy(pkg_repod, "pkgname", &repopkgname))
 		abort();
 
-	for (unsigned int i = 0; i < xbps_array_count(pkg_cflicts); i++) {
+	for (unsigned int i = 0; i < flappy_array_count(pkg_cflicts); i++) {
 		const char *pkgver = NULL, *pkgname = NULL, *cfpkg = NULL;
 
-		if (!xbps_array_get_cstring_nocopy(pkg_cflicts, i, &cfpkg))
+		if (!flappy_array_get_cstring_nocopy(pkg_cflicts, i, &cfpkg))
 			abort();
 
 		/*
 		 * Check if current pkg conflicts with an installed package.
 		 */
-		if ((pkgd = xbps_pkgdb_get_pkg(xhp, cfpkg)) ||
-		    (pkgd = xbps_pkgdb_get_virtualpkg(xhp, cfpkg))) {
+		if ((pkgd = flappy_pkgdb_get_pkg(xhp, cfpkg)) ||
+		    (pkgd = flappy_pkgdb_get_virtualpkg(xhp, cfpkg))) {
 			/* If the conflicting pkg is on hold, ignore it */
-			if (xbps_dictionary_get(pkgd, "hold"))
+			if (flappy_dictionary_get(pkgd, "hold"))
 				continue;
 
 			/* Ignore itself */
-			if (!xbps_dictionary_get_cstring_nocopy(pkgd, "pkgname", &pkgname))
+			if (!flappy_dictionary_get_cstring_nocopy(pkgd, "pkgname", &pkgname))
 				abort();
 			if (strcmp(pkgname, repopkgname) == 0) {
 				continue;
 			}
-			if (!xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver))
+			if (!flappy_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver))
 				abort();
 			/*
 			 * If there's a pkg for the conflict in transaction,
 			 * ignore it.
 			 */
-			if ((tpkgd = xbps_find_pkg_in_array(array, pkgname, 0))) {
-				ttype = xbps_transaction_pkg_type(tpkgd);
-				if (ttype == XBPS_TRANS_INSTALL ||
-				    ttype == XBPS_TRANS_UPDATE ||
-				    ttype == XBPS_TRANS_REMOVE ||
-				    ttype == XBPS_TRANS_HOLD) {
+			if ((tpkgd = flappy_find_pkg_in_array(array, pkgname, 0))) {
+				ttype = flappy_transaction_pkg_type(tpkgd);
+				if (ttype == FLAPPY_TRANS_INSTALL ||
+				    ttype == FLAPPY_TRANS_UPDATE ||
+				    ttype == FLAPPY_TRANS_REMOVE ||
+				    ttype == FLAPPY_TRANS_HOLD) {
 					continue;
 				}
 			}
-			xbps_dbg_printf("found conflicting installed "
+			flappy_dbg_printf("found conflicting installed "
 			    "pkg %s with pkg in transaction %s "
 			    "(matched by %s [trans])\n", pkgver, repopkgver, cfpkg);
-			buf = xbps_xasprintf("CONFLICT: %s with "
+			buf = flappy_xasprintf("CONFLICT: %s with "
 			    "installed pkg %s (matched by %s)",
 			    repopkgver, pkgver, cfpkg);
-			if (!xbps_array_add_cstring(trans_cflicts, buf))
-				return xbps_error_oom();
+			if (!flappy_array_add_cstring(trans_cflicts, buf))
+				return flappy_error_oom();
 			continue;
 		}
 		/*
 		 * Check if current pkg conflicts with any pkg in transaction.
 		 */
-		if ((pkgd = xbps_find_pkg_in_array(array, cfpkg, 0)) ||
-		    (pkgd = xbps_find_virtualpkg_in_array(xhp, array, cfpkg, 0))) {
+		if ((pkgd = flappy_find_pkg_in_array(array, cfpkg, 0)) ||
+		    (pkgd = flappy_find_virtualpkg_in_array(xhp, array, cfpkg, 0))) {
 			/* ignore pkgs to be removed or on hold */
-			ttype = xbps_transaction_pkg_type(pkgd);
-			if (ttype == XBPS_TRANS_REMOVE || ttype == XBPS_TRANS_HOLD)
+			ttype = flappy_transaction_pkg_type(pkgd);
+			if (ttype == FLAPPY_TRANS_REMOVE || ttype == FLAPPY_TRANS_HOLD)
 				continue;
 			/* ignore itself */
-			if (!xbps_dictionary_get_cstring_nocopy(pkgd, "pkgname", &pkgname))
+			if (!flappy_dictionary_get_cstring_nocopy(pkgd, "pkgname", &pkgname))
 				abort();
 			if (strcmp(pkgname, repopkgname) == 0)
 				continue;
-			if (!xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver))
+			if (!flappy_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver))
 				break;
-			xbps_dbg_printf("found conflicting pkgs in "
+			flappy_dbg_printf("found conflicting pkgs in "
 			    "transaction %s <-> %s (matched by %s [trans])\n",
 			    pkgver, repopkgver, cfpkg);
-			buf = xbps_xasprintf("CONFLICT: %s with "
+			buf = flappy_xasprintf("CONFLICT: %s with "
 			   "%s in transaction (matched by %s)",
 			   repopkgver, pkgver, cfpkg);
 			if (!buf)
-				return xbps_error_oom();
-			if (!xbps_array_add_cstring_nocopy(trans_cflicts, buf))
-				return xbps_error_oom();
+				return flappy_error_oom();
+			if (!flappy_array_add_cstring_nocopy(trans_cflicts, buf))
+				return flappy_error_oom();
 			continue;
 		}
 	}
@@ -138,62 +138,62 @@ pkg_conflicts_trans(struct xbps_handle *xhp, xbps_array_t array,
 }
 
 static int
-pkgdb_conflicts_cb(struct xbps_handle *xhp, xbps_object_t obj,
+pkgdb_conflicts_cb(struct flappy_handle *xhp, flappy_object_t obj,
 		const char *key UNUSED, void *arg, bool *done UNUSED)
 {
-	xbps_array_t pkg_cflicts, trans_cflicts, pkgs = arg;
-	xbps_dictionary_t pkgd;
-	xbps_trans_type_t ttype;
+	flappy_array_t pkg_cflicts, trans_cflicts, pkgs = arg;
+	flappy_dictionary_t pkgd;
+	flappy_trans_type_t ttype;
 	const char *repopkgver, *repopkgname;
 	char *buf;
 
-	pkg_cflicts = xbps_dictionary_get(obj, "conflicts");
-	if (xbps_array_count(pkg_cflicts) == 0)
+	pkg_cflicts = flappy_dictionary_get(obj, "conflicts");
+	if (flappy_array_count(pkg_cflicts) == 0)
 		return 0;
 
-	if (!xbps_dictionary_get_cstring_nocopy(obj, "pkgver", &repopkgver))
+	if (!flappy_dictionary_get_cstring_nocopy(obj, "pkgver", &repopkgver))
 		abort();
-	if (!xbps_dictionary_get_cstring_nocopy(obj, "pkgname", &repopkgname))
+	if (!flappy_dictionary_get_cstring_nocopy(obj, "pkgname", &repopkgname))
 		abort();
 
 	// XXX: this should really be a hashtable/dictionary lookup
 	/* if a pkg is in the transaction, ignore the one from pkgdb */
-	if (xbps_find_pkg_in_array(pkgs, repopkgname, 0))
+	if (flappy_find_pkg_in_array(pkgs, repopkgname, 0))
 		return 0;
 
-	trans_cflicts = xbps_dictionary_get(xhp->transd, "conflicts");
+	trans_cflicts = flappy_dictionary_get(xhp->transd, "conflicts");
 
-	for (unsigned int i = 0; i < xbps_array_count(pkg_cflicts); i++) {
+	for (unsigned int i = 0; i < flappy_array_count(pkg_cflicts); i++) {
 		const char *pkgver = NULL, *pkgname = NULL, *cfpkg = NULL;
 
-		if (!xbps_array_get_cstring_nocopy(pkg_cflicts, i, &cfpkg))
+		if (!flappy_array_get_cstring_nocopy(pkg_cflicts, i, &cfpkg))
 			abort();
 
-		if ((pkgd = xbps_find_pkg_in_array(pkgs, cfpkg, 0)) ||
-		    (pkgd = xbps_find_virtualpkg_in_array(xhp, pkgs, cfpkg, 0))) {
+		if ((pkgd = flappy_find_pkg_in_array(pkgs, cfpkg, 0)) ||
+		    (pkgd = flappy_find_virtualpkg_in_array(xhp, pkgs, cfpkg, 0))) {
 			/* ignore pkgs to be removed or on hold */
-			ttype = xbps_transaction_pkg_type(pkgd);
-			if (ttype == XBPS_TRANS_REMOVE || ttype == XBPS_TRANS_HOLD) {
+			ttype = flappy_transaction_pkg_type(pkgd);
+			if (ttype == FLAPPY_TRANS_REMOVE || ttype == FLAPPY_TRANS_HOLD) {
 				continue;
 			}
 			/* ignore itself */
-			if (!xbps_dictionary_get_cstring_nocopy(pkgd, "pkgname", &pkgname))
+			if (!flappy_dictionary_get_cstring_nocopy(pkgd, "pkgname", &pkgname))
 				abort();
 			if (strcmp(pkgname, repopkgname) == 0) {
 				continue;
 			}
-			if (!xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver))
+			if (!flappy_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver))
 				abort();
-			xbps_dbg_printf("found conflicting pkgs in "
+			flappy_dbg_printf("found conflicting pkgs in "
 			    "transaction %s <-> %s (matched by %s [pkgdb])\n",
 			    pkgver, repopkgver, cfpkg);
-			buf = xbps_xasprintf("CONFLICT: %s with "
+			buf = flappy_xasprintf("CONFLICT: %s with "
 			   "%s in transaction (matched by %s)",
 			   repopkgver, pkgver, cfpkg);
 			if (!buf)
-				return xbps_error_oom();
-			if (!xbps_array_add_cstring_nocopy(trans_cflicts, buf))
-				return xbps_error_oom();
+				return flappy_error_oom();
+			if (!flappy_array_add_cstring_nocopy(trans_cflicts, buf))
+				return flappy_error_oom();
 			continue;
 		}
 	}
@@ -201,28 +201,28 @@ pkgdb_conflicts_cb(struct xbps_handle *xhp, xbps_object_t obj,
 }
 
 int HIDDEN
-xbps_transaction_check_conflicts(struct xbps_handle *xhp, xbps_array_t pkgs)
+flappy_transaction_check_conflicts(struct flappy_handle *xhp, flappy_array_t pkgs)
 {
-	xbps_array_t array;
+	flappy_array_t array;
 	int r;
 
 	/* find conflicts in transaction */
-	for (unsigned int i = 0; i < xbps_array_count(pkgs); i++) {
-		r = pkg_conflicts_trans(xhp, pkgs, xbps_array_get(pkgs, i));
+	for (unsigned int i = 0; i < flappy_array_count(pkgs); i++) {
+		r = pkg_conflicts_trans(xhp, pkgs, flappy_array_get(pkgs, i));
 		if (r < 0)
 			return r;
 	}
 
 	/* find conflicts in pkgdb */
-	r = xbps_pkgdb_foreach_cb_multi(xhp, pkgdb_conflicts_cb, pkgs);
+	r = flappy_pkgdb_foreach_cb_multi(xhp, pkgdb_conflicts_cb, pkgs);
 	if (r < 0)
 		return r;
 	else if (r > 0)
 		return -r;
 
-	array = xbps_dictionary_get(xhp->transd, "conflicts");
-	if (xbps_array_count(array) == 0)
-		xbps_dictionary_remove(xhp->transd, "conflicts");
+	array = flappy_dictionary_get(xhp->transd, "conflicts");
+	if (flappy_array_count(array) == 0)
+		flappy_dictionary_remove(xhp->transd, "conflicts");
 
 	return 0;
 }

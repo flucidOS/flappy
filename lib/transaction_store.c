@@ -28,14 +28,14 @@
 #include <string.h>
 #include <errno.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 bool HIDDEN
-xbps_transaction_store(struct xbps_handle *xhp, xbps_array_t pkgs,
-		xbps_dictionary_t pkgrd, bool autoinst)
+flappy_transaction_store(struct flappy_handle *xhp, flappy_array_t pkgs,
+		flappy_dictionary_t pkgrd, bool autoinst)
 {
-	xbps_dictionary_t d, pkgd;
-	xbps_array_t replaces;
+	flappy_dictionary_t d, pkgd;
+	flappy_array_t replaces;
 	const char *pkgver, *pkgname, *curpkgver, *repo;
 	char *self_replaced;
 	int rv;
@@ -44,19 +44,19 @@ xbps_transaction_store(struct xbps_handle *xhp, xbps_array_t pkgs,
 	assert(pkgs);
 	assert(pkgrd);
 
-	if (!xbps_dictionary_get_cstring_nocopy(pkgrd, "pkgver", &pkgver)) {
+	if (!flappy_dictionary_get_cstring_nocopy(pkgrd, "pkgver", &pkgver)) {
 		return false;
 	}
-	if (!xbps_dictionary_get_cstring_nocopy(pkgrd, "pkgname", &pkgname)) {
+	if (!flappy_dictionary_get_cstring_nocopy(pkgrd, "pkgname", &pkgname)) {
 		return false;
 	}
-	d = xbps_find_pkg_in_array(pkgs, pkgname, 0);
-	if (xbps_object_type(d) == XBPS_TYPE_DICTIONARY) {
+	d = flappy_find_pkg_in_array(pkgs, pkgname, 0);
+	if (flappy_object_type(d) == FLAPPY_TYPE_DICTIONARY) {
 		/* compare version stored in transaction vs current */
-		if (!xbps_dictionary_get_cstring_nocopy(d, "pkgver", &curpkgver)) {
+		if (!flappy_dictionary_get_cstring_nocopy(d, "pkgver", &curpkgver)) {
 			return false;
 		}
-		rv = xbps_cmpver(pkgver, curpkgver);
+		rv = flappy_cmpver(pkgver, curpkgver);
 		if (rv == 0 || rv == -1) {
 			/* same version or stored version greater than current */
 			return true;
@@ -65,52 +65,52 @@ xbps_transaction_store(struct xbps_handle *xhp, xbps_array_t pkgs,
 			 * Current version is greater than stored,
 			 * replace stored with current.
 			 */
-			if (!xbps_remove_pkg_from_array_by_pkgver(pkgs, curpkgver)) {
+			if (!flappy_remove_pkg_from_array_by_pkgver(pkgs, curpkgver)) {
 				return false;
 			}
-			xbps_dbg_printf("[trans] replaced %s with %s\n", curpkgver, pkgver);
+			flappy_dbg_printf("[trans] replaced %s with %s\n", curpkgver, pkgver);
 		}
 	}
 
-	if ((pkgd = xbps_dictionary_copy_mutable(pkgrd)) == NULL)
+	if ((pkgd = flappy_dictionary_copy_mutable(pkgrd)) == NULL)
 		return false;
 
 	/*
 	 * Add required objects into package dep's dictionary.
 	 */
-	if (autoinst && !xbps_dictionary_set_bool(pkgd, "automatic-install", true))
+	if (autoinst && !flappy_dictionary_set_bool(pkgd, "automatic-install", true))
 		goto err;
 
 	/*
 	 * Set a replaces to itself, so that virtual packages are always replaced.
 	*/
-	if ((replaces = xbps_dictionary_get(pkgd, "replaces")) == NULL)
-		replaces = xbps_array_create();
+	if ((replaces = flappy_dictionary_get(pkgd, "replaces")) == NULL)
+		replaces = flappy_array_create();
 
-	self_replaced = xbps_xasprintf("%s>=0", pkgname);
-	xbps_array_add_cstring(replaces, self_replaced);
+	self_replaced = flappy_xasprintf("%s>=0", pkgname);
+	flappy_array_add_cstring(replaces, self_replaced);
 	free(self_replaced);
 
-	if (!xbps_dictionary_set(pkgd, "replaces", replaces))
+	if (!flappy_dictionary_set(pkgd, "replaces", replaces))
 		goto err;
 
 	/*
 	 * Add the dictionary into the unsorted queue.
 	 */
-	if (!xbps_array_add(pkgs, pkgd))
+	if (!flappy_array_add(pkgs, pkgd))
 		goto err;
 
-	xbps_dictionary_get_cstring_nocopy(pkgd, "repository", &repo);
+	flappy_dictionary_get_cstring_nocopy(pkgd, "repository", &repo);
 
-	xbps_set_cb_state(xhp, XBPS_STATE_TRANS_ADDPKG, 0, pkgver,
+	flappy_set_cb_state(xhp, FLAPPY_STATE_TRANS_ADDPKG, 0, pkgver,
 	    "Found %s in repository %s", pkgver, repo);
 
-	xbps_dbg_printf("[trans] `%s' stored%s (%s)\n", pkgver,
+	flappy_dbg_printf("[trans] `%s' stored%s (%s)\n", pkgver,
 	    autoinst ? " as automatic install" : "", repo);
-	xbps_object_release(pkgd);
+	flappy_object_release(pkgd);
 
 	return true;
 err:
-	xbps_object_release(pkgd);
+	flappy_object_release(pkgd);
 	return false;
 }

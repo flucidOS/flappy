@@ -1,4 +1,4 @@
-XBPS includes the following software from third parties for
+FLAPPY includes the following software from third parties for
 internal use in the code:
 
 - queue.h from NetBSD: include/queue.h.

@@ -34,7 +34,7 @@
 #include <limits.h>
 #include <stdio.h>
 
-#define _LIBFETCH_VER "xbps/2.0"
+#define _LIBFETCH_VER "flappy/2.0"
 
 #define URL_HOSTLEN 255
 #define URL_SCHEMELEN 16

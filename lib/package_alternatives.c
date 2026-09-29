@@ -34,7 +34,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 /**
  * @file lib/package_alternatives.c
@@ -115,38 +115,38 @@ relpath(char *from, char *to)
 }
 
 static int
-remove_symlinks(struct xbps_handle *xhp, xbps_array_t a, const char *grname)
+remove_symlinks(struct flappy_handle *xhp, flappy_array_t a, const char *grname)
 {
 	unsigned int i, cnt;
 	struct stat st;
 
-	cnt = xbps_array_count(a);
+	cnt = flappy_array_count(a);
 	for (i = 0; i < cnt; i++) {
-		xbps_string_t str;
+		flappy_string_t str;
 		char *l, *lnk;
 
-		str = xbps_array_get(a, i);
-		l = left(xbps_string_cstring_nocopy(str));
+		str = flappy_array_get(a, i);
+		l = left(flappy_string_cstring_nocopy(str));
 		assert(l);
 		if (l[0] != '/') {
 			const char *tgt;
 			char *tgt_dup, *tgt_dir;
-			tgt = right(xbps_string_cstring_nocopy(str));
+			tgt = right(flappy_string_cstring_nocopy(str));
 			assert(tgt);
 			tgt_dup = strdup(tgt);
 			assert(tgt_dup);
 			tgt_dir = dirname(tgt_dup);
-			lnk = xbps_xasprintf("%s%s/%s", xhp->rootdir, tgt_dir, l);
+			lnk = flappy_xasprintf("%s%s/%s", xhp->rootdir, tgt_dir, l);
 			free(tgt_dup);
 		} else {
-			lnk = xbps_xasprintf("%s%s", xhp->rootdir, l);
+			lnk = flappy_xasprintf("%s%s", xhp->rootdir, l);
 		}
 		if (lstat(lnk, &st) == -1 || !S_ISLNK(st.st_mode)) {
 			free(lnk);
 			free(l);
 			continue;
 		}
-		xbps_set_cb_state(xhp, XBPS_STATE_ALTGROUP_LINK_REMOVED, 0, NULL,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_ALTGROUP_LINK_REMOVED, 0, NULL,
 		    "Removing '%s' alternatives group symlink: %s", grname, l);
 		unlink(lnk);
 		free(lnk);
@@ -157,16 +157,16 @@ remove_symlinks(struct xbps_handle *xhp, xbps_array_t a, const char *grname)
 }
 
 static int
-create_symlinks(struct xbps_handle *xhp, xbps_array_t a, const char *grname)
+create_symlinks(struct flappy_handle *xhp, flappy_array_t a, const char *grname)
 {
 	int rv;
 	unsigned int i, n;
 	char *alternative, *tok1, *tok2, *linkpath, *target, *dir, *p;
 
-	n = xbps_array_count(a);
+	n = flappy_array_count(a);
 
 	for (i = 0; i < n; i++) {
-		alternative = xbps_string_cstring(xbps_array_get(a, i));
+		alternative = flappy_string_cstring(flappy_array_get(a, i));
 
 		if (!(tok1 = strtok(alternative, ":")) ||
 		    !(tok2 = strtok(NULL, ":"))) {
@@ -179,15 +179,15 @@ create_symlinks(struct xbps_handle *xhp, xbps_array_t a, const char *grname)
 
 		/* add target dir to relative links */
 		if (tok1[0] != '/')
-			linkpath = xbps_xasprintf("%s/%s/%s", xhp->rootdir, dir, tok1);
+			linkpath = flappy_xasprintf("%s/%s/%s", xhp->rootdir, dir, tok1);
 		else
-			linkpath = xbps_xasprintf("%s/%s", xhp->rootdir, tok1);
+			linkpath = flappy_xasprintf("%s/%s", xhp->rootdir, tok1);
 
 		/* create target directory, necessary for dangling symlinks */
-		dir = xbps_xasprintf("%s/%s", xhp->rootdir, dir);
-		if (strcmp(dir, ".") && xbps_mkpath(dir, 0755) && errno != EEXIST) {
+		dir = flappy_xasprintf("%s/%s", xhp->rootdir, dir);
+		if (strcmp(dir, ".") && flappy_mkpath(dir, 0755) && errno != EEXIST) {
 			rv = errno;
-			xbps_dbg_printf(
+			flappy_dbg_printf(
 			    "failed to create target dir '%s' for group '%s': %s\n",
 			    dir, grname, strerror(errno));
 			free(dir);
@@ -198,9 +198,9 @@ create_symlinks(struct xbps_handle *xhp, xbps_array_t a, const char *grname)
 		/* create link directory, necessary for dangling symlinks */
 		p = strdup(linkpath);
 		dir = dirname(p);
-		if (strcmp(dir, ".") && xbps_mkpath(dir, 0755) && errno != EEXIST) {
+		if (strcmp(dir, ".") && flappy_mkpath(dir, 0755) && errno != EEXIST) {
 			rv = errno;
-			xbps_dbg_printf(
+			flappy_dbg_printf(
 			    "failed to create symlink dir '%s' for group '%s': %s\n",
 			    dir, grname, strerror(errno));
 			free(p);
@@ -208,7 +208,7 @@ create_symlinks(struct xbps_handle *xhp, xbps_array_t a, const char *grname)
 		}
 		free(p);
 
-		xbps_set_cb_state(xhp, XBPS_STATE_ALTGROUP_LINK_ADDED, 0, NULL,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_ALTGROUP_LINK_ADDED, 0, NULL,
 		    "Creating '%s' alternatives group symlink: %s -> %s",
 		    grname, tok1, target);
 
@@ -220,7 +220,7 @@ create_symlinks(struct xbps_handle *xhp, xbps_array_t a, const char *grname)
 
 		unlink(linkpath);
 		if ((rv = symlink(target, linkpath)) != 0) {
-			xbps_dbg_printf(
+			flappy_dbg_printf(
 			    "failed to create alt symlink '%s' for group '%s': %s\n",
 			    linkpath, grname,  strerror(errno));
 			goto err;
@@ -241,59 +241,59 @@ err:
 }
 
 int
-xbps_alternatives_set(struct xbps_handle *xhp, const char *pkgname,
+flappy_alternatives_set(struct flappy_handle *xhp, const char *pkgname,
 		const char *group)
 {
-	xbps_array_t allkeys;
-	xbps_dictionary_t alternatives, pkg_alternatives, pkgd, prevpkgd, prevpkg_alts;
+	flappy_array_t allkeys;
+	flappy_dictionary_t alternatives, pkg_alternatives, pkgd, prevpkgd, prevpkg_alts;
 	const char *pkgver = NULL, *prevpkgname = NULL;
 	int rv = 0;
 
 	assert(xhp);
 	assert(pkgname);
 
-	alternatives = xbps_dictionary_get(xhp->pkgdb, "_XBPS_ALTERNATIVES_");
+	alternatives = flappy_dictionary_get(xhp->pkgdb, "_FLAPPY_ALTERNATIVES_");
 	if (alternatives == NULL)
 		return ENOENT;
 
-	pkgd = xbps_pkgdb_get_pkg(xhp, pkgname);
+	pkgd = flappy_pkgdb_get_pkg(xhp, pkgname);
 	if (pkgd == NULL)
 		return ENOENT;
 
-	pkg_alternatives = xbps_dictionary_get(pkgd, "alternatives");
-	if (!xbps_dictionary_count(pkg_alternatives))
+	pkg_alternatives = flappy_dictionary_get(pkgd, "alternatives");
+	if (!flappy_dictionary_count(pkg_alternatives))
 		return ENOENT;
 
-	if (group && !xbps_dictionary_get(pkg_alternatives, group))
+	if (group && !flappy_dictionary_get(pkg_alternatives, group))
 		return ENOENT;
 
-	xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver);
+	flappy_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver);
 
-	allkeys = xbps_dictionary_all_keys(pkg_alternatives);
-	for (unsigned int i = 0; i < xbps_array_count(allkeys); i++) {
-		xbps_array_t array;
-		xbps_object_t keysym;
-		xbps_string_t kstr;
+	allkeys = flappy_dictionary_all_keys(pkg_alternatives);
+	for (unsigned int i = 0; i < flappy_array_count(allkeys); i++) {
+		flappy_array_t array;
+		flappy_object_t keysym;
+		flappy_string_t kstr;
 		const char *keyname;
 
-		keysym = xbps_array_get(allkeys, i);
-		keyname = xbps_dictionary_keysym_cstring_nocopy(keysym);
+		keysym = flappy_array_get(allkeys, i);
+		keyname = flappy_dictionary_keysym_cstring_nocopy(keysym);
 
 		if (group && strcmp(keyname, group))
 			continue;
 
-		array = xbps_dictionary_get(alternatives, keyname);
+		array = flappy_dictionary_get(alternatives, keyname);
 		if (array == NULL)
 			continue;
 
 		/* remove symlinks from previous alternative */
-		xbps_array_get_cstring_nocopy(array, 0, &prevpkgname);
+		flappy_array_get_cstring_nocopy(array, 0, &prevpkgname);
 		if (prevpkgname && strcmp(pkgname, prevpkgname) != 0) {
-			if ((prevpkgd = xbps_pkgdb_get_pkg(xhp, prevpkgname)) &&
-			    (prevpkg_alts = xbps_dictionary_get(prevpkgd, "alternatives")) &&
-			    xbps_dictionary_count(prevpkg_alts)) {
+			if ((prevpkgd = flappy_pkgdb_get_pkg(xhp, prevpkgname)) &&
+			    (prevpkg_alts = flappy_dictionary_get(prevpkgd, "alternatives")) &&
+			    flappy_dictionary_count(prevpkg_alts)) {
 				rv = remove_symlinks(xhp,
-				    xbps_dictionary_get(prevpkg_alts, keyname),
+				    flappy_dictionary_get(prevpkg_alts, keyname),
 				    keyname);
 				if (rv != 0)
 					break;
@@ -301,96 +301,96 @@ xbps_alternatives_set(struct xbps_handle *xhp, const char *pkgname,
 		}
 
 		/* put this alternative group at the head */
-		xbps_remove_string_from_array(array, pkgname);
-		kstr = xbps_string_create_cstring(pkgname);
-		xbps_array_add_first(array, kstr);
-		xbps_object_release(kstr);
+		flappy_remove_string_from_array(array, pkgname);
+		kstr = flappy_string_create_cstring(pkgname);
+		flappy_array_add_first(array, kstr);
+		flappy_object_release(kstr);
 
 		/* apply the alternatives group */
-		xbps_set_cb_state(xhp, XBPS_STATE_ALTGROUP_ADDED, 0, NULL,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_ALTGROUP_ADDED, 0, NULL,
 		    "%s: applying '%s' alternatives group", pkgver, keyname);
-		rv = create_symlinks(xhp, xbps_dictionary_get(pkg_alternatives, keyname), keyname);
+		rv = create_symlinks(xhp, flappy_dictionary_get(pkg_alternatives, keyname), keyname);
 		if (rv != 0 || group)
 			break;
 	}
-	xbps_object_release(allkeys);
+	flappy_object_release(allkeys);
 	return rv;
 }
 
 static int
-switch_alt_group(struct xbps_handle *xhp, const char *grpn, const char *pkgn,
-		xbps_dictionary_t *pkg_alternatives)
+switch_alt_group(struct flappy_handle *xhp, const char *grpn, const char *pkgn,
+		flappy_dictionary_t *pkg_alternatives)
 {
-	xbps_dictionary_t curpkgd, pkgalts;
+	flappy_dictionary_t curpkgd, pkgalts;
 
-	curpkgd = xbps_pkgdb_get_pkg(xhp, pkgn);
+	curpkgd = flappy_pkgdb_get_pkg(xhp, pkgn);
 	assert(curpkgd);
 
-	xbps_set_cb_state(xhp, XBPS_STATE_ALTGROUP_SWITCHED, 0, NULL,
+	flappy_set_cb_state(xhp, FLAPPY_STATE_ALTGROUP_SWITCHED, 0, NULL,
 		"Switched '%s' alternatives group to '%s'", grpn, pkgn);
-	pkgalts = xbps_dictionary_get(curpkgd, "alternatives");
+	pkgalts = flappy_dictionary_get(curpkgd, "alternatives");
 	if (pkg_alternatives) *pkg_alternatives = pkgalts;
-	return create_symlinks(xhp, xbps_dictionary_get(pkgalts, grpn), grpn);
+	return create_symlinks(xhp, flappy_dictionary_get(pkgalts, grpn), grpn);
 }
 
 int
-xbps_alternatives_unregister(struct xbps_handle *xhp, xbps_dictionary_t pkgd)
+flappy_alternatives_unregister(struct flappy_handle *xhp, flappy_dictionary_t pkgd)
 {
-	xbps_array_t allkeys;
-	xbps_dictionary_t alternatives, pkg_alternatives;
+	flappy_array_t allkeys;
+	flappy_dictionary_t alternatives, pkg_alternatives;
 	const char *pkgver, *pkgname;
 	bool update = false;
 	int rv = 0;
 
 	assert(xhp);
 
-	alternatives = xbps_dictionary_get(xhp->pkgdb, "_XBPS_ALTERNATIVES_");
+	alternatives = flappy_dictionary_get(xhp->pkgdb, "_FLAPPY_ALTERNATIVES_");
 	if (alternatives == NULL)
 		return 0;
 
-	pkg_alternatives = xbps_dictionary_get(pkgd, "alternatives");
-	if (!xbps_dictionary_count(pkg_alternatives))
+	pkg_alternatives = flappy_dictionary_get(pkgd, "alternatives");
+	if (!flappy_dictionary_count(pkg_alternatives))
 		return 0;
 
-	xbps_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver);
-	xbps_dictionary_get_cstring_nocopy(pkgd, "pkgname", &pkgname);
+	flappy_dictionary_get_cstring_nocopy(pkgd, "pkgver", &pkgver);
+	flappy_dictionary_get_cstring_nocopy(pkgd, "pkgname", &pkgname);
 
-	xbps_dictionary_get_bool(pkgd, "alternatives-update", &update);
+	flappy_dictionary_get_bool(pkgd, "alternatives-update", &update);
 
-	allkeys = xbps_dictionary_all_keys(pkg_alternatives);
-	for (unsigned int i = 0; i < xbps_array_count(allkeys); i++) {
-		xbps_array_t array;
-		xbps_object_t keysym;
+	allkeys = flappy_dictionary_all_keys(pkg_alternatives);
+	for (unsigned int i = 0; i < flappy_array_count(allkeys); i++) {
+		flappy_array_t array;
+		flappy_object_t keysym;
 		bool current = false;
 		const char *first = NULL, *keyname;
 
-		keysym = xbps_array_get(allkeys, i);
-		keyname = xbps_dictionary_keysym_cstring_nocopy(keysym);
+		keysym = flappy_array_get(allkeys, i);
+		keyname = flappy_dictionary_keysym_cstring_nocopy(keysym);
 
-		array = xbps_dictionary_get(alternatives, keyname);
+		array = flappy_dictionary_get(alternatives, keyname);
 		if (array == NULL)
 			continue;
 
-		xbps_array_get_cstring_nocopy(array, 0, &first);
+		flappy_array_get_cstring_nocopy(array, 0, &first);
 		if (strcmp(pkgname, first) == 0) {
 			/* this pkg is the current alternative for this group */
 			current = true;
 			rv = remove_symlinks(xhp,
-				xbps_dictionary_get(pkg_alternatives, keyname),
+				flappy_dictionary_get(pkg_alternatives, keyname),
 				keyname);
 			if (rv != 0)
 				break;
 		}
 
 		if (!update) {
-			xbps_set_cb_state(xhp, XBPS_STATE_ALTGROUP_REMOVED, 0, NULL,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_ALTGROUP_REMOVED, 0, NULL,
 			    "%s: unregistered '%s' alternatives group", pkgver, keyname);
-			xbps_remove_string_from_array(array, pkgname);
-			xbps_array_get_cstring_nocopy(array, 0, &first);
+			flappy_remove_string_from_array(array, pkgname);
+			flappy_array_get_cstring_nocopy(array, 0, &first);
 		}
 
-		if (xbps_array_count(array) == 0) {
-			xbps_dictionary_remove(alternatives, keyname);
+		if (flappy_array_count(array) == 0) {
+			flappy_dictionary_remove(alternatives, keyname);
 			continue;
 		}
 
@@ -401,7 +401,7 @@ xbps_alternatives_unregister(struct xbps_handle *xhp, xbps_dictionary_t pkgd)
 		if (switch_alt_group(xhp, keyname, first, &pkg_alternatives) != 0)
 			break;
 	}
-	xbps_object_release(allkeys);
+	flappy_object_release(allkeys);
 
 	return rv;
 }
@@ -414,33 +414,33 @@ xbps_alternatives_unregister(struct xbps_handle *xhp, xbps_dictionary_t pkgd)
  * the repo and installed alternatives sets differ for a specific package.
  */
 static void
-prune_altgroup(struct xbps_handle *xhp, xbps_dictionary_t repod,
+prune_altgroup(struct flappy_handle *xhp, flappy_dictionary_t repod,
 		const char *pkgname, const char *pkgver, const char *keyname)
 {
 	const char *newpkg = NULL, *curpkg = NULL;
-	xbps_array_t array;
-	xbps_dictionary_t alternatives;
-	xbps_string_t kstr;
+	flappy_array_t array;
+	flappy_dictionary_t alternatives;
+	flappy_string_t kstr;
 	unsigned int grp_count;
 	bool current = false;
 
-	xbps_set_cb_state(xhp, XBPS_STATE_ALTGROUP_REMOVED, 0, NULL,
+	flappy_set_cb_state(xhp, FLAPPY_STATE_ALTGROUP_REMOVED, 0, NULL,
 		"%s: unregistered '%s' alternatives group", pkgver, keyname);
 
-	alternatives = xbps_dictionary_get(xhp->pkgdb, "_XBPS_ALTERNATIVES_");
+	alternatives = flappy_dictionary_get(xhp->pkgdb, "_FLAPPY_ALTERNATIVES_");
 	assert(alternatives);
-	array = xbps_dictionary_get(alternatives, keyname);
+	array = flappy_dictionary_get(alternatives, keyname);
 
 	/* if using alt group from another package, we won't switch anything */
-	xbps_array_get_cstring_nocopy(array, 0, &curpkg);
+	flappy_array_get_cstring_nocopy(array, 0, &curpkg);
 	current = (strcmp(pkgname, curpkg) == 0);
 
 	/* actually prune the alt group for the current package */
-	xbps_remove_string_from_array(array, pkgname);
-	grp_count = xbps_array_count(array);
+	flappy_remove_string_from_array(array, pkgname);
+	grp_count = flappy_array_count(array);
 	if (grp_count == 0) {
 		/* it was the last one, ditch the whole thing */
-		xbps_dictionary_remove(alternatives, keyname);
+		flappy_dictionary_remove(alternatives, keyname);
 		return;
 	}
 	if (!current) {
@@ -448,13 +448,13 @@ prune_altgroup(struct xbps_handle *xhp, xbps_dictionary_t repod,
 		return;
 	}
 
-	if (xbps_array_count(xbps_dictionary_get(repod, "run_depends")) == 0 &&
-	    xbps_array_count(xbps_dictionary_get(repod, "shlib-requires")) == 0) {
+	if (flappy_array_count(flappy_dictionary_get(repod, "run_depends")) == 0 &&
+	    flappy_array_count(flappy_dictionary_get(repod, "shlib-requires")) == 0) {
 		/*
 		 * Empty dependencies indicate a removed package (pure meta),
 		 * use the first available group after ours has been pruned
 		 */
-		xbps_array_get_cstring_nocopy(array, 0, &newpkg);
+		flappy_array_get_cstring_nocopy(array, 0, &newpkg);
 		switch_alt_group(xhp, keyname, newpkg, NULL);
 		return;
 	}
@@ -464,56 +464,56 @@ prune_altgroup(struct xbps_handle *xhp, xbps_dictionary_t repod,
 	 * is replacing the original and therefore a new package has registered
 	 * a replacement group, which should be last in the array (most recent).
 	 */
-	xbps_array_get_cstring_nocopy(array, grp_count - 1, &newpkg);
+	flappy_array_get_cstring_nocopy(array, grp_count - 1, &newpkg);
 
 	/* put the new package as head */
-	kstr = xbps_string_create_cstring(newpkg);
-	xbps_remove_string_from_array(array, newpkg);
-	xbps_array_add_first(array, kstr);
-	xbps_array_get_cstring_nocopy(array, 0, &newpkg);
-	xbps_object_release(kstr);
+	kstr = flappy_string_create_cstring(newpkg);
+	flappy_remove_string_from_array(array, newpkg);
+	flappy_array_add_first(array, kstr);
+	flappy_array_get_cstring_nocopy(array, 0, &newpkg);
+	flappy_object_release(kstr);
 
 	switch_alt_group(xhp, keyname, newpkg, NULL);
 }
 
 
 static void
-remove_obsoletes(struct xbps_handle *xhp, const char *pkgname, const char *pkgver,
-		xbps_dictionary_t pkgdb_alts, xbps_dictionary_t repod)
+remove_obsoletes(struct flappy_handle *xhp, const char *pkgname, const char *pkgver,
+		flappy_dictionary_t pkgdb_alts, flappy_dictionary_t repod)
 {
-	xbps_array_t allkeys;
-	xbps_dictionary_t pkgd, pkgd_alts, repod_alts;
+	flappy_array_t allkeys;
+	flappy_dictionary_t pkgd, pkgd_alts, repod_alts;
 
-	pkgd = xbps_pkgdb_get_pkg(xhp, pkgname);
-	if (xbps_object_type(pkgd) != XBPS_TYPE_DICTIONARY) {
+	pkgd = flappy_pkgdb_get_pkg(xhp, pkgname);
+	if (flappy_object_type(pkgd) != FLAPPY_TYPE_DICTIONARY) {
 		return;
 	}
 
-	pkgd_alts = xbps_dictionary_get(pkgd, "alternatives");
-	repod_alts = xbps_dictionary_get(repod, "alternatives");
+	pkgd_alts = flappy_dictionary_get(pkgd, "alternatives");
+	repod_alts = flappy_dictionary_get(repod, "alternatives");
 
-	if (xbps_object_type(pkgd_alts) != XBPS_TYPE_DICTIONARY) {
+	if (flappy_object_type(pkgd_alts) != FLAPPY_TYPE_DICTIONARY) {
 		return;
 	}
 
-	allkeys = xbps_dictionary_all_keys(pkgd_alts);
-	for (unsigned int i = 0; i < xbps_array_count(allkeys); i++) {
-		xbps_array_t array, array2, array_repo;
-		xbps_object_t keysym;
+	allkeys = flappy_dictionary_all_keys(pkgd_alts);
+	for (unsigned int i = 0; i < flappy_array_count(allkeys); i++) {
+		flappy_array_t array, array2, array_repo;
+		flappy_object_t keysym;
 		const char *keyname, *first = NULL;
 
-		keysym = xbps_array_get(allkeys, i);
-		array = xbps_dictionary_get_keysym(pkgd_alts, keysym);
-		keyname = xbps_dictionary_keysym_cstring_nocopy(keysym);
+		keysym = flappy_array_get(allkeys, i);
+		array = flappy_dictionary_get_keysym(pkgd_alts, keysym);
+		keyname = flappy_dictionary_keysym_cstring_nocopy(keysym);
 
-		array_repo = xbps_dictionary_get(repod_alts, keyname);
-		if (!xbps_array_equals(array, array_repo)) {
+		array_repo = flappy_dictionary_get(repod_alts, keyname);
+		if (!flappy_array_equals(array, array_repo)) {
 			/*
 			 * Check if current provider in pkgdb is this pkg.
 			 */
-			array2 = xbps_dictionary_get(pkgdb_alts, keyname);
+			array2 = flappy_dictionary_get(pkgdb_alts, keyname);
 			if (array2) {
-				xbps_array_get_cstring_nocopy(array2, 0, &first);
+				flappy_array_get_cstring_nocopy(array2, 0, &first);
 				if (strcmp(pkgname, first) == 0) {
 					remove_symlinks(xhp, array_repo, keyname);
 				}
@@ -525,18 +525,18 @@ remove_obsoletes(struct xbps_handle *xhp, const char *pkgname, const char *pkgve
 		 * prune it, the system will keep it set after removal of its
 		 * parent package, but it will be empty and invalid...
 		 */
-		if (xbps_array_count(array_repo) == 0) {
+		if (flappy_array_count(array_repo) == 0) {
 			prune_altgroup(xhp, repod, pkgname, pkgver, keyname);
 		}
 	}
-	xbps_object_release(allkeys);
+	flappy_object_release(allkeys);
 }
 
 int
-xbps_alternatives_register(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
+flappy_alternatives_register(struct flappy_handle *xhp, flappy_dictionary_t pkg_repod)
 {
-	xbps_array_t allkeys;
-	xbps_dictionary_t alternatives, pkg_alternatives;
+	flappy_array_t allkeys;
+	flappy_dictionary_t alternatives, pkg_alternatives;
 	const char *pkgver, *pkgname;
 	int rv = 0;
 
@@ -545,17 +545,17 @@ xbps_alternatives_register(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
 	if (xhp->pkgdb == NULL)
 		return EINVAL;
 
-	alternatives = xbps_dictionary_get(xhp->pkgdb, "_XBPS_ALTERNATIVES_");
+	alternatives = flappy_dictionary_get(xhp->pkgdb, "_FLAPPY_ALTERNATIVES_");
 	if (alternatives == NULL) {
-		alternatives = xbps_dictionary_create();
-		xbps_dictionary_set(xhp->pkgdb, "_XBPS_ALTERNATIVES_", alternatives);
-		xbps_object_release(alternatives);
+		alternatives = flappy_dictionary_create();
+		flappy_dictionary_set(xhp->pkgdb, "_FLAPPY_ALTERNATIVES_", alternatives);
+		flappy_object_release(alternatives);
 	}
-	alternatives = xbps_dictionary_get(xhp->pkgdb, "_XBPS_ALTERNATIVES_");
+	alternatives = flappy_dictionary_get(xhp->pkgdb, "_FLAPPY_ALTERNATIVES_");
 	assert(alternatives);
 
-	xbps_dictionary_get_cstring_nocopy(pkg_repod, "pkgver", &pkgver);
-	xbps_dictionary_get_cstring_nocopy(pkg_repod, "pkgname", &pkgname);
+	flappy_dictionary_get_cstring_nocopy(pkg_repod, "pkgver", &pkgver);
+	flappy_dictionary_get_cstring_nocopy(pkg_repod, "pkgname", &pkgname);
 
 	/*
 	 * Compare alternatives from pkgdb and repo and then remove obsolete
@@ -563,57 +563,57 @@ xbps_alternatives_register(struct xbps_handle *xhp, xbps_dictionary_t pkg_repod)
 	 */
 	remove_obsoletes(xhp, pkgname, pkgver, alternatives, pkg_repod);
 
-	pkg_alternatives = xbps_dictionary_get(pkg_repod, "alternatives");
-	if (!xbps_dictionary_count(pkg_alternatives))
+	pkg_alternatives = flappy_dictionary_get(pkg_repod, "alternatives");
+	if (!flappy_dictionary_count(pkg_alternatives))
 		return 0;
 
-	allkeys = xbps_dictionary_all_keys(pkg_alternatives);
-	for (unsigned int i = 0; i < xbps_array_count(allkeys); i++) {
-		xbps_array_t array;
-		xbps_object_t keysym;
+	allkeys = flappy_dictionary_all_keys(pkg_alternatives);
+	for (unsigned int i = 0; i < flappy_array_count(allkeys); i++) {
+		flappy_array_t array;
+		flappy_object_t keysym;
 		const char *keyname, *first = NULL;
 
-		keysym = xbps_array_get(allkeys, i);
-		keyname = xbps_dictionary_keysym_cstring_nocopy(keysym);
+		keysym = flappy_array_get(allkeys, i);
+		keyname = flappy_dictionary_keysym_cstring_nocopy(keysym);
 
-		array = xbps_dictionary_get(alternatives, keyname);
+		array = flappy_dictionary_get(alternatives, keyname);
 		if (array == NULL) {
-			array = xbps_array_create();
+			array = flappy_array_create();
 		} else {
-			if (xbps_match_string_in_array(array, pkgname)) {
-				xbps_array_get_cstring_nocopy(array, 0, &first);
+			if (flappy_match_string_in_array(array, pkgname)) {
+				flappy_array_get_cstring_nocopy(array, 0, &first);
 				if (strcmp(pkgname, first)) {
 					/* current alternative does not match */
 					continue;
 				}
 				/* already registered, update symlinks */
 				rv = create_symlinks(xhp,
-					xbps_dictionary_get(pkg_alternatives, keyname),
+					flappy_dictionary_get(pkg_alternatives, keyname),
 					keyname);
 				if (rv != 0)
 					break;
 			} else {
 				/* not registered, add provider */
-				xbps_array_add_cstring(array, pkgname);
-				xbps_set_cb_state(xhp, XBPS_STATE_ALTGROUP_ADDED, 0, NULL,
+				flappy_array_add_cstring(array, pkgname);
+				flappy_set_cb_state(xhp, FLAPPY_STATE_ALTGROUP_ADDED, 0, NULL,
 				    "%s: registered '%s' alternatives group", pkgver, keyname);
 			}
 			continue;
 		}
 
-		xbps_array_add_cstring(array, pkgname);
-		xbps_dictionary_set(alternatives, keyname, array);
-		xbps_set_cb_state(xhp, XBPS_STATE_ALTGROUP_ADDED, 0, NULL,
+		flappy_array_add_cstring(array, pkgname);
+		flappy_dictionary_set(alternatives, keyname, array);
+		flappy_set_cb_state(xhp, FLAPPY_STATE_ALTGROUP_ADDED, 0, NULL,
 		    "%s: registered '%s' alternatives group", pkgver, keyname);
 		/* apply alternatives for this group */
 		rv = create_symlinks(xhp,
-			xbps_dictionary_get(pkg_alternatives, keyname),
+			flappy_dictionary_get(pkg_alternatives, keyname),
 			keyname);
-		xbps_object_release(array);
+		flappy_object_release(array);
 		if (rv != 0)
 			break;
 	}
-	xbps_object_release(allkeys);
+	flappy_object_release(allkeys);
 
 	return rv;
 }

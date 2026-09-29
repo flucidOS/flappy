@@ -36,11 +36,11 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "xbps_api_impl.h"
+#include "flappy_api_impl.h"
 
 static bool
-check_remove_pkg_files(struct xbps_handle *xhp,
-	xbps_array_t obsoletes, const char *pkgver, uid_t euid)
+check_remove_pkg_files(struct flappy_handle *xhp,
+	flappy_array_t obsoletes, const char *pkgver, uid_t euid)
 {
 	struct stat st;
 	bool fail = false;
@@ -48,9 +48,9 @@ check_remove_pkg_files(struct xbps_handle *xhp,
 	if (euid == 0)
 		return false;
 
-	for (unsigned int i = 0; i < xbps_array_count(obsoletes); i++) {
+	for (unsigned int i = 0; i < flappy_array_count(obsoletes); i++) {
 		const char *file = NULL;
-		xbps_array_get_cstring_nocopy(obsoletes, i, &file);
+		flappy_array_get_cstring_nocopy(obsoletes, i, &file);
 		/*
 		 * Check if effective user ID owns the file; this is
 		 * enough to ensure the user has write permissions
@@ -69,7 +69,7 @@ check_remove_pkg_files(struct xbps_handle *xhp,
 			 * is returned.
 			 */
 			fail = true;
-			xbps_set_cb_state(xhp, XBPS_STATE_REMOVE_FILE_FAIL,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_REMOVE_FILE_FAIL,
 			    errno, pkgver, "%s: cannot remove `%s': %s", pkgver,
 			    file, strerror(errno));
 		}
@@ -78,26 +78,26 @@ check_remove_pkg_files(struct xbps_handle *xhp,
 }
 
 static int
-remove_pkg_files(struct xbps_handle *xhp,
-		 xbps_array_t obsoletes,
+remove_pkg_files(struct flappy_handle *xhp,
+		 flappy_array_t obsoletes,
 		 const char *pkgver)
 {
 	int rv = 0;
 
-	for (unsigned int i = 0; i < xbps_array_count(obsoletes); i++) {
+	for (unsigned int i = 0; i < flappy_array_count(obsoletes); i++) {
 		const char *file = NULL;
-		xbps_array_get_cstring_nocopy(obsoletes, i, &file);
+		flappy_array_get_cstring_nocopy(obsoletes, i, &file);
 		/*
 		 * Remove the object if possible.
 		 */
 		if (remove(file) == -1) {
-			xbps_set_cb_state(xhp, XBPS_STATE_REMOVE_FILE_FAIL,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_REMOVE_FILE_FAIL,
 			    errno, pkgver,
 			    "%s: failed to remove `%s': %s", pkgver,
 			    file, strerror(errno));
 		} else {
 			/* success */
-			xbps_set_cb_state(xhp, XBPS_STATE_REMOVE_FILE,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_REMOVE_FILE,
 			    0, pkgver, "Removed `%s'", file);
 		}
 	}
@@ -106,11 +106,11 @@ remove_pkg_files(struct xbps_handle *xhp,
 }
 
 int HIDDEN
-xbps_remove_pkg(struct xbps_handle *xhp, const char *pkgver, bool update)
+flappy_remove_pkg(struct flappy_handle *xhp, const char *pkgver, bool update)
 {
-	xbps_dictionary_t pkgd = NULL, obsd = NULL;
-	xbps_array_t obsoletes = NULL;
-	char pkgname[XBPS_NAME_SIZE], metafile[PATH_MAX];
+	flappy_dictionary_t pkgd = NULL, obsd = NULL;
+	flappy_array_t obsoletes = NULL;
+	char pkgname[FLAPPY_NAME_SIZE], metafile[PATH_MAX];
 	int rv = 0;
 	pkg_state_t state = 0;
 	uid_t euid;
@@ -118,30 +118,30 @@ xbps_remove_pkg(struct xbps_handle *xhp, const char *pkgver, bool update)
 	assert(xhp);
 	assert(pkgver);
 
-	if (!xbps_pkg_name(pkgname, sizeof(pkgname), pkgver))
-		xbps_unreachable();
+	if (!flappy_pkg_name(pkgname, sizeof(pkgname), pkgver))
+		flappy_unreachable();
 
 	euid = geteuid();
 
-	if ((pkgd = xbps_pkgdb_get_pkg(xhp, pkgname)) == NULL) {
+	if ((pkgd = flappy_pkgdb_get_pkg(xhp, pkgname)) == NULL) {
 		rv = errno;
-		xbps_dbg_printf("[remove] cannot find %s in pkgdb: %s\n",
+		flappy_dbg_printf("[remove] cannot find %s in pkgdb: %s\n",
 		    pkgver, strerror(rv));
 		goto out;
 	}
-	if ((rv = xbps_pkg_state_dictionary(pkgd, &state)) != 0) {
-		xbps_dbg_printf("[remove] cannot find %s in pkgdb: %s\n",
+	if ((rv = flappy_pkg_state_dictionary(pkgd, &state)) != 0) {
+		flappy_dbg_printf("[remove] cannot find %s in pkgdb: %s\n",
 		    pkgver, strerror(rv));
 		goto out;
 	}
-	xbps_dbg_printf("attempting to remove %s state %d\n", pkgver, state);
+	flappy_dbg_printf("attempting to remove %s state %d\n", pkgver, state);
 
 	if (!update)
-		xbps_set_cb_state(xhp, XBPS_STATE_REMOVE, 0, pkgver, NULL);
+		flappy_set_cb_state(xhp, FLAPPY_STATE_REMOVE, 0, pkgver, NULL);
 
 	if (chdir(xhp->rootdir) == -1) {
 		rv = errno;
-		xbps_set_cb_state(xhp, XBPS_STATE_REMOVE_FAIL,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_REMOVE_FAIL,
 		    rv, pkgver,
 		   "%s: [remove] failed to chdir to rootdir `%s': %s",
 		    pkgver, xhp->rootdir, strerror(rv));
@@ -149,14 +149,14 @@ xbps_remove_pkg(struct xbps_handle *xhp, const char *pkgver, bool update)
 	}
 
 	/* If package was "half-removed", remove it fully. */
-	if (state == XBPS_PKG_STATE_HALF_REMOVED)
+	if (state == FLAPPY_PKG_STATE_HALF_REMOVED)
 		goto purge;
 
 	/* unregister alternatives */
 	if (update)
-		xbps_dictionary_set_bool(pkgd, "alternatives-update", true);
+		flappy_dictionary_set_bool(pkgd, "alternatives-update", true);
 
-	if ((rv = xbps_alternatives_unregister(xhp, pkgd)) != 0)
+	if ((rv = flappy_alternatives_unregister(xhp, pkgd)) != 0)
 		goto out;
 
 	/*
@@ -168,10 +168,10 @@ xbps_remove_pkg(struct xbps_handle *xhp, const char *pkgver, bool update)
 		return 0;
 	}
 
-	if (xbps_dictionary_get_dict(xhp->transd, "obsolete_files", &obsd))
-		obsoletes = xbps_dictionary_get(obsd, pkgname);
+	if (flappy_dictionary_get_dict(xhp->transd, "obsolete_files", &obsd))
+		obsoletes = flappy_dictionary_get(obsd, pkgname);
 
-	if (xbps_array_count(obsoletes) > 0) {
+	if (flappy_array_count(obsoletes) > 0) {
 		/*
 		 * Do the removal in 2 phases:
 		 * 	1- check if user has enough perms to remove all entries
@@ -189,10 +189,10 @@ xbps_remove_pkg(struct xbps_handle *xhp, const char *pkgver, bool update)
 	/*
 	 * Set package state to "half-removed".
 	 */
-	rv = xbps_set_pkg_state_dictionary(pkgd,
-	     XBPS_PKG_STATE_HALF_REMOVED);
+	rv = flappy_set_pkg_state_dictionary(pkgd,
+	     FLAPPY_PKG_STATE_HALF_REMOVED);
 	if (rv != 0) {
-		xbps_set_cb_state(xhp, XBPS_STATE_REMOVE_FAIL,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_REMOVE_FAIL,
 		    rv, pkgver,
 		    "%s: [remove] failed to set state to half-removed: %s",
 		    pkgver, strerror(rv));
@@ -207,7 +207,7 @@ purge:
 	snprintf(metafile, sizeof(metafile), "%s/.%s-files.plist", xhp->metadir, pkgname);
 	if (remove(metafile) == -1) {
 		if (errno != ENOENT) {
-			xbps_set_cb_state(xhp, XBPS_STATE_REMOVE_FAIL,
+			flappy_set_cb_state(xhp, FLAPPY_STATE_REMOVE_FAIL,
 			    rv, pkgver,
 			    "%s: failed to remove metadata file: %s",
 			    pkgver, strerror(errno));
@@ -216,12 +216,12 @@ purge:
 	/*
 	 * Unregister package from pkgdb.
 	 */
-	xbps_dbg_printf("[remove] unregister %s returned %d\n", pkgver, rv);
-	xbps_set_cb_state(xhp, XBPS_STATE_REMOVE_DONE, 0, pkgver, NULL);
-	xbps_dictionary_remove(xhp->pkgdb, pkgname);
+	flappy_dbg_printf("[remove] unregister %s returned %d\n", pkgver, rv);
+	flappy_set_cb_state(xhp, FLAPPY_STATE_REMOVE_DONE, 0, pkgver, NULL);
+	flappy_dictionary_remove(xhp->pkgdb, pkgname);
 out:
 	if (rv != 0) {
-		xbps_set_cb_state(xhp, XBPS_STATE_REMOVE_FAIL, rv, pkgver,
+		flappy_set_cb_state(xhp, FLAPPY_STATE_REMOVE_FAIL, rv, pkgver,
 		    "%s: failed to remove package: %s", pkgver, strerror(rv));
 	}
 
